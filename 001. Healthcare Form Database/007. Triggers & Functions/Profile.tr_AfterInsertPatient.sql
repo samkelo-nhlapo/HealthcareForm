@@ -1,0 +1,19 @@
+USE PatientEnrollment
+GO
+CREATE TRIGGER Profile.tr_AfterInsertPatient
+ON Profile.Patient
+AFTER INSERT 
+AS
+BEGIN
+
+	--CHECK IF ANYTHING IS INSERTED 
+	IF(ROWCOUNT_BIG() = 0)
+		RETURN;
+
+	SET NOCOUNT ON
+	
+	IF NOT EXISTS(SELECT 1 FROM inserted)
+		RETURN;
+
+	SET NOCOUNT OFF
+END
