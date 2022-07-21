@@ -1,44 +1,15 @@
 ﻿@{
     ViewBag.Title = "Home Page";
 }
+@using HealthcareForm.Models;
 
-@using PatientEnrollmentVS.Models;
-@model PatientModel
+@model MainModel
 
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
-@* Moment.js library to manipulate date *@
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js"></script>
-
-@*
-    Html.BeginForm to submit form data to the server without whole page postback
-    Postback = submitting all the information while the user is still working
-*@
 
 @using (Html.BeginForm("SavePatient", "Home", FormMethod.Post, new { @id = "frmHome" }))
 {
-    //HtmlAttributes = 
-
-    <hr />
-    
-    <div class="form-group row">
-        <div class="form-inline">
-            <label for="txtIDSearch" class="col-sm-2 col-form-label">Search Patient</label>
-            <div class="form-group mb-2">
-
-                <div class="col-sm-12">
-
-                    @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control" })
-
-                </div>
-            </div>
-            <input type="button" value="Search" class="btn btn-primary mb-2" onclick="GetButton()" />
-        </div>
-
-    </div>
-    
-    <hr />
-
     <div class="form-group row">
         <label for="FirstName" class="col-sm-2 col-form-label">First Name</label>
         <div class="col-sm-10">
@@ -84,7 +55,7 @@
             }, "0", new { @class = "form-control", id = "dllGetGender", name = "Gender" })
 
         </div>
-        
+
     </div>
 
     <div class="form-group row">
@@ -133,7 +104,7 @@
     <div class="form-group row">
         <label for="dllGetProvinces" class="col-sm-2 col-form-label">Province</label>
         <div class="col-sm-10">
-            
+
             @Html.DropDownListFor(x => x.ProvinceIDFK, new List<SelectListItem>()
                 {
                     new SelectListItem()
@@ -149,7 +120,7 @@
     <div class="form-group row">
         <label for="dllGetCountries" class="col-sm-2 col-form-label">Countries</label>
         <div class="col-sm-10">
-            
+
             @Html.DropDownListFor(x => x.CountryIDFK, new List<SelectListItem>()
                 {
                     new SelectListItem()
@@ -165,7 +136,7 @@
     <div class="form-group row">
         <label for="dllGetMaritalStatus" class="col-sm-2 col-form-label">Marital Status</label>
         <div class="col-sm-10">
-            
+
             @Html.DropDownListFor(x => x.MaritalStatusIDFK, new List<SelectListItem>()
                 {
                     new SelectListItem()
@@ -223,28 +194,19 @@
         <div class="col-sm-10">
             @Html.TextAreaFor(x => x.MedicationList, new { @class = "form-control", id = "dllMedicationList", rows = "3", name = "MedicationList" })
         </div>
-        
+
     </div>
 
     //Save Data
     <input type="button" value="Submit" class="btn btn-primary" onclick="SaveButton()" />
 
-    //Update Data
-    <input type="button" value="Update" class="btn btn-primary" onclick="UpdateButton()" />
-
-    //Clear Data
-    <input type="reset" value="Clear" class="btn btn-primary" />
-
-
 }
 
-
 <script type="text/javascript">
-
     $(document).ready(function () {
 
         $.ajax({
-            url: "/Home/GetGender",
+            url: "/DropDown/GetGender",
             dataType: "json",
             cache: true,
             async: true,
@@ -264,61 +226,37 @@
             }
         })
 
-        $.ajax({
-            url: "/Home/GetCities",
-            dataType: "json",
-            cache: true,
-            async: true,
-            global: false,
-            success: function (data) {
-
-                var items = '<option value ="' + '0' + '">' + 'Select status' + '</option>';
-                $.each(data, function (i, value) {
-
-                    items += '<option value ="' + value.CityIDFK + '">' + value.CityName + '</option>';
-                    $('#dllGetCities').html(items);
-                })
-            },
-            error: function (xhr, response) {
-                alert("Cities is not successful");
-            }
-        })
-
         $.ajax
-        (
-            {
-
-                url: "/Home/GetProvinces",
+            ({
+                url: "/DropDown/GetCities",
                 dataType: "json",
                 cache: true,
                 async: true,
                 global: false,
                 success: function (data) {
 
-                    var items = '<option value ="' + '0' + '">' + 'Select status' + '</option>';
-
+                    var items = '<option value ="' + '0' + '">' + 'Select City' + '</option>';
                     $.each(data, function (i, value) {
 
-                        items += '<option value ="' + value.ProvinceIDFK + '">' + value.ProvinceName + '</option>';
-                        $('#dllGetProvinces').html(items);
+                        items += '<option value ="' + value.CityIDFK + '">' + value.CityName + '</option>';
+                        $('#dllGetCities').html(items);
                     })
                 },
-                error: function (xhr) {
-                    alert("Provinces Not successfull")
+                error: function (xhr, response) {
+                    alert("Cities is not successful");
                 }
-            }
-        )
+            })
 
         $.ajax
             ({
-                url: "/Home/GetCountries",
+                url: "/DropDown/GetCountries",
                 dataType: "json",
                 cache: true,
                 async: true,
                 global: false,
                 success: function (data) {
 
-                    var items = '<option value ="' + '0' + '">' + 'Select status' + '</option>';
+                    var items = '<option value ="' + '0' + '">' + 'Select Country' + '</option>';
 
                     $.each(data, function (i, value) {
 
@@ -332,16 +270,38 @@
             })
 
         $.ajax
-        (
-            {
-                url: "/Home/GetMeritalStatus",
+            ({
+
+                url: "/DropDown/GetProvinces",
                 dataType: "json",
                 cache: true,
                 async: true,
                 global: false,
                 success: function (data) {
 
-                    var items = '<option value ="' + '0' + '">' + 'Select status' + '</option>';
+                    var items = '<option value ="' + '0' + '">' + 'Select Province' + '</option>';
+
+                    $.each(data, function (i, value) {
+
+                        items += '<option value ="' + value.ProvinceIDFK + '">' + value.ProvinceName + '</option>';
+                        $('#dllGetProvinces').html(items);
+                    })
+                },
+                error: function (xhr) {
+                    alert("Provinces Not successfull")
+                }
+            })
+
+        $.ajax
+            ({
+                url: "/DropDown/GetMeritalStatus",
+                dataType: "json",
+                cache: true,
+                async: true,
+                global: false,
+                success: function (data) {
+
+                    var items = '<option value ="' + '0' + '">' + 'Select Merital Status' + '</option>';
                     $.each(data, function (index, value) {
 
                         items += '<option value ="' + value.MaritalStatusIDFK + '">' + value.MaritalStatusDescription + '</option>';
@@ -352,20 +312,17 @@
                 error: function (xhr) {
                     alert("Marital status not successfull ");
                 }
-            }
-        )
+            })
     })
-
 </script>
 
 <script>
-
     function SaveButton() {
-        
+
         debugger
         $.ajax({
             type: "POST",
-            url: "/Home/AddPatient",
+            url: "/AddPatient/AddPatient",
             data: $("#frmHome").serialize(),   //.serializa() creates a text string in standard URL-encoded notation
             dataType: 'json',
             success: function (data) {
@@ -379,134 +336,4 @@
             }
         })
     }
-
-    function UpdateButton() {
-        $.ajax({
-            type: "POST",
-            url: "/Home/UpdatePatient",
-            data: $("#frmHome").serialize(),
-            dataType: 'json',
-            success: function (data) {
-                alert("Updated successfully");
-            },
-            error: function () {
-                alert("Update not successful");
-            }
-        })
-
-    }
-
-    function GetButton() {
-
-        
-        var IDNumber = $('#txtIDSearch').val();
-
-        if (IDNumber == "") {
-            alert("Enter ID Number ");
-        }
-        else
-        {
-            var inputData = { IDnumber: IDNumber }
-
-            
-            $.ajax({
-                type: "GET",
-                url: "/Home/GetPatient",
-                data: inputData,
-                async: false,
-                error: function (xhr)
-                {
-                    alert("unsuccessful Getting Patient");
-                },
-                success: function (data) {
-
-                    debugger
-                    if ((data = "Message") != "")
-                    {
-                        for (var key of Object.keys(data)) {
-                            switch (key) {
-                                case "Message":
-                                    alert(data[key]);
-                                    break;
-                            }
-                        }
-                    }
-
-                    //Object.keys() returns an array of GetPatient controller Method
-                    
-                    for (var key of Object.keys(data)) {
-
-                        switch (key) {
-
-                            case "IDNumber":
-                                document.getElementById("txtIDSearch").value = data[key];
-                                break;
-                            case "FirstName":
-                                document.getElementById("FirstName").value = data[key];
-                                break;
-                            case "LastName":
-                                document.getElementById("LastName").value = data[key];
-                                break;
-                            case "ID_Number":
-                                document.getElementById("ID_Number").value = data[key];
-                                break;
-                            case "DateOfBirth":
-                                //Moment.js library to manipulate date
-                                var date = moment(data[key]).format("DD-MMM-YYYY");
-                                document.getElementById("DateOfBirth").value = date;
-                                break;
-                            case "GenderIDFK":
-                                document.getElementById("dllGetGender").value = data[key];
-                                break;
-                            case "PhoneNumber":
-                                document.getElementById("dllPhoneNumber").value = data[key];
-                                break;
-                            case "Email":
-                                document.getElementById("dllEmail").value = data[key];
-                                break;
-                            case "Line1":
-                                document.getElementById("dllLine1").value = data[key];
-                                break;
-                            case "Line2":
-                                document.getElementById("dllLine2").value = data[key];
-                                break;
-                            case "CityIDFK":
-                                document.getElementById("dllGetCities").value = data[key];
-                                break;
-                            case "ProvinceIDFK":
-                                document.getElementById("dllGetProvinces").value = data[key];
-                                break;
-                            case "CountryIDFK":
-                                document.getElementById("dllGetCountries").value = data[key];
-                                break;
-                            case "MaritalStatusIDFK":
-                                document.getElementById("dllGetMaritalStatus").value = data[key];
-                                break;
-                            case "MedicationList":
-                                document.getElementById("dllMedicationList").value = data[key];
-                                break;
-                            case "EmergencyName":
-                                document.getElementById("dllEmergencyName").value = data[key];
-                                break;
-                            case "EmergencyLastName":
-                                document.getElementById("dllEmergencyLastName").value = data[key];
-                                break;
-                            case "EmergencyPhoneNumber":
-                                document.getElementById("dllEmergencyPhoneNumber").value = data[key];
-                                break;
-                            case "Relationship":
-                                document.getElementById("dllRelationship").value = data[key];
-                                break;
-                            case "EmergancyDateOfBirth":
-                                var date = moment(data[key]).format("DD-MM-YYYY");
-                                document.getElementById("dllEmergancyDateOfBirth").value = date;
-                                break;
-                            default:
-                        }
-                    }
-                }
-            })
-        }
-    }
-
 </script>
