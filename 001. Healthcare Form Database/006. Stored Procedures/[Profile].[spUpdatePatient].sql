@@ -17,29 +17,26 @@ CREATE OR ALTER PROC [Profile].[spUpdatePatient]
 	@ID_Number VARCHAR(250) = '',
 	@DateOfBirth DATETIME = '2022-06-03 12:55:33.680',
 	@GenderIDFK INT = 0,
-	
 	@PhoneNumber VARCHAR(250) = '',
 	@Email VARCHAR(250) = '',
 	@Line1 VARCHAR(250) = '',
 	@Line2 VARCHAR(250) = '',
 	@CityIDFK INT = 0,
-	
 	@ProvinceIDFK INT = 0,
 	@CountryIDFK INT = 0,
 	@MaritalStatusIDFK INT = 0,
 	@MedicationList VARCHAR(MAX) = '',
 	@EmergencyName VARCHAR(250) = '',
-	
 	@EmergencyLastName VARCHAR(250) = '',
 	@EmergencyPhoneNumber varchar(250) = '',
 	@Relationship VARCHAR(250) = '',
 	@EmergancyDateOfBirth DATETIME = '2022-06-03 12:55:33.680',
-
 	@Message VARCHAR(250) OUTPUT 
 )
 AS
 BEGIN
-
+	
+	-- Default variables
 	DECLARE @IsActive BIT = 0,
 			@DefaultDate DATETIME = GETDATE(),
 			@EmailIDFK UNIQUEIDENTIFIER = NEWID(),
@@ -63,7 +60,8 @@ BEGIN
 			--CHECK IF ID NUMBER EXISTS IN THE DATABASE
 			IF EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @ID_Number)
 			BEGIN
-				
+
+
 				INSERT INTO Contacts.Phones
 				(
 					PhoneId,
@@ -72,7 +70,7 @@ BEGIN
 					UpdateDate
 				)
 				VALUES(@PhoneIDFK, @PhoneNumber, @IsActive, @DefaultDate)
-	
+
 				INSERT INTO Contacts.Emails
 				(
 					EmailId,
@@ -160,7 +158,7 @@ BEGIN
 			SET @ErrorMessage = ERROR_MESSAGE()
 			SET @ErrorDateTime = GETDATE()
 	
-			EXEC [Auth].[Exception] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+			EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 	
 		END CATCH
 	

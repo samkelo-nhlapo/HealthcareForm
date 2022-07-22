@@ -21,6 +21,7 @@ CREATE TABLE [Profile].[Patient](
 	[AddressIDFK] [uniqueidentifier] NOT NULL,
 	[MaritalStatusIDFK] [int] NOT NULL,
 	[EmergencyIDFK] [uniqueidentifier] NOT NULL,
+	[IsDeleted] [BIT] NOT NULL DEFAULT 0
 PRIMARY KEY CLUSTERED 
 (
 	[PatientId] ASC

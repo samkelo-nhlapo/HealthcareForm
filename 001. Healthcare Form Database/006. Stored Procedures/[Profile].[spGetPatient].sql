@@ -49,13 +49,14 @@ BEGIN
 			@ErrorSeverity INT,
 			@ErrorLine INT,
 			@ErrorMessage VARCHAR(200),
-			@ErrorDateTime DATETIME
+			@ErrorDateTime DATETIME,
+			@IsDeleted BIT = 0
 
 	SET NOCOUNT ON
 
 	BEGIN TRY
 
-		IF EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @IDNumber)
+		IF EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @IDNumber AND IsDeleted = @IsDeleted)
 		BEGIN
 			
 			SELECT  @FirstName = PP.FirstName,
@@ -95,6 +96,7 @@ BEGIN
 			-- Return error message
 
 			SET @Message = 'Sorry User ID ( ' + @IDNumber + ' ) Does not exists Please verify and try again'
+
 			SET @FirstName = ''
 			SET @LastName = ''
 			SET @ID_Number = ''

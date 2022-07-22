@@ -8,6 +8,6 @@ namespace HealthcareForm.Repo
 {
     public class Contxt : DbContext
     {
-        public Contxt() : base("name = EnrollmentEntity"){  }
+        public Contxt() : base("name = HealthcareEntity") {  }
     }
 }
