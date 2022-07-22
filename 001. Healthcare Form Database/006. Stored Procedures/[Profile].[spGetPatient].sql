@@ -19,29 +19,28 @@ CREATE OR ALTER PROC [Profile].[spGetPatient]
 	@ID_Number VARCHAR(250) OUTPUT,
 	@DateOfBirth DATETIME OUTPUT,
 	@GenderIDFK INT OUTPUT,
-	
 	@PhoneNumber VARCHAR(250) OUTPUT,
 	@Email VARCHAR(250) OUTPUT,
 	@Line1 VARCHAR(250) OUTPUT,
 	@Line2 VARCHAR(250) OUTPUT,
 	@CityIDFK INT OUTPUT,
-	
 	@ProvinceIDFK INT OUTPUT,
 	@CountryIDFK INT OUTPUT,
 	@MaritalStatusIDFK INT OUTPUT,
 	@MedicationList VARCHAR(250) OUTPUT,
 	@EmergencyName VARCHAR(250) OUTPUT,
-	
 	@EmergencyLastName VARCHAR(250) OUTPUT,
 	@EmergencyPhoneNumber varchar(250) OUTPUT,
 	@Relationship VARCHAR(250) OUTPUT,
 	@EmergancyDateOfBirth DATETIME OUTPUT,
-	
 	@Message VARCHAR(250) OUTPUT
 )
 AS
 BEGIN
-	
+	--Summary
+	--Id number returns a patients data
+
+	-- Default variables
 	DECLARE @UserName VARCHAR(200),
 			@ErrorSchema VARCHAR(200),
 			@ErrorProc VARCHAR(200),
@@ -93,8 +92,9 @@ BEGIN
 
 		END ELSE
 		BEGIN
+			-- Return error message
 
-			SET @Message = 'Sorry User ( ' + @IDNumber + ' ) Does not exists Please verify and try again'
+			SET @Message = 'Sorry User ID ( ' + @IDNumber + ' ) Does not exists Please verify and try again'
 			SET @FirstName = ''
 			SET @LastName = ''
 			SET @ID_Number = ''
@@ -118,7 +118,8 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
-
+		
+		-- Pass Error data into the DB_Errors Table 
 		SET	@UserName = SUSER_SNAME()
 		SET	@ErrorSchema = SCHEMA_NAME()
 		SET @ErrorProc = ERROR_PROCEDURE()
@@ -129,7 +130,7 @@ BEGIN
 		SET @ErrorMessage = ERROR_MESSAGE()
 		SET @ErrorDateTime = GETDATE()
 
-		EXEC [Auth].[Exception] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+		EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 
 	END CATCH
 

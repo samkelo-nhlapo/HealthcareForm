@@ -19,7 +19,7 @@ BEGIN
 
 	SET NOCOUNT ON
 	
-		SELECT CAST(GenderId AS VARCHAR(250)) AS GenderId, GenderDescription 
+		SELECT CAST(GenderId AS VARCHAR(250)) AS GenderIDFK, GenderDescription 
 		FROM Profile.Gender WITH(NOLOCK)
 	
 	SET NOCOUNT OFF

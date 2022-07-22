@@ -1,4 +1,4 @@
-USE PatientEnrollment
+USE HealthcareForm
 GO
 
 /****** Object:  UserDefinedFunction [dbo].[CapitalizeFirstLetter]    Script Date: 16-Sep-21 11:37:17 PM ******/

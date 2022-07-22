@@ -17,12 +17,14 @@ ALTER   PROC [Profile].[spGetMaritalStatus]
 AS
 BEGIN
 
-SET NOCOUNT ON
-
-	SELECT CAST(MaritalStatusId AS VARCHAR(250)) AS MaritalStatusIDFK, MaritalStatusDescription 
-	FROM Profile.MaritalStatus WITH(NOLOCK)
-
-SET NOCOUNT OFF
+	SET NOCOUNT ON
+	
+		SELECT 
+			CAST(MaritalStatusId AS VARCHAR(250)) AS MaritalStatusIDFK, 
+			MaritalStatusDescription 
+		FROM Profile.MaritalStatus WITH(NOLOCK)
+	
+	SET NOCOUNT OFF
 
 END
 GO

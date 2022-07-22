@@ -1,4 +1,4 @@
-USE PatientEnrollment
+USE HealthcareForm
 GO
 CREATE TRIGGER Profile.tr_AfterInsertPatient
 ON Profile.Patient

@@ -1,4 +1,4 @@
-USE PatientEnrollment
+USE HealthcareForm
 GO
 
 --================================================================================================
@@ -8,14 +8,14 @@ GO
 --	TFS Task	Ensure Phone number format has - between numbers
 --================================================================================================
 
-CREATE FUNCTION Contacts.FormatPhoneNumber
+CREATE OR ALTER FUNCTION Contacts.FormatPhoneNumber
 (
-	@phoneNumber VARCHAR(10)
+	@PhoneNumber VARCHAR(10)
 )
 RETURNS 
 	VARCHAR(12)
 BEGIN
-    RETURN SUBSTRING(@phoneNumber, 1, 3) + '-' + 
-           SUBSTRING(@phoneNumber, 4, 3) + '-' + 
-           SUBSTRING(@phoneNumber, 7, 4)
+    RETURN SUBSTRING(@PhoneNumber, 1, 3) + '-' + 
+           SUBSTRING(@PhoneNumber, 4, 3) + '-' + 
+           SUBSTRING(@PhoneNumber, 7, 4)
 END

@@ -6,7 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE PROC [Auth].[Exception]
+CREATE OR ALTER PROC [Auth].[spDB_Errors]
 (
 	@UserName VARCHAR(200),
 	@ErrorSchema VARCHAR(200),

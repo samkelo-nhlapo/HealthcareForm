@@ -1,4 +1,4 @@
-USE PatientEnrollment
+USE HealthcareForm
 GO
 CREATE OR ALTER TRIGGER Profile.tr_ADeletePatient
 ON Profile.Patient
@@ -15,7 +15,6 @@ BEGIN
 		RETURN
 
 	--SAVES DATA DELETED AS JSON PATH XML
-	--FIX GENDERID TO TABLE ID --ISSUE = TABLE ID IS GUID AND deleted ID IS INT THAT CLASH
 	INSERT INTO Auth.AuditLog
 	(
 		ModifiedTime, 
@@ -26,11 +25,11 @@ BEGIN
 		TableID, 
 		LogData
 	)
-	SELECT GETDATE(), SYSTEM_USER, 'Deleted', SCHEMA_NAME(), 'Patient', D1.GenderIDFK , D2.LogData
+	SELECT GETDATE(), SYSTEM_USER, 'Deleted', SCHEMA_NAME(), 'Patient', D1.PatientId , D2.LogData
 	FROM deleted D1
 	CROSS APPLY
 	(
-		SELECT LogData = (SELECT * FROM deleted WHERE deleted.GenderIDFK = D1.GenderIDFK FOR Json Path, without_Array_wrapper)
+		SELECT LogData = (SELECT * FROM deleted WHERE deleted.PatientId = D1.PatientId FOR Json Path, without_Array_wrapper)
 	)AS D2
 
 END

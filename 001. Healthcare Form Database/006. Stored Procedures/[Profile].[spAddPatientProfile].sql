@@ -16,37 +16,33 @@ GO
 
 
 
-ALTER     PROC [Profile].[spAddPatientProfile]
+CREATE OR ALTER     PROC [Profile].[spAddPatient]
 (
 	@FirstName VARCHAR(250) = '',
 	@LastName VARCHAR(250) = '',
 	@ID_Number VARCHAR(250) = '',
 	@DateOfBirth DATETIME,
 	@GenderIDFK INT = 0,
-	
 	@PhoneNumber VARCHAR(250) = '',
 	@Email VARCHAR(250) = '',
 	@Line1 VARCHAR(250) = '',
 	@Line2 VARCHAR(250) = '',
 	@CityIDFK INT = 0,
-	
 	@ProvinceIDFK INT = 0,
 	@CountryIDFK INT = 0,
 	@MaritalStatusIDFK INT = 0,
 	@EmergencyName VARCHAR(250) = '',
-	
 	@EmergencyLastName VARCHAR(250) = '',
 	@EmergencyPhoneNumber varchar(250) = '',
 	@Relationship VARCHAR(250) = '',
 	@EmergancyDateOfBirth DATETIME,
 	@MedicationList VARCHAR(MAX) = '',
-	
-	
 	@Message VARCHAR(250) OUTPUT
 )
 AS
 BEGIN
 	
+	-- Default variables
 	DECLARE @IsActive BIT = 0,
 			@DefaultDate DATETIME = GETDATE(),
 			@EmailIDFK UNIQUEIDENTIFIER = NEWID(),
@@ -66,15 +62,15 @@ BEGIN
 SET NOCOUNT ON
 	
 	/*Summary*/
-	/*Insert all the details into the Patient table */
+	/*Inserting all the details into the Patient table */
 
-	/*Email is the main patient authantification */
+	/*ID number is the user authantification key */
 
 	BEGIN TRY
 	
 	BEGIN TRAN
 
-		IF NOT EXISTS(SELECT 1 FROM Profile.Patient WHERE ID_Number = @ID_Number)
+		IF NOT EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @ID_Number)
 		BEGIN
 			
 			SET @IsActive = 1
@@ -148,11 +144,13 @@ SET NOCOUNT ON
 
 		END ELSE 
 		BEGIN
-			
+			-- Rollback the transaction
 			ROLLBACK TRAN
 
+			-- Get error message
 			SET @Message = 'Sorry User ID number: "'+ @ID_Number + '" Already exists, Please validate and try again'
 
+			-- Pass default data into parameters
 			SET	@FirstName  = ''
 			SET @LastName = ''
 			SET @ID_Number = ''
@@ -168,6 +166,7 @@ SET NOCOUNT ON
 			SET @MaritalStatusIDFK = 0
 			SET @MedicationList = ''
 			SET @EmergencyName = ''
+			SET @EmergancyDateOfBirth = @DefaultDate
 			SET @EmergencyLastName = ''
 			SET @Relationship = ''
 
@@ -176,8 +175,10 @@ SET NOCOUNT ON
 	END TRY 
 	BEGIN CATCH
 		
+		-- Roll back transaction
 		ROLLBACK TRAN
 		
+		-- Pass error data into the DB_Errors Table 
 		SET	@UserName = SUSER_SNAME()
 		SET	@ErrorSchema = SCHEMA_NAME()
 		SET @ErrorProc = ERROR_PROCEDURE()
@@ -187,8 +188,8 @@ SET NOCOUNT ON
 		SET @ErrorLine = ERROR_LINE()
 		SET @ErrorMessage = ERROR_MESSAGE()
 		SET @ErrorDateTime = GETDATE()
-
-		EXEC [Auth].[Exception] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+		
+		EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 
 	END CATCH
 
