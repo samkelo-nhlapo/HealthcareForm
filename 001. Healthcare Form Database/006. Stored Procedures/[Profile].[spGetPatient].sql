@@ -1,7 +1,7 @@
-USE HealthcareForm
+USE [HealthcareForm]
 GO
 
-/****** Object:  StoredProcedure [Profile].[spGetPatient]    Script Date: 14-Jun-22 05:01:54 PM ******/
+/****** Object:  StoredProcedure [Profile].[spGetPatient]    Script Date: 27-Jul-22 09:40:13 PM ******/
 SET ANSI_NULLS ON
 GO
 
@@ -11,7 +11,8 @@ GO
 
 
 
-CREATE OR ALTER PROC [Profile].[spGetPatient]
+
+ALTER   PROC [Profile].[spGetPatient]
 (
 	@IDNumber VARCHAR(250) = '',
 	@FirstName VARCHAR(250) OUTPUT,
@@ -95,7 +96,7 @@ BEGIN
 		BEGIN
 			-- Return error message
 
-			SET @Message = 'Sorry User ID ( ' + @IDNumber + ' ) Does not exists Please verify and try again'
+			SET @Message = 'Sorry User ID Number:' + @IDNumber + ' Does not exists. Please verify ID Number and try again'
 
 			SET @FirstName = ''
 			SET @LastName = ''

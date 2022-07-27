@@ -404,84 +404,86 @@
                 {
 
                     /*Object.keys() returns an array of GetPatient controller Method*/
+                    var obj = Object.keys(data)
 
-                    for (var key of Object.keys(data)) {
+                    debugger
+                    for (var key of obj) {
 
-                        switch (key) {
-                            case "Message":
-                                alert(data[key]);
+                        if (data["Message"] != "") {
+                            alert(data["Message"]);
+                            break
+                        } else
+                        {
+                            switch (key) {
+
+                            case "IDNumber":
+                                document.getElementById("txtIDSearch").value = data[key];
+                                break;
+                            case "FirstName":
+                                document.getElementById("FirstName").value = data[key];
+                                break;
+                            case "LastName":
+                                document.getElementById("LastName").value = data[key];
+                                break;
+                            case "ID_Number":
+                                document.getElementById("ID_Number").value = data[key];
+                                break;
+                            case "DateOfBirth":
+                                //Moment.js library to manipulate date
+                                var date = moment(data[key]).format("DD-MMM-YYYY");
+                                document.getElementById("DateOfBirth").value = date;
+                                break;
+                            case "GenderIDFK":
+                                document.getElementById("dllGetGender").value = data[key];
+                                break;
+                            case "PhoneNumber":
+                                document.getElementById("dllPhoneNumber").value = data[key];
+                                break;
+                            case "Email":
+                                document.getElementById("dllEmail").value = data[key];
+                                break;
+                            case "Line1":
+                                document.getElementById("dllLine1").value = data[key];
+                                break;
+                            case "Line2":
+                                document.getElementById("dllLine2").value = data[key];
+                                break;
+                            case "CityIDFK":
+                                document.getElementById("dllGetCities").value = data[key];
+                                break;
+                            case "ProvinceIDFK":
+                                document.getElementById("dllGetProvinces").value = data[key];
+                                break;
+                            case "CountryIDFK":
+                                document.getElementById("dllGetCountries").value = data[key];
+                                break;
+                            case "MaritalStatusIDFK":
+                                document.getElementById("dllGetMaritalStatus").value = data[key];
+                                break;
+                            case "MedicationList":
+                                document.getElementById("dllMedicationList").value = data[key];
+                                break;
+                            case "EmergencyName":
+                                document.getElementById("dllEmergencyName").value = data[key];
+                                break;
+                            case "EmergencyLastName":
+                                document.getElementById("dllEmergencyLastName").value = data[key];
+                                break;
+                            case "EmergencyPhoneNumber":
+                                document.getElementById("dllEmergencyPhoneNumber").value = data[key];
+                                break;
+                            case "Relationship":
+                                document.getElementById("dllRelationship").value = data[key];
+                                break;
+                            case "EmergancyDateOfBirth":
+                                var date = moment(data[key]).format("DD-MM-YYYY");
+                                document.getElementById("dllEmergancyDateOfBirth").value = date;
                                 break;
                             default:
+
+                            }
                         }
                         
-
-                        //switch (key) {
-
-                        //    case "IDNumber":
-                        //        document.getElementById("txtIDSearch").value = data[key];
-                        //        break;
-                        //    case "FirstName":
-                        //        document.getElementById("FirstName").value = data[key];
-                        //        break;
-                        //    case "LastName":
-                        //        document.getElementById("LastName").value = data[key];
-                        //        break;
-                        //    case "ID_Number":
-                        //        document.getElementById("ID_Number").value = data[key];
-                        //        break;
-                        //    case "DateOfBirth":
-                        //        //Moment.js library to manipulate date
-                        //        var date = moment(data[key]).format("DD-MMM-YYYY");
-                        //        document.getElementById("DateOfBirth").value = date;
-                        //        break;
-                        //    case "GenderIDFK":
-                        //        document.getElementById("dllGetGender").value = data[key];
-                        //        break;
-                        //    case "PhoneNumber":
-                        //        document.getElementById("dllPhoneNumber").value = data[key];
-                        //        break;
-                        //    case "Email":
-                        //        document.getElementById("dllEmail").value = data[key];
-                        //        break;
-                        //    case "Line1":
-                        //        document.getElementById("dllLine1").value = data[key];
-                        //        break;
-                        //    case "Line2":
-                        //        document.getElementById("dllLine2").value = data[key];
-                        //        break;
-                        //    case "CityIDFK":
-                        //        document.getElementById("dllGetCities").value = data[key];
-                        //        break;
-                        //    case "ProvinceIDFK":
-                        //        document.getElementById("dllGetProvinces").value = data[key];
-                        //        break;
-                        //    case "CountryIDFK":
-                        //        document.getElementById("dllGetCountries").value = data[key];
-                        //        break;
-                        //    case "MaritalStatusIDFK":
-                        //        document.getElementById("dllGetMaritalStatus").value = data[key];
-                        //        break;
-                        //    case "MedicationList":
-                        //        document.getElementById("dllMedicationList").value = data[key];
-                        //        break;
-                        //    case "EmergencyName":
-                        //        document.getElementById("dllEmergencyName").value = data[key];
-                        //        break;
-                        //    case "EmergencyLastName":
-                        //        document.getElementById("dllEmergencyLastName").value = data[key];
-                        //        break;
-                        //    case "EmergencyPhoneNumber":
-                        //        document.getElementById("dllEmergencyPhoneNumber").value = data[key];
-                        //        break;
-                        //    case "Relationship":
-                        //        document.getElementById("dllRelationship").value = data[key];
-                        //        break;
-                        //    case "EmergancyDateOfBirth":
-                        //        var date = moment(data[key]).format("DD-MM-YYYY");
-                        //        document.getElementById("dllEmergancyDateOfBirth").value = date;
-                        //        break;
-                        //    default:
-                        //}
                     }
                 }
             })
