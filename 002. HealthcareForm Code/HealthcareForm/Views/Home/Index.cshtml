@@ -368,7 +368,16 @@
             dataType: 'json',
             success: function (data) {
 
-                alert("Patient Saved successfully");
+                debugger
+                if (data["Message"] != "" || data["Message"] == null )
+                {
+                    alert(data["Message"]);
+
+                } else
+                {
+                    alert("Patient Saved successfully");
+                }
+                
             },
             error: function (xhr, value, response, data) {
 
@@ -409,7 +418,8 @@
                     debugger
                     for (var key of obj) {
 
-                        if (data["Message"] != "") {
+                        if (data["Message"] != "")
+                        {
                             alert(data["Message"]);
                             break
                         } else

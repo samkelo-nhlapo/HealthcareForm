@@ -59,6 +59,8 @@ namespace HealthcareForm.Controllers
 
                 if (Convert.ToString(cmd.Parameters["@Message"].Value) == "")
                 {
+                    locationModel.Message = "";
+
                     conn.Close();
                 }
                 else
