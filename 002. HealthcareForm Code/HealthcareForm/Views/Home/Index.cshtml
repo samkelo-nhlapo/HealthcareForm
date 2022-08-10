@@ -10,7 +10,9 @@
 @* Moment.js library to manipulate date *@
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js"></script>
 
-
+@*<script src="~/Scripts/jquery-3.4.1.min.js" type="text/javascript"></script>
+<script src="~/Scripts/jquery.validate.min.js" type="text/javascript"></script>
+<script src="~/Scripts/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>*@
 @*
     Html.BeginForm to submit form data to the server without whole page postback
     Postback = submitting all the information while the user is still working
@@ -19,6 +21,9 @@
 
 @using (Html.BeginForm("SavePatient", "Home", FormMethod.Post, new { @id = "frmHome" }))
 {
+    @Html.ValidationSummary(true)
+    @Html.AntiForgeryToken()
+
     <hr />
 
     <div class="form-group row">
@@ -232,16 +237,16 @@
     //Update Data
     <input type="button" value="Update" class="btn btn-primary" onclick="UpdateButton()" />
 
+    //Delete Data
+    <input type="button" value="Delete" class="btn btn-primary" onclick="DeleteButton()" />
+
     //Clear Data
     <input type="reset" value="Clear" class="btn btn-primary" />
 
 }
-<script>
-    if ("@ViewBag.Message" != "")
-    {
-        alert("@ViewBag.Message");
-    }
-</script>
+
+@Scripts.Render("~/bundles/jquery")
+@Scripts.Render("~/bundles/jqueryval")
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -369,7 +374,7 @@
             success: function (data) {
 
                 debugger
-                if (data["Message"] != "" || data["Message"] == null )
+                if (data["Message"] != "" || data["Message"] == null)
                 {
                     alert(data["Message"]);
 
@@ -377,12 +382,12 @@
                 {
                     alert("Patient Saved successfully");
                 }
-                
+
             },
-            error: function (xhr, value, response, data) {
+            error: function (value, response) {
 
                 alert(" value from value: " + value.responseText);
-                alert("Response from response: " + response.responseText);
+
             }
         })
     }
@@ -392,7 +397,8 @@
         //Declare ID variable linked with html input element value
         var IDNumber = $('#txtIDSearch').val();
 
-        if (IDNumber == "") {
+        if (IDNumber == "")
+        {
             alert("Enter ID Number ");
         }
         else {
@@ -405,12 +411,11 @@
                 url: "/GetPatient/GetPatient",
                 data: inputData,
                 async: false,
-                error: function (xhr)
+                error: function ()
                 {
                     alert("unsuccessful Getting Patient");
                 },
-                success: function (data)
-                {
+                success: function (data) {
 
                     /*Object.keys() returns an array of GetPatient controller Method*/
                     var obj = Object.keys(data)
@@ -422,81 +427,122 @@
                         {
                             alert(data["Message"]);
                             break
-                        } else
-                        {
+
+                        } else {
+
                             switch (key) {
 
-                            case "IDNumber":
-                                document.getElementById("txtIDSearch").value = data[key];
-                                break;
-                            case "FirstName":
-                                document.getElementById("FirstName").value = data[key];
-                                break;
-                            case "LastName":
-                                document.getElementById("LastName").value = data[key];
-                                break;
-                            case "ID_Number":
-                                document.getElementById("ID_Number").value = data[key];
-                                break;
-                            case "DateOfBirth":
-                                //Moment.js library to manipulate date
-                                var date = moment(data[key]).format("DD-MMM-YYYY");
-                                document.getElementById("DateOfBirth").value = date;
-                                break;
-                            case "GenderIDFK":
-                                document.getElementById("dllGetGender").value = data[key];
-                                break;
-                            case "PhoneNumber":
-                                document.getElementById("dllPhoneNumber").value = data[key];
-                                break;
-                            case "Email":
-                                document.getElementById("dllEmail").value = data[key];
-                                break;
-                            case "Line1":
-                                document.getElementById("dllLine1").value = data[key];
-                                break;
-                            case "Line2":
-                                document.getElementById("dllLine2").value = data[key];
-                                break;
-                            case "CityIDFK":
-                                document.getElementById("dllGetCities").value = data[key];
-                                break;
-                            case "ProvinceIDFK":
-                                document.getElementById("dllGetProvinces").value = data[key];
-                                break;
-                            case "CountryIDFK":
-                                document.getElementById("dllGetCountries").value = data[key];
-                                break;
-                            case "MaritalStatusIDFK":
-                                document.getElementById("dllGetMaritalStatus").value = data[key];
-                                break;
-                            case "MedicationList":
-                                document.getElementById("dllMedicationList").value = data[key];
-                                break;
-                            case "EmergencyName":
-                                document.getElementById("dllEmergencyName").value = data[key];
-                                break;
-                            case "EmergencyLastName":
-                                document.getElementById("dllEmergencyLastName").value = data[key];
-                                break;
-                            case "EmergencyPhoneNumber":
-                                document.getElementById("dllEmergencyPhoneNumber").value = data[key];
-                                break;
-                            case "Relationship":
-                                document.getElementById("dllRelationship").value = data[key];
-                                break;
-                            case "EmergancyDateOfBirth":
-                                var date = moment(data[key]).format("DD-MM-YYYY");
-                                document.getElementById("dllEmergancyDateOfBirth").value = date;
-                                break;
-                            default:
+                                case "IDNumber":
+                                    document.getElementById("txtIDSearch").value = data[key];
+                                    break;
+                                case "FirstName":
+                                    document.getElementById("FirstName").value = data[key];
+                                    break;
+                                case "LastName":
+                                    document.getElementById("LastName").value = data[key];
+                                    break;
+                                case "ID_Number":
+                                    document.getElementById("ID_Number").value = data[key];
+                                    break;
+                                case "DateOfBirth":
+                                    //Moment.js library to manipulate date
+                                    var date = moment(data[key]).format("DD-MMM-YYYY");
+                                    document.getElementById("DateOfBirth").value = date;
+                                    break;
+                                case "GenderIDFK":
+                                    document.getElementById("dllGetGender").value = data[key];
+                                    break;
+                                case "PhoneNumber":
+                                    document.getElementById("dllPhoneNumber").value = data[key];
+                                    break;
+                                case "Email":
+                                    document.getElementById("dllEmail").value = data[key];
+                                    break;
+                                case "Line1":
+                                    document.getElementById("dllLine1").value = data[key];
+                                    break;
+                                case "Line2":
+                                    document.getElementById("dllLine2").value = data[key];
+                                    break;
+                                case "CityIDFK":
+                                    document.getElementById("dllGetCities").value = data[key];
+                                    break;
+                                case "ProvinceIDFK":
+                                    document.getElementById("dllGetProvinces").value = data[key];
+                                    break;
+                                case "CountryIDFK":
+                                    document.getElementById("dllGetCountries").value = data[key];
+                                    break;
+                                case "MaritalStatusIDFK":
+                                    document.getElementById("dllGetMaritalStatus").value = data[key];
+                                    break;
+                                case "MedicationList":
+                                    document.getElementById("dllMedicationList").value = data[key];
+                                    break;
+                                case "EmergencyName":
+                                    document.getElementById("dllEmergencyName").value = data[key];
+                                    break;
+                                case "EmergencyLastName":
+                                    document.getElementById("dllEmergencyLastName").value = data[key];
+                                    break;
+                                case "EmergencyPhoneNumber":
+                                    document.getElementById("dllEmergencyPhoneNumber").value = data[key];
+                                    break;
+                                case "Relationship":
+                                    document.getElementById("dllRelationship").value = data[key];
+                                    break;
+                                case "EmergancyDateOfBirth":
+                                    var date = moment(data[key]).format("DD-MM-YYYY");
+                                    document.getElementById("dllEmergancyDateOfBirth").value = date;
+                                    break;
+                                default:
 
                             }
                         }
-                        
+
                     }
                 }
             })
         }
+    }
+
+    function DeleteButton()
+    {
+
+        var IDNumber = $('#txtIDSearch').val();
+
+        if (IDNumber == "")
+        {
+            alert("Enter ID Number ");
+        }
+        else
+        {
+            debugger
+            $.ajax({
+                type: "POST",
+                url: "/RemovePatient/RemovePatient",
+                data: $("#frmHome").serialize(),   //.serializa() creates a text string in standard URL-encoded notation
+                dataType: 'json',
+                success: function (data) {
+
+                    /*alert("Successfully in Delete button");*/
+                    debugger
+                    if (data["Message"] != "" || data["Message"] == null)
+                    {
+                        alert(data["Message"]);
+
+                    } else {
+                        alert("Patient Deleted successfully");
+                    }
+
+                },
+                error: function (value) {
+
+                    alert(" value from Delete Button: " + value.responseText);
+
+                }
+            })
+        }
+        
     }
 </script>
