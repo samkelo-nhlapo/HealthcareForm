@@ -60,14 +60,12 @@ namespace HealthcareForm.Controllers
                 if (Convert.ToString(cmd.Parameters["@Message"].Value) == "")
                 {
                     locationModel.Message = "";
-
-                    conn.Close();
                 }
                 else
                 {
                     locationModel.Message = Convert.ToString(cmd.Parameters["@Message"].Value);
                 }
-
+                conn.Close();
             }
             return new JsonResult { Data = locationModel, JsonRequestBehavior = JsonRequestBehavior.AllowGet };
 

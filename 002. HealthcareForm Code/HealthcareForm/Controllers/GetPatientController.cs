@@ -35,7 +35,7 @@ namespace HealthcareForm.Controllers
                 //input 
                 cmd.Parameters.Add(new SqlParameter("@IDNumber", IDnumber));
 
-                //output
+                // output
                 cmd.Parameters.Add(new SqlParameter("@FirstName", SqlDbType.VarChar, 250)).Direction = ParameterDirection.Output;
                 cmd.Parameters.Add(new SqlParameter("@LastName", SqlDbType.VarChar, 250)).Direction = ParameterDirection.Output;
                 cmd.Parameters.Add(new SqlParameter("@ID_Number", SqlDbType.VarChar, 250)).Direction = ParameterDirection.Output;

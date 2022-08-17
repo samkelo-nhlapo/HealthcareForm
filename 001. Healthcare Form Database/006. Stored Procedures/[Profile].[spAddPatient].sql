@@ -1,7 +1,7 @@
 USE [HealthcareForm]
 GO
 
-/****** Object:  StoredProcedure [Profile].[spAddPatientProfile]    Script Date: 22-Jul-22 12:01:46 AM ******/
+/****** Object:  StoredProcedure [Profile].[spAddPatient]    Script Date: 17-Aug-22 10:53:23 PM ******/
 SET ANSI_NULLS ON
 GO
 
@@ -16,12 +16,15 @@ GO
 
 
 
-CREATE OR ALTER     PROC [Profile].[spAddPatient]
+
+
+
+ALTER       PROC [Profile].[spAddPatient]
 (
 	@FirstName VARCHAR(250) = '',
 	@LastName VARCHAR(250) = '',
 	@ID_Number VARCHAR(250) = '',
-	@DateOfBirth DATETIME,
+	@DateOfBirth DATETIME ,
 	@GenderIDFK INT = 0,
 	@PhoneNumber VARCHAR(250) = '',
 	@Email VARCHAR(250) = '',
@@ -70,7 +73,7 @@ SET NOCOUNT ON
 	
 	BEGIN TRAN
 
-		IF NOT EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @ID_Number)
+		IF NOT EXISTS(SELECT 1 FROM Profile.Patient WITH(NOLOCK) WHERE ID_Number = @ID_Number AND ID_Number != null) 
 		BEGIN
 			
 			SET @IsActive = 1
@@ -148,7 +151,7 @@ SET NOCOUNT ON
 			ROLLBACK TRAN
 
 			-- Get error message
-			SET @Message = 'Sorry User ID number: "'+ @ID_Number + '" Already exists, Please validate and try again'
+			SET @Message = 'Sorry User ID Number: "'+ @ID_Number + '" Already exists, Please validate and try again'
 
 			-- Pass default data into parameters
 			SET	@FirstName  = ''

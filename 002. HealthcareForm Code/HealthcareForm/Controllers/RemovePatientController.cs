@@ -18,6 +18,7 @@ namespace HealthcareForm.Controllers
             return View();
         }
 
+
         [HttpPost]
         public JsonResult RemovePatient(MainModel locationModel)
         {
@@ -37,8 +38,6 @@ namespace HealthcareForm.Controllers
                 if (Convert.ToString(cmd.Parameters["@Message"].Value) == "")
                 {
                     locationModel.Message = "";
-                    ModelState.Clear();
-                    
                 }
                 else
                 {
