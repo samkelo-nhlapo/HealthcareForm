@@ -1,12 +1,13 @@
 USE [HealthcareForm]
 GO
 
-/****** Object:  StoredProcedure [Profile].[spAddPatient]    Script Date: 17-Aug-22 10:53:23 PM ******/
+/****** Object:  StoredProcedure [Profile].[spAddPatient]    Script Date: 18-Aug-22 08:29:11 PM ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 
 
@@ -96,7 +97,7 @@ SET NOCOUNT ON
 				IsActive, 
 				UpdateDate
 			)
-			VALUES(@PhoneIDFK, @PhoneNumber, @IsActive, @DefaultDate)
+			VALUES(@PhoneIDFK, Contacts.FormatPhoneNumber(@PhoneNumber), @IsActive, @DefaultDate)
 
 			--INSERT INTO ADDRESS TABLE 
 			INSERT INTO Location.Address
@@ -106,7 +107,7 @@ SET NOCOUNT ON
 				Line2, 
 				CityIDFK
 			)
-			VALUES(@AddressIDFK, @Line1, @Line2, @CityIDFK) 
+			VALUES(@AddressIDFK, @Line1, dbo.CapitalizeFirstLetter(@Line2), @CityIDFK) 
 
 
 			--INSERT INTO EMERGENCY CONTACTS
@@ -121,7 +122,7 @@ SET NOCOUNT ON
 				IsActive, 
 				UpdateDate
 			)
-			VALUES(@EmergencyIDFK, @EmergencyName, @EmergencyLastName, @EmergencyPhoneNumber ,@Relationship , @EmergancyDateOfBirth , @IsActive, @DefaultDate)
+			VALUES(@EmergencyIDFK, dbo.CapitalizeFirstLetter(@EmergencyName), dbo.CapitalizeFirstLetter(@EmergencyLastName), Contacts.FormatPhoneNumber(@EmergencyPhoneNumber) ,dbo.CapitalizeFirstLetter(@Relationship) , @EmergancyDateOfBirth , @IsActive, @DefaultDate)
 
 
 			--INSERT PATIENT TABLE
@@ -139,7 +140,7 @@ SET NOCOUNT ON
 				MaritalStatusIDFK, 
 				EmergencyIDFK
 			)
-			VALUES(@FirstName, @LastName, @ID_Number ,@DateOfBirth, @GenderIDFK, @MedicationList, @EmailIDFK, @PhoneIDFK, @AddressIDFK, @MaritalStatusIDFK, @EmergencyIDFK)
+			VALUES(dbo.CapitalizeFirstLetter(@FirstName), dbo.CapitalizeFirstLetter(@LastName), @ID_Number ,@DateOfBirth, @GenderIDFK, dbo.CapitalizeFirstLetter(@MedicationList), @EmailIDFK, @PhoneIDFK, @AddressIDFK, @MaritalStatusIDFK, @EmergencyIDFK)
 
 			SET @Message = ''
 
