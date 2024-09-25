@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- This insert query inserts marital status into [Profile].[MeritalStatus] Table
+
 DECLARE @ActiveStatus BIT = 0,
 		@DefaultDate DATETIME = GETDATE()
 

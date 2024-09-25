@@ -9,18 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-
-
-
-
-
-
-
-
-
-
-
-ALTER       PROC [Profile].[spAddPatient]
+CREATE OR ALTER       PROC [Profile].[spAddPatient]
 (
 	@FirstName VARCHAR(250) = '',
 	@LastName VARCHAR(250) = '',
@@ -105,7 +94,7 @@ SET NOCOUNT ON
 				AddressId,
 				Line1, 
 				Line2, 
-				CityIDFK
+				UpdateDate
 			)
 			VALUES(@AddressIDFK, @Line1, dbo.CapitalizeFirstLetter(@Line2), @CityIDFK) 
 
@@ -193,7 +182,7 @@ SET NOCOUNT ON
 		SET @ErrorMessage = ERROR_MESSAGE()
 		SET @ErrorDateTime = GETDATE()
 		
-		EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+		EXEC [Exceptions].[spErrorHandling] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 
 	END CATCH
 

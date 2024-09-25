@@ -8,8 +8,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- This Trigger is activated when a patient is added into the database
 
-ALTER TRIGGER [Profile].[tr_AfterInsertPatient]
+CREATE OR ALTER TRIGGER [Profile].[tr_AfterInsertPatient]
 ON [Profile].[Patient]
 AFTER INSERT 
 AS

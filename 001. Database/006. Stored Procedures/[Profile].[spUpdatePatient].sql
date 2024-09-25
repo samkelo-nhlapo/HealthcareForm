@@ -158,7 +158,7 @@ BEGIN
 			SET @ErrorMessage = ERROR_MESSAGE()
 			SET @ErrorDateTime = GETDATE()
 	
-			EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+			EXEC [Exceptions].[spErrorHandling] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 	
 		END CATCH
 	

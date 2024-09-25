@@ -1,5 +1,8 @@
 USE HealthcareForm
 GO
+
+-- This Trigger is triggered when a patient data is being deleted 
+
 CREATE OR ALTER TRIGGER Profile.tr_ADeletePatient
 ON Profile.Patient
 AFTER DELETE

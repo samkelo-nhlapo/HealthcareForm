@@ -1,4 +1,4 @@
-USE [PatientEnrollment]
+USE [HealthcareForm]
 GO
 
 /****** Object:  StoredProcedure [Location].[spInsertCountries]    Script Date: 17-Feb-22 12:11:45 AM ******/
@@ -8,8 +8,10 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-ALTER   PROC [Location].[spInsertCountries]
+/*
+	This Procedure can be accessed from .NET to insert a list of countries into [Location].[Countries] Table
+*/
+CREATE OR ALTER PROC [Location].[spInsertCountries]
 (
 	@Country VARCHAR(250),
 	@Alpha2Code VARCHAR(250),

@@ -9,7 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-ALTER PROC [Profile].[spGetGender]
+CREATE OR ALTER PROC [Profile].[spGetGender]
 (
 	@GenderId INT = 0,
 	@GenderDescription VARCHAR(250) = ''

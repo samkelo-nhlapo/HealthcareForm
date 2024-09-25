@@ -1,5 +1,8 @@
 USE HealthcareForm
 GO
+
+-- this trigger is activated when an update is applied to a patient 
+
 CREATE OR ALTER TRIGGER Profile.tr_AUpdatePatient
 ON Profile.Patient
 AFTER UPDATE 

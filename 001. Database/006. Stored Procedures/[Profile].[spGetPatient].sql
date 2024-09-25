@@ -9,10 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-
-
-
-ALTER   PROC [Profile].[spGetPatient]
+CREATE OR ALTER   PROC [Profile].[spGetPatient]
 (
 	@IDNumber VARCHAR(250) = '',
 	@FirstName VARCHAR(250) OUTPUT,
@@ -133,7 +130,7 @@ BEGIN
 		SET @ErrorMessage = ERROR_MESSAGE()
 		SET @ErrorDateTime = GETDATE()
 
-		EXEC [Auth].[spDB_Errors] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
+		EXEC [Exceptions].[spErrorHandling] @UserName,@ErrorSchema, @ErrorProc, @ErrorNumber, @ErrorState, @ErrorSeverity, @ErrorLine, @ErrorMessage, @ErrorDateTime
 
 	END CATCH
 

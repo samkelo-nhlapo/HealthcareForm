@@ -20,3 +20,6 @@ GO
 
 CREATE SCHEMA Auth
 GO
+
+CREATE SCHEMA Exceptions
+GO

@@ -4,6 +4,7 @@ GO
 -- filegroup, filestream filegroup and a log file. Specify the
 -- growth increment and the max size for the
 -- primary data file.
+
 CREATE DATABASE HealthcareForm
 ON PRIMARY
   ( NAME='MyDB_Primary',

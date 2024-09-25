@@ -9,7 +9,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-
+-- This Procedure gets the Countries list to .Net
 
 CREATE OR ALTER   PROC [Location].[spGetCountries]
 (
