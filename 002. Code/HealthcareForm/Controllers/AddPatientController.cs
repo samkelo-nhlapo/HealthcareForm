@@ -29,7 +29,7 @@ namespace HealthcareForm.Controllers
             using (SqlConnection conn = new SqlConnection(connection))
             {
 
-                SqlCommand cmd = new SqlCommand("Profile.spAddPatient", conn);
+                SqlCommand cmd = new SqlCommand("Profile.spAddPatientProfile", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 //Sending parameters values to the stored procedure 
