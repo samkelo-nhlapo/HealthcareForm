@@ -26,13 +26,46 @@
 
     <hr />
 
-    <div class="form-group row">
+    <div class="form-group row align-items-center">
         <label for="txtIDSearch" class="col-sm-2 col-form-label">Search Patient</label>
         <div class="col-sm-10">
-            @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control", placeholder = "Enter ID Number" })
-            <button type="button" class="btn btn-primary mt-2" onclick="GetButton()">Search</button>
+            <div class="input-group">
+                @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control", placeholder = "Enter ID Number" })
+                <button type="button" class="btn btn-primary" onclick="GetButton()">Search</button>
+            </div>
         </div>
     </div>
+
+    <style>
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .form-control {
+            border-radius: 0.5rem;
+            border: 1px solid #ced4da;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            flex: 1;
+        }
+
+            .form-control:focus {
+                border-color: #007bff;
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            }
+
+        .btn {
+            border-radius: 0.5rem;
+            margin-left: 0.5rem;
+            transition: background-color 0.3s ease, transform 0.2s;
+        }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                background-color: #0056b3; /* Darker shade for hover */
+            }
+    </style>
 
     <hr />
 
@@ -144,13 +177,34 @@
     <hr />
 
     <div class="form-row">
-        <div class="col-md-12">
-            <button type="button" class="btn btn-success" onclick="SaveButton()">Submit</button>
-            <button type="button" class="btn btn-warning" onclick="UpdateButton()">Update</button>
-            <button type="reset" class="btn btn-danger" onclick="DeleteButton()">Delete</button>
-            <button type="reset" class="btn btn-secondary">Clear</button>
+        <div class="col-md-12 button-group">
+            <button type="button" class="btn btn-primary" onclick="SaveButton()">Submit</button>
+            <button type="button" class="btn btn-info" onclick="UpdateButton()">Update</button>
+            <button type="button" class="btn btn-danger" onclick="DeleteButton()">Delete</button>
+            <button type="reset" class="btn btn-light">Clear</button>
         </div>
     </div>
+
+    <style>
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease, transform 0.2s;
+        }
+
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+    </style>
 }
 
 @section Scripts {
