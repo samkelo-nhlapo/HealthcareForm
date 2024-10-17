@@ -18,194 +18,208 @@
     Postback = submitting all the information while the user is still working
 *@
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Form</title>
+    <link rel="stylesheet" href="~/Content/styles.css">
+</head>
 
-@using (Html.BeginForm("SavePatient", "Home", FormMethod.Post, new { @id = "frmHome", @class = "needs-validation", novalidate = "novalidate" }))
-{
-    @Html.ValidationSummary(true)
-    @Html.AntiForgeryToken()
+<body>
+    <div class="form-container">
+        <h2>MEDICAL FORM</h2>
+        <form>
+            @using (Html.BeginForm("SavePatient", "Home", FormMethod.Post, new { @id = "frmHome", @class = "needs-validation", novalidate = "novalidate" }))
+            {
+                @Html.ValidationSummary(true)
+                @Html.AntiForgeryToken()
 
-    <hr />
+                <hr />
 
-    <div class="form-group row align-items-center">
-        <label for="txtIDSearch" class="col-sm-2 col-form-label">Search Patient</label>
-        <div class="col-sm-10">
-            <div class="input-group">
-                @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control", placeholder = "Enter ID Number" })
-                <button type="button" class="btn btn-primary" onclick="GetButton()">Search</button>
-            </div>
-        </div>
-    </div>
+                <div class="form-group row align-items-center">
+                    <label for="txtIDSearch" class="col-sm-2 col-form-label">Search Patient</label>
+                    <div class="col-sm-10">
+                        <div class="input-group">
+                            @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control", placeholder = "Enter ID Number" })
+                            <button type="button" class="btn btn-primary" onclick="GetButton()">Search</button>
+                        </div>
+                    </div>
+                </div>
 
-    <style>
-        .input-group {
-            display: flex;
-            align-items: center;
-            margin-top: 0.5rem;
-        }
+                <style>
+                    .input-group {
+                        display: flex;
+                        align-items: center;
+                        margin-top: 0.5rem;
+                    }
 
-        .form-control {
-            border-radius: 0.5rem;
-            border: 1px solid #ced4da;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            flex: 1;
-        }
+                    .form-control {
+                        border-radius: 0.5rem;
+                        border: 1px solid #ced4da;
+                        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+                        flex: 1;
+                    }
 
-            .form-control:focus {
-                border-color: #007bff;
-                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+                        .form-control:focus {
+                            border-color: #007bff;
+                            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+                        }
+
+                    .btn {
+                        border-radius: 0.5rem;
+                        margin-left: 0.5rem;
+                        transition: background-color 0.3s ease, transform 0.2s;
+                    }
+
+                        .btn:hover {
+                            transform: translateY(-2px);
+                            background-color: #0056b3; /* Darker shade for hover */
+                        }
+                </style>
+
+                <hr />
+
+                <h5>Patient Details</h5>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="FirstName">First Name</label>
+                        @Html.TextBoxFor(x => x.FirstName, new { @class = "form-control", id = "FirstName", placeholder = "Enter First Name" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="LastName">Last Name</label>
+                        @Html.TextBoxFor(x => x.LastName, new { @class = "form-control", id = "LastName", placeholder = "Enter Last Name" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="ID_Number">ID Number</label>
+                        @Html.TextBoxFor(x => x.ID_Number, new { @class = "form-control", id = "ID_Number", placeholder = "Enter ID Number" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="DateOfBirth">Date Of Birth</label>
+                        @Html.TextBoxFor(x => x.DateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "DateOfBirth", placeholder = "DD/MM/YYYY" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllGetGender">Gender</label>
+                        @Html.DropDownListFor(x => x.GenderIDFK, new List<SelectListItem>(), "Select Gender", new { @class = "form-control", id = "dllGetGender" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllPhoneNumber">Phone Number</label>
+                        @Html.TextBoxFor(x => x.PhoneNumber, new { @class = "form-control", id = "dllPhoneNumber", placeholder = "Enter Phone Number" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllEmail">Email</label>
+                        @Html.TextBoxFor(x => x.Email, new { @class = "form-control", id = "dllEmail", placeholder = "Enter Email" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllLine1">Address Line 1</label>
+                        @Html.TextBoxFor(x => x.Line1, new { @class = "form-control", id = "dllLine1", placeholder = "Enter Address Line 1" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllLine2">Address Line 2</label>
+                        @Html.TextBoxFor(x => x.Line2, new { @class = "form-control", id = "dllLine2", placeholder = "Enter Address Line 2" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllGetCities">City</label>
+                        @Html.DropDownListFor(x => x.CityIDFK, new List<SelectListItem>(), "Select City", new { @class = "form-control", id = "dllGetCities" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllGetProvinces">Province</label>
+                        @Html.DropDownListFor(x => x.ProvinceIDFK, new List<SelectListItem>(), "Select Province", new { @class = "form-control", id = "dllGetProvinces" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllGetCountries">Country</label>
+                        @Html.DropDownListFor(x => x.CountryIDFK, new List<SelectListItem>(), "Select Country", new { @class = "form-control", id = "dllGetCountries" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllGetMaritalStatus">Marital Status</label>
+                        @Html.DropDownListFor(x => x.MaritalStatusIDFK, new List<SelectListItem>(), "Select Marital Status", new { @class = "form-control", id = "dllGetMaritalStatus" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllEmergencyName">Emergency Name</label>
+                        @Html.TextBoxFor(x => x.EmergencyName, new { @class = "form-control", id = "dllEmergencyName", placeholder = "Enter Emergency Contact Name" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllEmergencyLastName">Emergency Last Name</label>
+                        @Html.TextBoxFor(x => x.EmergencyLastName, new { @class = "form-control", id = "dllEmergencyLastName", placeholder = "Enter Emergency Contact Last Name" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllEmergencyPhoneNumber">Emergency Phone Number</label>
+                        @Html.TextBoxFor(x => x.EmergencyPhoneNumber, new { @class = "form-control", id = "dllEmergencyPhoneNumber", placeholder = "Enter Emergency Contact Phone" })
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="dllRelationship">Relationship</label>
+                        @Html.TextBoxFor(x => x.Relationship, new { @class = "form-control", id = "dllRelationship", placeholder = "Enter Relationship" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="dllEmergancyDateOfBirth">Emergency Contact DOB</label>
+                        @Html.TextBoxFor(x => x.EmergancyDateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "dllEmergancyDateOfBirth", placeholder = "DD/MM/YYYY" })
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dllMedicationList">Medication List</label>
+                    @Html.TextAreaFor(x => x.MedicationList, new { @class = "form-control", id = "dllMedicationList", rows = "3", placeholder = "List medications here..." })
+                </div>
+
+                <hr />
+
+                <div class="form-row">
+                    <div class="col-md-12 button-group">
+                        <button type="button" class="btn btn-primary" onclick="SaveButton()">Submit</button>
+                        <button type="button" class="btn btn-info" onclick="UpdateButton()">Update</button>
+                        <button type="button" class="btn btn-danger" onclick="DeleteButton()">Delete</button>
+                        <button type="reset" class="btn btn-light">Clear</button>
+                    </div>
+                </div>
+
+                <style>
+                    .button-group {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-top: 1rem;
+                    }
+
+                    .btn {
+                        flex: 1;
+                        margin: 0 0.5rem;
+                        padding: 0.5rem 1rem;
+                        font-size: 1rem;
+                        border-radius: 0.5rem;
+                        transition: background-color 0.3s ease, transform 0.2s;
+                    }
+
+                        .btn:hover {
+                            transform: translateY(-2px);
+                        }
+                </style>
             }
-
-        .btn {
-            border-radius: 0.5rem;
-            margin-left: 0.5rem;
-            transition: background-color 0.3s ease, transform 0.2s;
-        }
-
-            .btn:hover {
-                transform: translateY(-2px);
-                background-color: #0056b3; /* Darker shade for hover */
-            }
-    </style>
-
-    <hr />
-
-    <h5>Patient Details</h5>
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="FirstName">First Name</label>
-            @Html.TextBoxFor(x => x.FirstName, new { @class = "form-control", id = "FirstName", placeholder = "Enter First Name" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="LastName">Last Name</label>
-            @Html.TextBoxFor(x => x.LastName, new { @class = "form-control", id = "LastName", placeholder = "Enter Last Name" })
-        </div>
+        </form>
     </div>
+</body>
 
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="ID_Number">ID Number</label>
-            @Html.TextBoxFor(x => x.ID_Number, new { @class = "form-control", id = "ID_Number", placeholder = "Enter ID Number" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="DateOfBirth">Date Of Birth</label>
-            @Html.TextBoxFor(x => x.DateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "DateOfBirth", placeholder = "DD/MM/YYYY" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllGetGender">Gender</label>
-            @Html.DropDownListFor(x => x.GenderIDFK, new List<SelectListItem>(), "Select Gender", new { @class = "form-control", id = "dllGetGender" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllPhoneNumber">Phone Number</label>
-            @Html.TextBoxFor(x => x.PhoneNumber, new { @class = "form-control", id = "dllPhoneNumber", placeholder = "Enter Phone Number" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllEmail">Email</label>
-            @Html.TextBoxFor(x => x.Email, new { @class = "form-control", id = "dllEmail", placeholder = "Enter Email" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllLine1">Address Line 1</label>
-            @Html.TextBoxFor(x => x.Line1, new { @class = "form-control", id = "dllLine1", placeholder = "Enter Address Line 1" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllLine2">Address Line 2</label>
-            @Html.TextBoxFor(x => x.Line2, new { @class = "form-control", id = "dllLine2", placeholder = "Enter Address Line 2" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllGetCities">City</label>
-            @Html.DropDownListFor(x => x.CityIDFK, new List<SelectListItem>(), "Select City", new { @class = "form-control", id = "dllGetCities" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllGetProvinces">Province</label>
-            @Html.DropDownListFor(x => x.ProvinceIDFK, new List<SelectListItem>(), "Select Province", new { @class = "form-control", id = "dllGetProvinces" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllGetCountries">Country</label>
-            @Html.DropDownListFor(x => x.CountryIDFK, new List<SelectListItem>(), "Select Country", new { @class = "form-control", id = "dllGetCountries" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllGetMaritalStatus">Marital Status</label>
-            @Html.DropDownListFor(x => x.MaritalStatusIDFK, new List<SelectListItem>(), "Select Marital Status", new { @class = "form-control", id = "dllGetMaritalStatus" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllEmergencyName">Emergency Name</label>
-            @Html.TextBoxFor(x => x.EmergencyName, new { @class = "form-control", id = "dllEmergencyName", placeholder = "Enter Emergency Contact Name" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllEmergencyLastName">Emergency Last Name</label>
-            @Html.TextBoxFor(x => x.EmergencyLastName, new { @class = "form-control", id = "dllEmergencyLastName", placeholder = "Enter Emergency Contact Last Name" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllEmergencyPhoneNumber">Emergency Phone Number</label>
-            @Html.TextBoxFor(x => x.EmergencyPhoneNumber, new { @class = "form-control", id = "dllEmergencyPhoneNumber", placeholder = "Enter Emergency Contact Phone" })
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label for="dllRelationship">Relationship</label>
-            @Html.TextBoxFor(x => x.Relationship, new { @class = "form-control", id = "dllRelationship", placeholder = "Enter Relationship" })
-        </div>
-        <div class="form-group col-md-6">
-            <label for="dllEmergancyDateOfBirth">Emergency Contact DOB</label>
-            @Html.TextBoxFor(x => x.EmergancyDateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "dllEmergancyDateOfBirth", placeholder = "DD/MM/YYYY" })
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="dllMedicationList">Medication List</label>
-        @Html.TextAreaFor(x => x.MedicationList, new { @class = "form-control", id = "dllMedicationList", rows = "3", placeholder = "List medications here..." })
-    </div>
-
-    <hr />
-
-    <div class="form-row">
-        <div class="col-md-12 button-group">
-            <button type="button" class="btn btn-primary" onclick="SaveButton()">Submit</button>
-            <button type="button" class="btn btn-info" onclick="UpdateButton()">Update</button>
-            <button type="button" class="btn btn-danger" onclick="DeleteButton()">Delete</button>
-            <button type="reset" class="btn btn-light">Clear</button>
-        </div>
-    </div>
-
-    <style>
-        .button-group {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 1rem;
-        }
-
-        .btn {
-            flex: 1;
-            margin: 0 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.3s ease, transform 0.2s;
-        }
-
-            .btn:hover {
-                transform: translateY(-2px);
-            }
-    </style>
-}
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
