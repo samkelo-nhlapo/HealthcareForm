@@ -1,68 +1,89 @@
 ﻿body {
     font-family: Arial, sans-serif;
-    background-color: #f0f4f8;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
     margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
 }
 
 .form-container {
-    width: 600px;
+    width: 70%;
+    margin: 30px auto;
     background-color: #fff;
     padding: 20px;
-    border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-h2 {
+header {
+    background-color: #00796b;
+    padding: 20px;
+    color: white;
     text-align: center;
-    color: #333;
 }
 
-.section {
-    margin-bottom: 20px;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo img {
+    width: 100px;
+}
+
+.title h1 {
+    font-size: 24px;
+    color: #fff;
+}
+
+h2 {
+    background-color: #004d40;
+    color: white;
+    padding: 10px;
+    font-size: 18px;
+}
+
+form {
+    margin: 20px 0;
 }
 
 label {
     display: block;
-    margin-bottom: 10px;
-    color: #333;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 
-input[type="text"],
-input[type="date"],
-input[type="tel"],
-input[type="email"],
-textarea {
-    width: calc(100% - 20px);
-    padding: 8px;
-    margin-top: 5px;
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
-textarea {
-    resize: vertical;
-}
-
-input[type="radio"],
-input[type="checkbox"] {
-    margin-right: 5px;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-    button:hover {
-        background-color: #0056b3;
+    input[type="radio"] {
+        width: auto;
+        margin-right: 10px;
     }
+
+textarea {
+    height: 100px;
+}
+
+footer {
+    margin-top: 30px;
+    text-align: center;
+}
+
+    footer p {
+        font-weight: bold;
+    }
+
+address {
+    font-style: normal;
+}
+
+.signature p {
+    font-size: 18px;
+    font-style: italic;
+    margin-top: 10px;
+}
