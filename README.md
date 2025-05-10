@@ -1,8 +1,18 @@
 # HealthCare Form 🏥  
 
-![HealthConnect Logo](healthLogo.jpg)  
+<!-- PROJECT LOGO -->
+<br />
+  <div align="center">
+    <a href="https://github.com/samkelo-nhlapo/Bike-Store/edit/main">
+      <img src="004. Images/healthLogo.jpg" alt="Logo" width="200" height="150">
+    </a>
 
-A web application dedicated to streamlining healthcare services, connecting patients with providers, and managing medical workflows efficiently.  
+   <p align="center">
+      A web application dedicated to streamlining healthcare services, connecting patients with providers, and managing medical workflows efficiently.
+    </p>
+  </div>
+
+  
 
 ## Features ✨  
 - **Patient Registration**: Secure sign-up and profile management.  
