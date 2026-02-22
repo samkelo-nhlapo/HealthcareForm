@@ -42,4 +42,5 @@
 - Add load-state and retry/error UX for patient worklist.
 - Keep existing client-side filters for fast cohort slicing once data is loaded.
 - Replace scheduling board placeholders with `/api/operations/scheduling` live snapshot data.
+- Replace operations task queue placeholders with `/api/operations/task-queue` live snapshot data.
 - Replace billing and claims placeholders with `/api/revenue/claims` live snapshot data.

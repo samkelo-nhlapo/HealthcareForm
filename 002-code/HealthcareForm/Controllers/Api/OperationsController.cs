@@ -21,4 +21,8 @@ public sealed class OperationsController : ControllerBase
     [HttpGet("scheduling")]
     public async Task<ActionResult<SchedulingSnapshotDto>> GetSchedulingSnapshot(CancellationToken cancellationToken)
         => Ok(await _operationsService.GetSchedulingSnapshotAsync(cancellationToken));
+
+    [HttpGet("task-queue")]
+    public async Task<ActionResult<TaskQueueSnapshotDto>> GetTaskQueueSnapshot(CancellationToken cancellationToken)
+        => Ok(await _operationsService.GetTaskQueueSnapshotAsync(cancellationToken));
 }

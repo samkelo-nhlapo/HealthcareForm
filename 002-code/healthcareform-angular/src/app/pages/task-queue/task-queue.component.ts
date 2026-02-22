@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TaskQueueItemDto, TaskQueueSnapshotDto } from '../../models/operations.models';
+import { OperationsApiService } from '../../services/operations-api.service';
 
 type QueuePriority = 'Routine' | 'Urgent' | 'Critical';
 type QueueStatus = 'Open' | 'In Progress' | 'Escalated' | 'Blocked' | 'Completed';
@@ -28,8 +30,12 @@ type TaskQueueRow = {
   templateUrl: './task-queue.component.html',
   styleUrl: './task-queue.component.scss'
 })
-export class TaskQueueComponent {
+export class TaskQueueComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly operationsApiService = inject(OperationsApiService);
+
+  isLoading = true;
+  loadError = '';
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
@@ -39,73 +45,15 @@ export class TaskQueueComponent {
     breachedOnly: [false]
   });
 
-  readonly rows: TaskQueueRow[] = [
-    {
-      taskId: 'TQ-1004',
-      title: 'Follow-up pain reassessment',
-      team: 'Nursing',
-      owner: 'S. Mokoena',
-      patient: 'Nomsa Mokoena',
-      idNumber: '9101015001089',
-      priority: 'Critical',
-      status: 'Escalated',
-      dueAt: '2026-02-21 09:20',
-      slaMinutes: 20,
-      elapsedMinutes: 29
-    },
-    {
-      taskId: 'TQ-1008',
-      title: 'Medication interaction review',
-      team: 'Pharmacy',
-      owner: 'A. Daniels',
-      patient: 'Liam Smith',
-      idNumber: '8206066002087',
-      priority: 'Urgent',
-      status: 'In Progress',
-      dueAt: '2026-02-21 09:40',
-      slaMinutes: 45,
-      elapsedMinutes: 31
-    },
-    {
-      taskId: 'TQ-1012',
-      title: 'CBC recollection request',
-      team: 'Laboratory',
-      owner: 'R. Jacobs',
-      patient: 'Asha Patel',
-      idNumber: '0310037003084',
-      priority: 'Urgent',
-      status: 'Open',
-      dueAt: '2026-02-21 09:55',
-      slaMinutes: 60,
-      elapsedMinutes: 22
-    },
-    {
-      taskId: 'TQ-1021',
-      title: 'Authorisation packet submission',
-      team: 'Billing',
-      owner: 'T. Maseko',
-      patient: 'Sibusiso Khumalo',
-      idNumber: '7507078004082',
-      priority: 'Routine',
-      status: 'Blocked',
-      dueAt: '2026-02-21 10:15',
-      slaMinutes: 180,
-      elapsedMinutes: 156
-    },
-    {
-      taskId: 'TQ-1029',
-      title: 'Finalize discharge education checklist',
-      team: 'Clinical',
-      owner: 'J. Adams',
-      patient: 'Jordan Daniels',
-      idNumber: '9902029005081',
-      priority: 'Routine',
-      status: 'Completed',
-      dueAt: '2026-02-21 08:50',
-      slaMinutes: 90,
-      elapsedMinutes: 72
-    }
-  ];
+  rows: TaskQueueRow[] = [];
+
+  ngOnInit(): void {
+    this.loadSnapshot();
+  }
+
+  retryLoad(): void {
+    this.loadSnapshot();
+  }
 
   get filteredRows(): TaskQueueRow[] {
     const value = this.filters.getRawValue();
@@ -209,5 +157,116 @@ export class TaskQueueComponent {
     }
 
     return 30;
+  }
+
+  private loadSnapshot(): void {
+    this.isLoading = true;
+    this.loadError = '';
+
+    this.operationsApiService.getTaskQueueSnapshot().subscribe({
+      next: (snapshot) => {
+        this.applySnapshot(snapshot);
+        this.isLoading = false;
+      },
+      error: () => {
+        this.rows = [];
+        this.loadError = 'Unable to load task queue data. Check API connectivity and retry.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private applySnapshot(snapshot: TaskQueueSnapshotDto): void {
+    this.rows = Array.isArray(snapshot.Tasks)
+      ? snapshot.Tasks.map((row) => this.mapRow(row))
+      : [];
+  }
+
+  private mapRow(row: TaskQueueItemDto): TaskQueueRow {
+    return {
+      taskId: this.readText(row.TaskId, 'TQ-UNKNOWN'),
+      title: this.readText(row.Title, 'Untitled Task'),
+      team: this.normalizeTeam(row.Team),
+      owner: this.readText(row.Owner, 'Care Team'),
+      patient: this.readText(row.Patient, 'Unknown Patient'),
+      idNumber: this.readText(row.IdNumber, ''),
+      priority: this.normalizePriority(row.Priority),
+      status: this.normalizeStatus(row.Status),
+      dueAt: this.readText(row.DueAt, ''),
+      slaMinutes: this.coerceMinutes(row.SlaMinutes, 60),
+      elapsedMinutes: this.coerceMinutes(row.ElapsedMinutes)
+    };
+  }
+
+  private normalizeTeam(value: string): QueueTeam {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'nursing') {
+      return 'Nursing';
+    }
+
+    if (normalized === 'laboratory') {
+      return 'Laboratory';
+    }
+
+    if (normalized === 'pharmacy') {
+      return 'Pharmacy';
+    }
+
+    if (normalized === 'billing') {
+      return 'Billing';
+    }
+
+    return 'Clinical';
+  }
+
+  private normalizePriority(value: string): QueuePriority {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'critical') {
+      return 'Critical';
+    }
+
+    if (normalized === 'urgent') {
+      return 'Urgent';
+    }
+
+    return 'Routine';
+  }
+
+  private normalizeStatus(value: string): QueueStatus {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'in progress') {
+      return 'In Progress';
+    }
+
+    if (normalized === 'escalated') {
+      return 'Escalated';
+    }
+
+    if (normalized === 'blocked') {
+      return 'Blocked';
+    }
+
+    if (normalized === 'completed') {
+      return 'Completed';
+    }
+
+    return 'Open';
+  }
+
+  private coerceMinutes(value: unknown, fallback = 0): number {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric)) : fallback;
+  }
+
+  private readText(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') {
+      return fallback;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : fallback;
   }
 }

@@ -28,3 +28,21 @@ export interface SchedulingSnapshotDto {
   Resources: SchedulingResourceLoadDto[];
   Blocks: SchedulingTimeBlockDto[];
 }
+
+export interface TaskQueueItemDto {
+  TaskId: string;
+  Title: string;
+  Team: string;
+  Owner: string;
+  Patient: string;
+  IdNumber: string;
+  Priority: string;
+  Status: string;
+  DueAt: string;
+  SlaMinutes: number;
+  ElapsedMinutes: number;
+}
+
+export interface TaskQueueSnapshotDto {
+  Tasks: TaskQueueItemDto[];
+}

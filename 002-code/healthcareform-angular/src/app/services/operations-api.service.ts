@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SchedulingSnapshotDto } from '../models/operations.models';
+import { SchedulingSnapshotDto, TaskQueueSnapshotDto } from '../models/operations.models';
 
 @Injectable({ providedIn: 'root' })
 export class OperationsApiService {
@@ -11,5 +11,9 @@ export class OperationsApiService {
 
   getSchedulingSnapshot(): Observable<SchedulingSnapshotDto> {
     return this.http.get<SchedulingSnapshotDto>(`${this.apiBaseUrl}/scheduling`);
+  }
+
+  getTaskQueueSnapshot(): Observable<TaskQueueSnapshotDto> {
+    return this.http.get<TaskQueueSnapshotDto>(`${this.apiBaseUrl}/task-queue`);
   }
 }

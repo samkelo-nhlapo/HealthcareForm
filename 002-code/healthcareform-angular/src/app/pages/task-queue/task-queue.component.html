@@ -6,6 +6,12 @@
     </div>
   </header>
 
+  <div class="state" *ngIf="isLoading">Loading task queue...</div>
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" (click)="retryLoad()">Retry</button>
+  </div>
+
   <section class="metrics">
     <article>
       <p class="label">Open Tasks</p>
