@@ -1,0 +1,144 @@
+<section class="panel">
+  <header class="head">
+    <div>
+      <h3>Team Task Queue</h3>
+      <p>Cross-functional queue with SLA monitoring and escalation visibility.</p>
+    </div>
+  </header>
+
+  <section class="metrics">
+    <article>
+      <p class="label">Open Tasks</p>
+      <p class="value">{{ openTasks }}</p>
+    </article>
+    <article>
+      <p class="label">SLA Breaches</p>
+      <p class="value danger">{{ breachedTasks }}</p>
+    </article>
+    <article>
+      <p class="label">Escalated</p>
+      <p class="value warning">{{ escalatedTasks }}</p>
+    </article>
+    <article>
+      <p class="label">Avg SLA Usage</p>
+      <p class="value">{{ averageSlaUse }}%</p>
+    </article>
+  </section>
+
+  <form [formGroup]="filters" class="filters">
+    <label>
+      Search
+      <input type="text" formControlName="search" placeholder="Task, patient, ID, or queue ID" />
+    </label>
+
+    <label>
+      Team
+      <select formControlName="team">
+        <option value="ALL">All Teams</option>
+        <option value="Nursing">Nursing</option>
+        <option value="Clinical">Clinical</option>
+        <option value="Laboratory">Laboratory</option>
+        <option value="Pharmacy">Pharmacy</option>
+        <option value="Billing">Billing</option>
+      </select>
+    </label>
+
+    <label>
+      Priority
+      <select formControlName="priority">
+        <option value="ALL">All Priorities</option>
+        <option value="Routine">Routine</option>
+        <option value="Urgent">Urgent</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </label>
+
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="ACTIVE">Active Only</option>
+        <option value="ALL">All</option>
+        <option value="Open">Open</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Escalated">Escalated</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </label>
+
+    <label class="toggle">
+      <input type="checkbox" formControlName="breachedOnly" />
+      <span>SLA breaches only</span>
+    </label>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Team</th>
+          <th>Owner</th>
+          <th>Patient</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>SLA</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredRows">
+          <td>
+            <strong>{{ row.title }}</strong>
+            <small>{{ row.taskId }} • due {{ row.dueAt }}</small>
+          </td>
+          <td>
+            <span class="pill team">{{ row.team }}</span>
+          </td>
+          <td>{{ row.owner }}</td>
+          <td>
+            <div class="patient">{{ row.patient }}</div>
+            <small>{{ row.idNumber }}</small>
+          </td>
+          <td>
+            <span class="pill" [class.critical]="row.priority === 'Critical'" [class.urgent]="row.priority === 'Urgent'">
+              {{ row.priority }}
+            </span>
+          </td>
+          <td>
+            <span
+              class="pill"
+              [class.status-open]="row.status === 'Open'"
+              [class.status-progress]="row.status === 'In Progress'"
+              [class.status-escalated]="row.status === 'Escalated'"
+              [class.status-blocked]="row.status === 'Blocked'"
+              [class.status-complete]="row.status === 'Completed'"
+            >
+              {{ row.status }}
+            </span>
+          </td>
+          <td>
+            <div class="sla-row">
+              <span>{{ row.elapsedMinutes }} / {{ row.slaMinutes }} min</span>
+              <strong [class.overdue]="isBreached(row)">{{ slaPercent(row) }}%</strong>
+            </div>
+            <div class="bar">
+              <div class="fill" [class.warning]="slaState(row) === 'warning'" [class.breach]="slaState(row) === 'breach'" [style.width.%]="slaBarWidth(row)"></div>
+            </div>
+            <small *ngIf="row.status !== 'Completed'" [class.overdue]="isBreached(row)">
+              {{ isBreached(row) ? ('Overdue by ' + overdueMinutes(row) + ' min') : ('Due in ' + remainingMinutes(row) + ' min') }}
+            </small>
+            <small *ngIf="row.status === 'Completed'">Completed in SLA</small>
+          </td>
+          <td class="actions">
+            <a [routerLink]="['/patients/chart', row.idNumber]">Chart</a>
+            <a [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: row.idNumber }">Encounter</a>
+          </td>
+        </tr>
+        <tr *ngIf="filteredRows.length === 0">
+          <td colspan="8" class="empty">No tasks match the current queue filters.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

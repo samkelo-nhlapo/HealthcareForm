@@ -1,0 +1,75 @@
+using HealthcareForm.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace HealthcareForm.Controllers
+{
+    public class DropDownController : Controller
+    {
+        private readonly IConfiguration _configuration;
+
+        public DropDownController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        // GET: DropDown
+        public ActionResult Index()
+        {
+            MainModel model = new MainModel();
+            return View("index", model);
+        }
+
+        // Get gender list 
+        public JsonResult GetGender()
+        {
+            using (var db = HomeController.GetContxt(_configuration))
+            {
+                var eventGender = db.Database.SqlQuery<MainModel>("EXEC Profile.spGetGender").ToList();
+                return new JsonResult(new { data = eventGender });
+            }
+        }
+
+        // get Marital status list 
+        public JsonResult GetMeritalStatus()
+        {
+            using (var db = HomeController.GetContxt(_configuration))
+            {
+                var eventMerital = db.Database.SqlQuery<MainModel>("EXEC Profile.spGetMaritalStatus").ToList();
+                return new JsonResult(new { data = eventMerital });
+            }
+        }
+
+        // Get Country list 
+        public JsonResult GetCountries()
+        {
+            using (var db = HomeController.GetContxt(_configuration))
+            {
+                var eventCountries = db.Database.SqlQuery<MainModel>("EXEC Location.spGetCountries").ToList();
+                return new JsonResult(new { data = eventCountries });
+            }
+        }
+
+        // Get Provincial list 
+        public JsonResult GetProvinces()
+        {
+            using (var db = HomeController.GetContxt(_configuration))
+            {
+                var eventProvinces = db.Database.SqlQuery<MainModel>("EXEC Location.spGetProvinces").ToList();
+                return new JsonResult(new { data = eventProvinces });
+            }
+        }
+
+        // Get cities list 
+        public JsonResult GetCities()
+        {
+            using (var db = HomeController.GetContxt(_configuration))
+            {
+                var eventCities = db.Database.SqlQuery<MainModel>("EXEC Location.spGetCities").ToList();
+                return new JsonResult(new { data = eventCities });
+            }
+        }
+    }
+}

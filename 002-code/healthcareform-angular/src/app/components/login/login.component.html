@@ -1,0 +1,22 @@
+<div class="login-page">
+  <section class="card">
+    <h1>HealthcareForm Login</h1>
+    <p>Sign in to access the protected API workbench.</p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="login()" [attr.aria-busy]="submitting">
+      <label>
+        Username or Email
+        <input type="text" formControlName="UsernameOrEmail" autocomplete="username" />
+      </label>
+
+      <label>
+        Password
+        <input type="password" formControlName="Password" autocomplete="current-password" />
+      </label>
+
+      <button type="submit" [disabled]="submitting">{{ submitting ? 'Signing in...' : 'Sign In' }}</button>
+
+      <p class="error" *ngIf="errorMessage" role="alert" aria-live="assertive">{{ errorMessage }}</p>
+    </form>
+  </section>
+</div>

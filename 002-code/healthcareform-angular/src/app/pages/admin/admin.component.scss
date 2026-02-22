@@ -1,0 +1,119 @@
+:host {
+  color: #15303f;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d4e2ea;
+  border-radius: 0.8rem;
+  padding: 0.95rem 1rem;
+}
+
+.hero {
+  align-items: start;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 2fr 1fr;
+}
+
+.eyebrow {
+  color: #607687;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+h3,
+h4 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0;
+}
+
+.lead {
+  color: #4f6677;
+  margin: 0.35rem 0 0;
+}
+
+.principal {
+  background: #f5fbff;
+  border: 1px solid #d7e8f2;
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+}
+
+.label {
+  color: #61798b;
+  font-size: 0.8rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.principal strong {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.roles {
+  color: #3f596a;
+  margin: 0.3rem 0 0;
+}
+
+.grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card p {
+  color: #5f7789;
+  margin: 0.38rem 0 0;
+}
+
+.metric {
+  align-items: center;
+  background: #deefe4;
+  border-radius: 0.55rem;
+  color: #1f6d38;
+  display: flex;
+  justify-content: space-between;
+  margin: 0.7rem 0;
+  padding: 0.45rem 0.6rem;
+}
+
+.metric.warning {
+  background: #ffecc8;
+  color: #815500;
+}
+
+.metric.critical {
+  background: #ffd8d5;
+  color: #8f1f16;
+}
+
+a {
+  color: #0f6173;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.checklist ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+}
+
+.checklist li {
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}

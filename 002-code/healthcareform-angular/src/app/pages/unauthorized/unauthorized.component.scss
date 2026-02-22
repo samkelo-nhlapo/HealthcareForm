@@ -1,0 +1,48 @@
+:host {
+  color: #15303f;
+  display: block;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d4e2ea;
+  border-radius: 0.8rem;
+  margin: 0 auto;
+  max-width: 680px;
+  padding: 1rem;
+}
+
+.eyebrow {
+  color: #607687;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0.35rem 0;
+}
+
+p {
+  color: #3f596a;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+a {
+  color: #0f6173;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

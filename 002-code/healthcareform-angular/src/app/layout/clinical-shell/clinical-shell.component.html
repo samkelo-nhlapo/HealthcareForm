@@ -1,0 +1,40 @@
+<div class="shell">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <aside class="side-nav">
+    <div class="brand">
+      <p class="eyebrow">HealthcareForm</p>
+      <h1>Clinical Console</h1>
+      <p class="sub">{{ todayLabel }}</p>
+    </div>
+
+    <nav>
+      <a
+        *ngFor="let item of visibleNavItems"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+      >
+        {{ item.label }}
+      </a>
+    </nav>
+
+    <div class="side-footer">
+      <p class="user">{{ username }}</p>
+      <p class="caption">Role-scoped workspace</p>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <header class="top-bar">
+      <div>
+        <p class="eyebrow">Phase 6 Hardening</p>
+        <h2>Healthcare Management UI</h2>
+      </div>
+      <button type="button" (click)="logout()">Logout</button>
+    </header>
+
+    <main id="main-content" class="content" tabindex="-1">
+      <router-outlet></router-outlet>
+    </main>
+  </section>
+</div>

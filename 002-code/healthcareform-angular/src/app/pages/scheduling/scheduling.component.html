@@ -1,0 +1,104 @@
+<section class="panel">
+  <header class="head">
+    <div>
+      <h3>Scheduling and Resource Control</h3>
+      <p>Provider capacity, room/resource allocation, and shift utilization trend.</p>
+    </div>
+    <label>
+      Clinic
+      <select (change)="setClinic($any($event.target).value)">
+        <option value="ALL">All Clinics</option>
+        <option value="General">General</option>
+        <option value="Cardiology">Cardiology</option>
+        <option value="Pediatrics">Pediatrics</option>
+        <option value="Oncology">Oncology</option>
+      </select>
+    </label>
+  </header>
+
+  <section class="metrics">
+    <article>
+      <p class="label">Booked Slots</p>
+      <p class="value">{{ totalBookings }}</p>
+    </article>
+    <article>
+      <p class="label">Capacity</p>
+      <p class="value">{{ totalCapacity }}</p>
+    </article>
+    <article>
+      <p class="label">Utilization</p>
+      <p class="value">{{ utilizationPercent }}%</p>
+    </article>
+    <article>
+      <p class="label">SLA Risks</p>
+      <p class="value">{{ delayedResources + nearCapacityProviders }}</p>
+    </article>
+  </section>
+
+  <section class="layout">
+    <article class="sub-panel">
+      <h4>Provider Capacity</h4>
+      <div class="provider" *ngFor="let provider of filteredProviders">
+        <div class="provider-row">
+          <strong>{{ provider.provider }}</strong>
+          <span>{{ provider.clinic }} • {{ provider.room }}</span>
+        </div>
+        <div class="provider-row">
+          <small>{{ provider.booked }}/{{ provider.capacity }} booked • next {{ provider.nextSlot }}</small>
+          <small>{{ providerUtilization(provider) }}%</small>
+        </div>
+        <div class="bar">
+          <div
+            class="fill"
+            [class.warning]="providerRisk(provider) === 'warning'"
+            [class.critical]="providerRisk(provider) === 'critical'"
+            [style.width.%]="providerUtilization(provider)"
+          ></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="sub-panel">
+      <h4>Resource Status</h4>
+      <div class="resource" *ngFor="let resource of filteredResources">
+        <div class="provider-row">
+          <strong>{{ resource.resource }}</strong>
+          <span class="pill" [class.busy]="resourceStatus(resource) === 'busy'" [class.delayed]="resourceStatus(resource) === 'delayed'">
+            {{ resourceStatus(resource) }}
+          </span>
+        </div>
+        <small>
+          {{ resource.clinic }} • allocated {{ resource.allocated }} • available {{ resource.available }} • turnaround
+          {{ resource.turnaroundMinutes }}m
+        </small>
+        <div class="bar">
+          <div
+            class="fill secondary"
+            [class.warning]="resourceStatus(resource) === 'busy'"
+            [class.critical]="resourceStatus(resource) === 'delayed'"
+            [style.width.%]="resourceLoadPercent(resource)"
+          ></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="sub-panel">
+    <h4>Shift Utilization Trend</h4>
+    <div class="trend-grid">
+      <article *ngFor="let block of blocks">
+        <h5>{{ block.time }}</h5>
+        <p>General {{ block.general }}%</p>
+        <p>Cardiology {{ block.cardiology }}%</p>
+        <p>Pediatrics {{ block.pediatrics }}%</p>
+        <p>Oncology {{ block.oncology }}%</p>
+      </article>
+    </div>
+  </section>
+</section>
+
+<section class="panel compact-note">
+  <p>
+    Next phase action: wire this board to real appointment and room assignment endpoints and enable live queue synchronization.
+  </p>
+</section>

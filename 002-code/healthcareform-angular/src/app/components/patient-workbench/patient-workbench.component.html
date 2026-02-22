@@ -1,0 +1,159 @@
+<div class="page">
+  <section class="panel search-panel" [attr.aria-busy]="patientLoading || deleting || saving">
+    <h2>Patient Lookup</h2>
+    <form [formGroup]="searchForm" class="inline-form" (ngSubmit)="getPatient()">
+      <label for="search-id">
+        ID Number
+        <input
+          id="search-id"
+          type="text"
+          maxlength="13"
+          formControlName="idNumber"
+          placeholder="13-digit ID number"
+          [disabled]="hasPendingRequest"
+          [attr.aria-invalid]="searchForm.controls.idNumber.invalid && searchForm.controls.idNumber.touched"
+        />
+      </label>
+
+      <div class="actions">
+        <button type="submit" [disabled]="hasPendingRequest">
+          {{ patientLoading ? 'Loading...' : 'Load Profile' }}
+        </button>
+        <button type="button" class="danger" (click)="deletePatient()" [disabled]="hasPendingRequest">
+          {{ deleting ? 'Deleting...' : 'Delete Patient' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel flow-panel" [attr.aria-busy]="hasPendingRequest">
+    <header class="flow-header">
+      <div>
+        <h2>Registration / Update Flow</h2>
+        <p>Progressive sections with completion and draft state tracking.</p>
+      </div>
+      <div class="status-chips" aria-live="polite">
+        <span class="chip">{{ completedSectionsCount }}/{{ sections.length }} sections complete</span>
+        <span class="chip warning" *ngIf="patientForm.dirty">Unsaved draft changes</span>
+        <span class="chip info" *ngIf="lookupLoading">Loading lookup values</span>
+        <span class="chip info" *ngIf="patientLoading">Refreshing latest profile</span>
+        <span class="chip success" *ngIf="!patientForm.dirty && lastSavedAt">Saved {{ lastSavedAt | date: 'shortTime' }}</span>
+      </div>
+    </header>
+
+    <div class="section-tabs" role="tablist" aria-label="Patient form sections">
+      <button
+        *ngFor="let section of sections"
+        type="button"
+        role="tab"
+        class="tab"
+        [class.active]="section.key === activeSection"
+        [class.complete]="getSectionState(section.key) === 'complete'"
+        [class.partial]="getSectionState(section.key) === 'in-progress'"
+        [attr.aria-selected]="section.key === activeSection"
+        [attr.aria-pressed]="section.key === activeSection"
+        [disabled]="hasPendingRequest"
+        (click)="setActiveSection(section.key)"
+      >
+        <span>{{ section.label }}</span>
+        <small>{{ getSectionState(section.key) }}</small>
+      </button>
+    </div>
+
+    <form [formGroup]="patientForm" class="grid-form">
+      <fieldset [disabled]="hasPendingRequest">
+        <ng-container [ngSwitch]="activeSection">
+          <ng-container *ngSwitchCase="'demographics'">
+            <label>First Name <input type="text" formControlName="FirstName" /></label>
+            <label>Last Name <input type="text" formControlName="LastName" /></label>
+            <label>ID Number <input type="text" maxlength="13" formControlName="IdNumber" /></label>
+            <label>Date of Birth <input type="date" formControlName="DateOfBirth" /></label>
+            <label>
+              Gender
+              <select formControlName="GenderId">
+                <option [value]="0">Select Gender</option>
+                <option *ngFor="let option of genders" [value]="option.Id">{{ option.Name }}</option>
+              </select>
+            </label>
+            <label>
+              Marital Status
+              <select formControlName="MaritalStatusId">
+                <option [value]="0">Select Marital Status</option>
+                <option *ngFor="let option of maritalStatuses" [value]="option.Id">{{ option.Name }}</option>
+              </select>
+            </label>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'contact'">
+            <label>Phone Number <input type="text" formControlName="PhoneNumber" /></label>
+            <label>Email <input type="email" formControlName="Email" /></label>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'location'">
+            <label>Address Line 1 <input type="text" formControlName="Line1" /></label>
+            <label>Address Line 2 <input type="text" formControlName="Line2" /></label>
+            <label>
+              City
+              <select formControlName="CityId">
+                <option [value]="0">Select City</option>
+                <option *ngFor="let option of cities" [value]="option.Id">{{ option.Name }}</option>
+              </select>
+            </label>
+            <label>
+              Province
+              <select formControlName="ProvinceId">
+                <option [value]="0">Select Province</option>
+                <option *ngFor="let option of provinces" [value]="option.Id">{{ option.Name }}</option>
+              </select>
+            </label>
+            <label>
+              Country
+              <select formControlName="CountryId">
+                <option [value]="0">Select Country</option>
+                <option *ngFor="let option of countries" [value]="option.Id">{{ option.Name }}</option>
+              </select>
+            </label>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'emergency'">
+            <label>Emergency Name <input type="text" formControlName="EmergencyName" /></label>
+            <label>Emergency Last Name <input type="text" formControlName="EmergencyLastName" /></label>
+            <label>Emergency Phone <input type="text" formControlName="EmergencyPhoneNumber" /></label>
+            <label>Relationship <input type="text" formControlName="Relationship" /></label>
+            <label>Emergency DOB <input type="date" formControlName="EmergencyDateOfBirth" /></label>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'clinical'">
+            <label class="full-width">
+              Medication List
+              <textarea formControlName="MedicationList" rows="5"></textarea>
+            </label>
+          </ng-container>
+        </ng-container>
+      </fieldset>
+    </form>
+
+    <div class="flow-actions">
+      <button type="button" class="secondary" (click)="previousSection()" [disabled]="sectionIndex === 0 || hasPendingRequest">Previous Section</button>
+      <button type="button" class="secondary" (click)="nextSection()" [disabled]="sectionIndex === sections.length - 1 || hasPendingRequest">Next Section</button>
+      <span class="spacer"></span>
+      <button type="button" (click)="createPatient()" [disabled]="hasPendingRequest">
+        {{ saving ? 'Saving...' : 'Create Patient' }}
+      </button>
+      <button type="button" (click)="updatePatient()" [disabled]="hasPendingRequest">
+        {{ saving ? 'Saving...' : 'Update Patient' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel conflict-panel" *ngIf="conflictDetected" role="alert" aria-live="assertive">
+    <h2>Record Conflict Detected</h2>
+    <p>{{ conflictMessage }}</p>
+    <button type="button" class="secondary" (click)="reloadLatestPatient()" [disabled]="hasPendingRequest">Reload Latest Profile</button>
+  </section>
+
+  <section class="panel" *ngIf="statusMessage" role="status" aria-live="polite">
+    <h2>Status</h2>
+    <p [class.error]="statusError">{{ statusMessage }}</p>
+  </section>
+</div>

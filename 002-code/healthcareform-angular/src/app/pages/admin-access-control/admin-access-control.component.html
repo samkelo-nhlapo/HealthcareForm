@@ -1,0 +1,147 @@
+<section class="panel">
+  <header class="head">
+    <div>
+      <h3>Role and Permission Control</h3>
+      <p>Coverage aligned with backend Auth.Roles and Auth.Permissions models.</p>
+    </div>
+    <div class="token-context">
+      <p class="label">Token roles</p>
+      <strong>{{ tokenRoles }}</strong>
+    </div>
+  </header>
+
+  <div class="state loading" *ngIf="isLoading">Loading access-control snapshot...</div>
+
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" (click)="retryLoad()">Retry</button>
+  </div>
+
+  <section class="metrics" *ngIf="!isLoading && !loadError">
+    <article>
+      <p class="label">Active Users</p>
+      <p class="value">{{ activeUsers }}</p>
+    </article>
+    <article>
+      <p class="label">Locked Accounts</p>
+      <p class="value danger">{{ lockedUsers }}</p>
+    </article>
+    <article>
+      <p class="label">MFA Pending</p>
+      <p class="value warning">{{ pendingMfaUsers }}</p>
+    </article>
+    <article>
+      <p class="label">Privileged Accounts</p>
+      <p class="value">{{ privilegedUsers }}</p>
+    </article>
+  </section>
+
+  <form [formGroup]="filters" class="filters" *ngIf="!isLoading && !loadError">
+    <label>
+      Search
+      <input type="text" formControlName="search" placeholder="Name, username, or email" />
+    </label>
+    <label>
+      Role
+      <select formControlName="role">
+        <option value="ALL">All Roles</option>
+        <option *ngFor="let role of roleColumns" [value]="role">{{ role }}</option>
+      </select>
+    </label>
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="ALL">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Locked">Locked</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </label>
+    <label>
+      MFA
+      <select formControlName="mfa">
+        <option value="ALL">All states</option>
+        <option value="Enrolled">Enrolled</option>
+        <option value="Pending">Pending</option>
+      </select>
+    </label>
+  </form>
+</section>
+
+<section class="layout" *ngIf="!isLoading && !loadError">
+  <article class="panel">
+    <header class="sub-head">
+      <h4>User Access Roster</h4>
+      <span>{{ filteredUsers.length }} record(s)</span>
+    </header>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Roles</th>
+            <th>Status</th>
+            <th>MFA</th>
+            <th>Last Login</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers">
+            <td>
+              <strong>{{ user.fullName }}</strong>
+              <small>{{ user.username }} • {{ user.email }}</small>
+            </td>
+            <td>
+              <span class="pill" *ngFor="let role of roleColumns" [class.enabled]="hasRole(user, role)">
+                {{ role }}
+              </span>
+            </td>
+            <td>
+              <span class="pill" [class.status-locked]="user.status === 'Locked'" [class.status-inactive]="user.status === 'Inactive'">
+                {{ user.status }}
+              </span>
+            </td>
+            <td>
+              <span class="pill" [class.mfa-pending]="user.mfa === 'Pending'">{{ user.mfa }}</span>
+            </td>
+            <td>{{ user.lastLogin }}</td>
+          </tr>
+          <tr *ngIf="filteredUsers.length === 0">
+            <td colspan="5" class="empty">No users match current filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <header class="sub-head">
+      <h4>Permission Matrix</h4>
+      <span>{{ permissions.length }} policies</span>
+    </header>
+
+    <div class="table-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th>Permission</th>
+            <th>Module</th>
+            <th>Action</th>
+            <th *ngFor="let role of roleColumns">{{ role }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let permission of permissions">
+            <td>{{ permission.permissionName }}</td>
+            <td>{{ permission.module }}</td>
+            <td>{{ permission.action }}</td>
+            <td *ngFor="let role of roleColumns" [class.allowed]="hasPermission(permission, role)">
+              {{ hasPermission(permission, role) ? 'Yes' : 'No' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

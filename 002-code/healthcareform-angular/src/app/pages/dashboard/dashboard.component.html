@@ -1,0 +1,14 @@
+<section class="grid">
+  <article class="metric-card" *ngFor="let item of metrics">
+    <p class="label">{{ item.label }}</p>
+    <p class="value">{{ item.value }}</p>
+    <p class="trend">{{ item.trend }}</p>
+  </article>
+</section>
+
+<section class="panel">
+  <h3>Safety Alerts</h3>
+  <ul>
+    <li *ngFor="let alert of alerts">{{ alert }}</li>
+  </ul>
+</section>

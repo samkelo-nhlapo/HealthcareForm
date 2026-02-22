@@ -1,0 +1,161 @@
+<section class="panel">
+  <header class="head">
+    <div>
+      <h3>Billing and Claims Workspace</h3>
+      <p>Claims lifecycle tracking across coding, payer submission, and collections.</p>
+    </div>
+  </header>
+
+  <section class="metrics">
+    <article>
+      <p class="label">Outstanding Balance</p>
+      <p class="value">{{ outstandingBalance | currency:'ZAR':'symbol':'1.0-0' }}</p>
+    </article>
+    <article>
+      <p class="label">Collected</p>
+      <p class="value success">{{ collectedAmount | currency:'ZAR':'symbol':'1.0-0' }}</p>
+    </article>
+    <article>
+      <p class="label">Ready to Submit</p>
+      <p class="value">{{ readyToSubmitCount }}</p>
+    </article>
+    <article>
+      <p class="label">Denied</p>
+      <p class="value danger">{{ deniedCount }} ({{ denialRate }}%)</p>
+    </article>
+  </section>
+
+  <form [formGroup]="filters" class="filters">
+    <label>
+      Search
+      <input type="text" formControlName="search" placeholder="Claim ID, patient, payer, or ID" />
+    </label>
+
+    <label>
+      Payer
+      <select formControlName="payer">
+        <option value="ALL">All Payers</option>
+        <option value="Discovery Health">Discovery Health</option>
+        <option value="Momentum Health">Momentum Health</option>
+        <option value="Bonitas">Bonitas</option>
+        <option value="GEMS">GEMS</option>
+      </select>
+    </label>
+
+    <label>
+      Claim Status
+      <select formControlName="claimStatus">
+        <option value="ALL">All Statuses</option>
+        <option value="Ready to Submit">Ready to Submit</option>
+        <option value="Submitted">Submitted</option>
+        <option value="Pending Documentation">Pending Documentation</option>
+        <option value="Denied">Denied</option>
+        <option value="Paid">Paid</option>
+      </select>
+    </label>
+
+    <label>
+      Coding
+      <select formControlName="codingStatus">
+        <option value="ALL">All Coding States</option>
+        <option value="Uncoded">Uncoded</option>
+        <option value="Coder Review">Coder Review</option>
+        <option value="Code Complete">Code Complete</option>
+      </select>
+    </label>
+
+    <label class="toggle">
+      <input type="checkbox" formControlName="deniedOnly" />
+      <span>Denials only</span>
+    </label>
+  </form>
+
+  <section class="layout">
+    <article class="sub-panel">
+      <h4>Claim Pipeline</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Claim</th>
+              <th>Payer</th>
+              <th>Amount</th>
+              <th>Coding</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let claim of filteredClaims">
+              <td>
+                <strong>{{ claim.claimId }}</strong>
+                <small>{{ claim.patient }} • {{ claim.idNumber }}</small>
+                <small>Service {{ claim.serviceDate }} • {{ claim.daysOpen }} days open</small>
+              </td>
+              <td>{{ claim.payer }}</td>
+              <td>
+                <div>{{ claim.amount | currency:'ZAR':'symbol':'1.0-0' }}</div>
+                <small>Balance {{ balance(claim) | currency:'ZAR':'symbol':'1.0-0' }}</small>
+              </td>
+              <td>
+                <span class="pill" [class.coder-review]="claim.codingStatus === 'Coder Review'" [class.code-complete]="claim.codingStatus === 'Code Complete'">
+                  {{ claim.codingStatus }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="pill"
+                  [class.ready]="claim.claimStatus === 'Ready to Submit'"
+                  [class.submitted]="claim.claimStatus === 'Submitted'"
+                  [class.pending]="claim.claimStatus === 'Pending Documentation'"
+                  [class.denied]="claim.claimStatus === 'Denied'"
+                  [class.paid]="claim.claimStatus === 'Paid'"
+                >
+                  {{ claim.claimStatus }}
+                </span>
+                <small *ngIf="claim.claimStatus === 'Denied'">{{ claim.denialReason }}</small>
+              </td>
+              <td>
+                <div class="progress-row">
+                  <span>{{ collectionPercent(claim) }}%</span>
+                </div>
+                <div class="bar">
+                  <div class="fill" [style.width.%]="collectionPercent(claim)"></div>
+                </div>
+              </td>
+              <td class="actions">
+                <a [routerLink]="['/patients/chart', claim.idNumber]">Chart</a>
+                <a [routerLink]="['/clinical/orders-results']" [queryParams]="{ idNumber: claim.idNumber }">Orders</a>
+              </td>
+            </tr>
+            <tr *ngIf="filteredClaims.length === 0">
+              <td colspan="7" class="empty">No claims match current filters.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <aside class="sub-panel side">
+      <h4>Denial Follow-up</h4>
+      <article *ngFor="let claim of denialRows" class="denial-card">
+        <header>
+          <strong>{{ claim.claimId }}</strong>
+          <span>{{ claim.daysOpen }}d</span>
+        </header>
+        <p>{{ claim.patient }} • {{ claim.payer }}</p>
+        <p class="reason">{{ claim.denialReason }}</p>
+        <small>Last update {{ claim.lastUpdated }}</small>
+      </article>
+      <p *ngIf="denialRows.length === 0" class="empty-note">No denials currently open.</p>
+
+      <h4 class="aging-title">Aging Buckets</h4>
+      <article *ngFor="let bucket of agingBuckets" class="aging-row">
+        <p>{{ bucket.label }}</p>
+        <p>{{ bucket.count }} claim(s)</p>
+        <p>{{ bucket.amount | currency:'ZAR':'symbol':'1.0-0' }}</p>
+      </article>
+    </aside>
+  </section>
+</section>

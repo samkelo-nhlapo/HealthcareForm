@@ -1,0 +1,180 @@
+:host {
+  color: #15303f;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d4e2ea;
+  border-radius: 0.8rem;
+  padding: 0.95rem 1rem;
+}
+
+.head {
+  align-items: end;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+h3,
+h4,
+h5 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0;
+}
+
+.head p {
+  color: #607687;
+  margin: 0.3rem 0 0;
+}
+
+label {
+  display: grid;
+  font-size: 0.83rem;
+  gap: 0.22rem;
+}
+
+select {
+  border: 1px solid #a7bfcd;
+  border-radius: 0.45rem;
+  font: inherit;
+  padding: 0.42rem 0.5rem;
+}
+
+.metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0.9rem 0;
+}
+
+.metrics article {
+  background: #f5fbff;
+  border: 1px solid #d7e8f2;
+  border-radius: 0.7rem;
+  padding: 0.65rem;
+}
+
+.label {
+  color: #5f7789;
+  font-size: 0.79rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 0.22rem 0 0;
+}
+
+.layout {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.sub-panel {
+  background: #fbfdff;
+  border: 1px solid #deebf3;
+  border-radius: 0.72rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem;
+}
+
+.provider,
+.resource {
+  border-top: 1px solid #e8eff4;
+  margin-top: 0.58rem;
+  padding-top: 0.58rem;
+}
+
+.provider-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+span,
+small {
+  color: #62798a;
+}
+
+.bar {
+  background: #e5edf3;
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 0.45rem;
+  overflow: hidden;
+}
+
+.fill {
+  background: #2d8a6f;
+  height: 100%;
+}
+
+.fill.secondary {
+  background: #277b8f;
+}
+
+.fill.warning {
+  background: #da9a2d;
+}
+
+.fill.critical {
+  background: #c84a3e;
+}
+
+.pill {
+  background: #deefe4;
+  border-radius: 999px;
+  color: #1f6d38;
+  font-size: 0.78rem;
+  padding: 0.16rem 0.48rem;
+  text-transform: capitalize;
+}
+
+.pill.busy {
+  background: #ffecc8;
+  color: #815500;
+}
+
+.pill.delayed {
+  background: #ffd8d5;
+  color: #8f1f16;
+}
+
+.trend-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin-top: 0.7rem;
+}
+
+.trend-grid article {
+  background: #fff;
+  border: 1px solid #deebf3;
+  border-radius: 0.65rem;
+  padding: 0.55rem;
+}
+
+.trend-grid p {
+  color: #3d5567;
+  font-size: 0.83rem;
+  margin: 0.15rem 0 0;
+}
+
+.compact-note p {
+  color: #4d6678;
+  margin: 0;
+}
+
+@media (max-width: 840px) {
+  .head {
+    align-items: start;
+    display: grid;
+  }
+}

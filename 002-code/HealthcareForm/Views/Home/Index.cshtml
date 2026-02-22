@@ -1,0 +1,509 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+@using HealthcareForm.Models;
+
+@model MainModel
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+@* Moment.js library to manipulate date *@
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js"></script>
+
+@*
+    Html.BeginForm to submit form data to the server without whole page postback
+    Postback = submitting all the information while the user is still working
+*@
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medical Form</title>
+    <link rel="stylesheet" href="~/Content/styles.css" />
+</head>
+
+<body>
+
+    <div class="form-container">
+
+        @using (Html.BeginForm("SavePatient", "Home", FormMethod.Post, new { @id = "frmHome", @class = "needs-validation", novalidate = "novalidate" }))
+        {
+            @Html.ValidationSummary(true)
+            @Html.AntiForgeryToken()
+
+            <header>
+                <div class="header-content">
+                    <div class="logo">
+                        <img src="~/Images/healthLogo.jpg" alt="Circle Medical Logo">
+                    </div>
+                    <div class="title">
+                        <h1>MEDICAL FORM</h1>
+                    </div>
+                </div>
+            </header>
+
+            <div class="form-group row align-items-center">
+                <label for="txtIDSearch" class="col-sm-2 col-form-label">Search Patient</label>
+                <div class="col-sm-10">
+                    <div class="input-group">
+                        @Html.TextBoxFor(x => x.IDNumber, new { id = "txtIDSearch", @class = "form-control", placeholder = "Enter ID Number" })
+                        <button type="button" class="btn btn-primary" onclick="GetButton()">Search</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+
+            <section class="personal-info">
+                <h2>PERSONAL INFORMATION</h2>
+                <form>
+                    <label for="FirstName">First Name</label>
+                    @Html.TextBoxFor(x => x.FirstName, new { @class = "form-control", id = "FirstName", placeholder = "Enter First Name" })
+
+                    <label for="LastName">Last Name</label>
+                    @Html.TextBoxFor(x => x.LastName, new { @class = "form-control", id = "LastName", placeholder = "Enter Last Name" })
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="ID_Number">ID Number</label>
+                            @Html.TextBoxFor(x => x.ID_Number, new { @class = "form-control", id = "ID_Number", placeholder = "Enter ID Number" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="DateOfBirth">Date Of Birth</label>
+                            @Html.TextBoxFor(x => x.DateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "DateOfBirth", placeholder = "DD/MM/YYYY" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllGetGender">Gender</label>
+                            @Html.DropDownListFor(x => x.GenderIDFK, new List<SelectListItem>(), "Select Gender", new { @class = "form-control", id = "dllGetGender" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllPhoneNumber">Phone Number</label>
+                            @Html.TextBoxFor(x => x.PhoneNumber, new { @class = "form-control", id = "dllPhoneNumber", placeholder = "Enter Phone Number" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllEmail">Email</label>
+                            @Html.TextBoxFor(x => x.Email, new { @class = "form-control", id = "dllEmail", placeholder = "Enter Email" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllLine1">Address Line 1</label>
+                            @Html.TextBoxFor(x => x.Line1, new { @class = "form-control", id = "dllLine1", placeholder = "Enter Address Line 1" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllLine2">Address Line 2</label>
+                            @Html.TextBoxFor(x => x.Line2, new { @class = "form-control", id = "dllLine2", placeholder = "Enter Address Line 2" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllGetCities">City</label>
+                            @Html.DropDownListFor(x => x.CityIDFK, new List<SelectListItem>(), "Select City", new { @class = "form-control", id = "dllGetCities" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllGetProvinces">Province</label>
+                            @Html.DropDownListFor(x => x.ProvinceIDFK, new List<SelectListItem>(), "Select Province", new { @class = "form-control", id = "dllGetProvinces" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllGetCountries">Country</label>
+                            @Html.DropDownListFor(x => x.CountryIDFK, new List<SelectListItem>(), "Select Country", new { @class = "form-control", id = "dllGetCountries" })
+                        </div>
+                    </div>
+
+                </form>
+            </section>
+
+            <section class="emergency-contact">
+                <h2>EMERGANCY CONTACT DETAILS</h2>
+                <form>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllGetMaritalStatus">Marital Status</label>
+                            @Html.DropDownListFor(x => x.MaritalStatusIDFK, new List<SelectListItem>(), "Select Marital Status", new { @class = "form-control", id = "dllGetMaritalStatus" })
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="dllEmergencyName">Emergency Name</label>
+                            @Html.TextBoxFor(x => x.EmergencyName, new { @class = "form-control", id = "dllEmergencyName", placeholder = "Enter Emergency Contact Name" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllEmergencyLastName">Emergency Last Name</label>
+                            @Html.TextBoxFor(x => x.EmergencyLastName, new { @class = "form-control", id = "dllEmergencyLastName", placeholder = "Enter Emergency Contact Last Name" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllEmergencyPhoneNumber">Emergency Phone Number</label>
+                            @Html.TextBoxFor(x => x.EmergencyPhoneNumber, new { @class = "form-control", id = "dllEmergencyPhoneNumber", placeholder = "Enter Emergency Contact Phone" })
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="dllRelationship">Relationship</label>
+                            @Html.TextBoxFor(x => x.Relationship, new { @class = "form-control", id = "dllRelationship", placeholder = "Enter Relationship" })
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="dllEmergancyDateOfBirth">Emergency Contact DOB</label>
+                            @Html.TextBoxFor(x => x.EmergancyDateOfBirth, "{0:dd/MM/yyyy}", new { @class = "form-control datepicker", id = "dllEmergancyDateOfBirth", placeholder = "DD/MM/YYYY" })
+                        </div>
+                    </div>
+                </form>
+                
+                
+            </section>
+
+
+            <div class="form-group">
+                <label for="dllMedicationList">Medication List</label>
+                @Html.TextAreaFor(x => x.MedicationList, new { @class = "form-control", id = "dllMedicationList", rows = "3", placeholder = "List medications here..." })
+            </div>
+
+            <hr />
+            <footer>
+                <p>More Information:</p>
+                <address>
+                    7603 Makhetha Street, Orlando West, Soweto, 1804<br>
+                    Phone: +27 79 286 3165<br>
+                </address>
+                <div class="signature">
+                    <p>Samkelo Nhlapo</p>
+                </div>
+            </footer>
+
+            <div class="form-row">
+                <div class="col-md-12 button-group">
+                    <button type="button" class="btn btn-primary" onclick="SaveButton()">Submit</button>
+                    <button type="button" class="btn btn-info" onclick="UpdateButton()">Update</button>
+                    <button type="button" class="btn btn-danger" onclick="DeleteButton()">Delete</button>
+                    <button type="reset" class="btn btn-light">Clear</button>
+                </div>
+            </div>
+
+        }
+    </div>
+
+
+</body>
+</html>
+
+
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
+
+    <script>
+        $(document).ready(function () {
+            $('.datepicker').datepicker({
+                format: 'dd/mm/yyyy',
+                autoclose: true,
+                todayHighlight: true
+            });
+        });
+    </script>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.17.0/dist/jquery.validate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@3.2.11/jquery.validate.unobtrusive.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+
+        $.ajax({
+            url: "/DropDown/GetGender",
+            dataType: "json",
+            cache: true,
+            async: true,
+            global: false,
+            success: function (data) {
+
+                var items = '<option value ="' + '0' + '">' + 'Select status' + '</option>';
+                $.each(data, function (i, value) {
+
+                    items += '<option value ="' + value.GenderIDFK + '">' + value.GenderDescription + '</option>';
+                    $('#dllGetGender').html(items);
+                })
+
+            },
+            error: function (xhr) {
+                alert("Gender not successful");
+            }
+        })
+
+        $.ajax
+            ({
+                url: "/DropDown/GetCities",
+                dataType: "json",
+                cache: true,
+                async: true,
+                global: false,
+                success: function (data) {
+
+                    var items = '<option value ="' + '0' + '">' + 'Select City' + '</option>';
+                    $.each(data, function (i, value) {
+
+                        items += '<option value ="' + value.CityIDFK + '">' + value.CityName + '</option>';
+                        $('#dllGetCities').html(items);
+                    })
+                },
+                error: function (xhr, response) {
+                    alert("Cities is not successful");
+                }
+            })
+
+        $.ajax
+            ({
+                url: "/DropDown/GetCountries",
+                dataType: "json",
+                cache: true,
+                async: true,
+                global: false,
+                success: function (data) {
+
+                    var items = '<option value ="' + '0' + '">' + 'Select Country' + '</option>';
+
+                    $.each(data, function (i, value) {
+
+                        items += '<option value ="' + value.CountryIDFK + '">' + value.CountryName + '</option>';
+                        $('#dllGetCountries').html(items);
+                    })
+                },
+                error: function (response, xhr) {
+                    alert("Countries is not successful");
+                }
+            })
+
+        $.ajax
+            ({
+
+                url: "/DropDown/GetProvinces",
+                dataType: "json",
+                cache: true,
+                async: true,
+                global: false,
+                success: function (data) {
+
+                    var items = '<option value ="' + '0' + '">' + 'Select Province' + '</option>';
+
+                    $.each(data, function (i, value) {
+
+                        items += '<option value ="' + value.ProvinceIDFK + '">' + value.ProvinceName + '</option>';
+                        $('#dllGetProvinces').html(items);
+                    })
+                },
+                error: function (xhr) {
+                    alert("Provinces Not successfull")
+                }
+            })
+
+        $.ajax
+            ({
+                url: "/DropDown/GetMeritalStatus",
+                dataType: "json",
+                cache: true,
+                async: true,
+                global: false,
+                success: function (data) {
+
+                    var items = '<option value ="' + '0' + '">' + 'Select Merital Status' + '</option>';
+                    $.each(data, function (index, value) {
+
+                        items += '<option value ="' + value.MaritalStatusIDFK + '">' + value.MaritalStatusDescription + '</option>';
+
+                        $('#dllGetMaritalStatus').html(items);
+                    })
+                },
+                error: function (xhr) {
+                    alert("Marital status not successfull ");
+                }
+            })
+    })
+</script>
+
+<script>
+    function SaveButton() {
+
+        debugger
+        $.ajax({
+            type: "POST",
+            url: "/AddPatient/AddPatient",
+            data: $("#frmHome").serialize(),   //.serializa() creates a text string in standard URL-encoded notation
+            dataType: 'json',
+            success: function (data) {
+
+                debugger
+                if (data["Message"] != "" || data["Message"] == null) {
+                    alert(data["Message"]);
+
+                } else {
+                    alert("Patient Saved successfully");
+                }
+
+            },
+            error: function (value, response) {
+
+                alert(" value from value: " + value.responseText);
+
+            }
+        })
+    }
+
+    function GetButton() {
+
+        //Declare ID variable linked with html input element value
+        var IDNumber = $('#txtIDSearch').val();
+
+        if (IDNumber == "") {
+            alert("Enter ID Number ");
+        }
+        else {
+
+            var inputData = { IDnumber: IDNumber }
+
+
+            $.ajax({
+                type: "GET",
+                url: "/GetPatient/GetPatient",
+                data: inputData,
+                async: false,
+                error: function () {
+                    alert("unsuccessful Getting Patient");
+                },
+                success: function (data) {
+
+                    /*Object.keys() returns an array of GetPatient controller Method*/
+                    var obj = Object.keys(data)
+
+                    debugger
+                    for (var key of obj) {
+
+                        if (data["Message"] != "") {
+                            alert(data["Message"]);
+                            break
+
+                        } else {
+
+                            switch (key) {
+
+                                case "IDNumber":
+                                    document.getElementById("txtIDSearch").value = data[key];
+                                    break;
+                                case "FirstName":
+                                    document.getElementById("FirstName").value = data[key];
+                                    break;
+                                case "LastName":
+                                    document.getElementById("LastName").value = data[key];
+                                    break;
+                                case "ID_Number":
+                                    document.getElementById("ID_Number").value = data[key];
+                                    break;
+                                case "DateOfBirth":
+                                    //Moment.js library to manipulate date
+                                    var date = moment(data[key]).format("DD-MMM-YYYY");
+                                    document.getElementById("DateOfBirth").value = date;
+                                    break;
+                                case "GenderIDFK":
+                                    document.getElementById("dllGetGender").value = data[key];
+                                    break;
+                                case "PhoneNumber":
+                                    document.getElementById("dllPhoneNumber").value = data[key];
+                                    break;
+                                case "Email":
+                                    document.getElementById("dllEmail").value = data[key];
+                                    break;
+                                case "Line1":
+                                    document.getElementById("dllLine1").value = data[key];
+                                    break;
+                                case "Line2":
+                                    document.getElementById("dllLine2").value = data[key];
+                                    break;
+                                case "CityIDFK":
+                                    document.getElementById("dllGetCities").value = data[key];
+                                    break;
+                                case "ProvinceIDFK":
+                                    document.getElementById("dllGetProvinces").value = data[key];
+                                    break;
+                                case "CountryIDFK":
+                                    document.getElementById("dllGetCountries").value = data[key];
+                                    break;
+                                case "MaritalStatusIDFK":
+                                    document.getElementById("dllGetMaritalStatus").value = data[key];
+                                    break;
+                                case "MedicationList":
+                                    document.getElementById("dllMedicationList").value = data[key];
+                                    break;
+                                case "EmergencyName":
+                                    document.getElementById("dllEmergencyName").value = data[key];
+                                    break;
+                                case "EmergencyLastName":
+                                    document.getElementById("dllEmergencyLastName").value = data[key];
+                                    break;
+                                case "EmergencyPhoneNumber":
+                                    document.getElementById("dllEmergencyPhoneNumber").value = data[key];
+                                    break;
+                                case "Relationship":
+                                    document.getElementById("dllRelationship").value = data[key];
+                                    break;
+                                case "EmergancyDateOfBirth":
+                                    var date = moment(data[key]).format("DD-MM-YYYY");
+                                    document.getElementById("dllEmergancyDateOfBirth").value = date;
+                                    break;
+                                default:
+
+                            }
+                        }
+
+                    }
+                }
+            })
+        }
+    }
+
+    function DeleteButton() {
+
+        var IDNumber = $('#txtIDSearch').val();
+
+        if (IDNumber == "") {
+            alert("Enter ID Number ");
+        }
+        else {
+            debugger
+            $.ajax({
+                type: "POST",
+                url: "/RemovePatient/RemovePatient",
+                data: $("#frmHome").serialize(),   //.serializa() creates a text string in standard URL-encoded notation
+                dataType: 'json',
+                success: function (data) {
+
+                    /*alert("Successfully in Delete button");*/
+                    debugger
+                    if (data["Message"] != "" || data["Message"] == null) {
+                        alert(data["Message"]);
+
+                    } else {
+                        alert("Patient Deleted successfully");
+                    }
+
+                },
+                error: function (value) {
+
+                    alert(" value from Delete Button: " + value.responseText);
+
+                }
+            })
+        }
+
+    }
+</script>

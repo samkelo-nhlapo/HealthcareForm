@@ -1,0 +1,61 @@
+<section class="context-bar">
+  <div>
+    <p class="eyebrow">Encounter Workspace</p>
+    <h2>{{ contextLabel }}</h2>
+    <p class="error" *ngIf="loadError">{{ loadError }}</p>
+  </div>
+  <div class="quick-links" *ngIf="patient">
+    <a [routerLink]="['/patients/chart', patient.IdNumber]">View Chart</a>
+    <a [routerLink]="['/clinical/orders-results']" [queryParams]="{ idNumber: patient.IdNumber }">Orders & Results</a>
+    <a [routerLink]="['/clinical/medication-reconciliation']" [queryParams]="{ idNumber: patient.IdNumber }">Medication Reconciliation</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form [formGroup]="encounterForm" class="encounter-grid">
+    <label>
+      Chief Complaint
+      <input type="text" formControlName="chiefComplaint" placeholder="Primary reason for visit" />
+    </label>
+    <label>
+      Acuity
+      <select formControlName="acuity">
+        <option value="Routine">Routine</option>
+        <option value="Urgent">Urgent</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </label>
+
+    <label class="full">
+      Subjective
+      <textarea rows="4" formControlName="subjective" placeholder="Patient-reported symptoms and history"></textarea>
+    </label>
+    <label class="full">
+      Objective
+      <textarea rows="4" formControlName="objective" placeholder="Exam findings and measured observations"></textarea>
+    </label>
+    <label class="full">
+      Assessment
+      <textarea rows="4" formControlName="assessment" placeholder="Clinical interpretation and differential"></textarea>
+    </label>
+    <label class="full">
+      Plan
+      <textarea rows="4" formControlName="plan" placeholder="Treatment plan, follow-up, and instructions"></textarea>
+    </label>
+
+    <div class="checks full">
+      <label><input type="checkbox" formControlName="allergyReviewed" /> Allergy status reviewed</label>
+      <label><input type="checkbox" formControlName="medicationReviewed" /> Medication list reconciled</label>
+      <label><input type="checkbox" formControlName="followUpBooked" /> Follow-up appointment booked</label>
+    </div>
+  </form>
+
+  <footer class="actions">
+    <span class="meta" *ngIf="encounterForm.dirty">Unsaved draft changes</span>
+    <span class="meta" *ngIf="draftSavedAt">Draft saved {{ draftSavedAt | date: 'shortTime' }}</span>
+    <span class="meta success" *ngIf="finalSignedAt">Signed {{ finalSignedAt | date: 'short' }}</span>
+    <span class="spacer"></span>
+    <button type="button" class="secondary" (click)="saveDraft()">Save Draft</button>
+    <button type="button" (click)="signEncounter()">Sign Encounter</button>
+  </footer>
+</section>

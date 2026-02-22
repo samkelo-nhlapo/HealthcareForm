@@ -1,0 +1,40 @@
+<section class="context-bar">
+  <div>
+    <p class="eyebrow">Medication Reconciliation</p>
+    <h2>{{ contextLabel }}</h2>
+    <p class="error" *ngIf="loadError">{{ loadError }}</p>
+  </div>
+  <div class="quick-links" *ngIf="patient">
+    <a [routerLink]="['/patients/chart', patient.IdNumber]">Chart</a>
+    <a [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: patient.IdNumber }">Encounter</a>
+    <a [routerLink]="['/clinical/orders-results']" [queryParams]="{ idNumber: patient.IdNumber }">Orders & Results</a>
+  </div>
+</section>
+
+<section class="layout">
+  <article class="panel">
+    <header class="panel-head">
+      <h3>Medication List</h3>
+      <span>{{ reviewedCount }}/{{ medications.length }} reviewed</span>
+    </header>
+
+    <ul class="med-list">
+      <li *ngFor="let item of medications; let i = index">
+        <label>
+          <input type="checkbox" [checked]="item.reviewed" (change)="toggleReviewed(i)" />
+          <span>{{ item.name }}</span>
+          <small>{{ item.source }}</small>
+        </label>
+      </li>
+    </ul>
+  </article>
+
+  <article class="panel warning-panel">
+    <h3>Interaction Warnings</h3>
+    <ul>
+      <li *ngFor="let warning of warnings">{{ warning }}</li>
+    </ul>
+    <button type="button" (click)="finalizeReconciliation()">Finalize Reconciliation</button>
+    <p class="meta success" *ngIf="finalizedAt">Finalized {{ finalizedAt | date: 'short' }}</p>
+  </article>
+</section>

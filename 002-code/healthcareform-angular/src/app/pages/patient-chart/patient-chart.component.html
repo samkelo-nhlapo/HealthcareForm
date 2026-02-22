@@ -1,0 +1,75 @@
+<section class="panel" *ngIf="loading" role="status" aria-live="polite" aria-busy="true">
+  <h3>Loading chart...</h3>
+</section>
+
+<section class="panel error-panel" *ngIf="!loading && loadError" role="alert" aria-live="assertive">
+  <h3>Patient Chart</h3>
+  <p class="error">{{ loadError }}</p>
+  <div class="quick-actions">
+    <button type="button" class="retry" (click)="retryLoad()">Retry</button>
+    <a [routerLink]="['/patients/worklist']">Back to worklist</a>
+  </div>
+</section>
+
+<ng-container *ngIf="!loading && patient">
+  <section class="sticky-context">
+    <div>
+      <p class="eyebrow">Patient Chart</p>
+      <h2>{{ patientName }}</h2>
+      <p class="meta">
+        ID: {{ patient.IdNumber }}
+        <span *ngIf="age !== null">• Age {{ age }}</span>
+      </p>
+    </div>
+
+    <div class="chips">
+      <span class="chip risk" [class.high]="riskBand === 'High'" [class.critical]="riskBand === 'Critical'">
+        {{ riskBand }} Risk
+      </span>
+      <span class="chip">{{ consentStatus }} Consent</span>
+      <a class="chip link-chip" [routerLink]="['/patients/workbench']" [queryParams]="{ idNumber: patient.IdNumber }">
+        Open Registration Flow
+      </a>
+      <a class="chip link-chip" [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: patient.IdNumber }">
+        Open Encounter
+      </a>
+      <a class="chip link-chip" [routerLink]="['/clinical/orders-results']" [queryParams]="{ idNumber: patient.IdNumber }">
+        Orders & Results
+      </a>
+      <a class="chip link-chip" [routerLink]="['/clinical/medication-reconciliation']" [queryParams]="{ idNumber: patient.IdNumber }">
+        Med Reconciliation
+      </a>
+    </div>
+  </section>
+
+  <section class="layout">
+    <article class="panel">
+      <h3>Safety Context</h3>
+      <ul>
+        <li *ngFor="let flag of safetyFlags">{{ flag }}</li>
+      </ul>
+    </article>
+
+    <article class="panel">
+      <h3>Clinical Snapshot</h3>
+      <dl>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ patient.PhoneNumber || 'Not captured' }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ patient.Email || 'Not captured' }}</dd>
+        </div>
+        <div>
+          <dt>Address</dt>
+          <dd>{{ patient.Line1 }}, {{ patient.Line2 }}</dd>
+        </div>
+        <div>
+          <dt>Medication Notes</dt>
+          <dd>{{ patient.MedicationList || 'No medication list captured' }}</dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+</ng-container>

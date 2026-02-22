@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HealthcareForm</RootNamespace>
+    <AssemblyName>HealthcareForm</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+
+    <!-- Database and ORM -->
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+    
+    <!-- Validation -->
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    
+    <!-- JSON Serialization -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>

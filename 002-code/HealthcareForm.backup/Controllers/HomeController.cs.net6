@@ -1,0 +1,37 @@
+using HealthcareForm.Models;
+using Microsoft.AspNetCore.Mvc;
+using HealthcareForm.Repo;
+
+namespace HealthcareForm.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly IConfiguration _configuration;
+
+        public HomeController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public ActionResult Index()
+        {
+            MainModel model = new MainModel();
+            return View("Index", model);
+        }
+
+        public ActionResult About()
+        {
+            return View();
+        }
+
+        public ActionResult Contact()
+        {
+            return View();
+        }
+
+        public static Contxt GetContxt(IConfiguration configuration)
+        {
+            return new Contxt(configuration);
+        }
+    }
+}

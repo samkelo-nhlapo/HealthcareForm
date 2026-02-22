@@ -1,0 +1,140 @@
+:host {
+  color: #142b39;
+  display: block;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d5e2ea;
+  border-radius: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+
+.sticky-context {
+  align-items: start;
+  background: #f7fcff;
+  border: 1px solid #cfe3ef;
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.85rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  position: sticky;
+  top: 0.8rem;
+  z-index: 3;
+}
+
+.eyebrow {
+  color: #5b7487;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0.15rem 0;
+}
+
+.meta {
+  color: #486073;
+  margin: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.chip {
+  background: #dff2f4;
+  border-radius: 999px;
+  color: #13576a;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.chip.risk {
+  background: #fff3d6;
+  color: #785d00;
+}
+
+.chip.risk.high {
+  background: #ffe9ca;
+  color: #8b5200;
+}
+
+.chip.risk.critical {
+  background: #ffd8d3;
+  color: #8d2119;
+}
+
+.link-chip {
+  background: #103745;
+  color: #fff;
+  text-decoration: none;
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+h3 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0 0 0.65rem;
+}
+
+ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+dt {
+  color: #5b7487;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0.15rem 0 0;
+}
+
+.error-panel .error {
+  color: #8f1c13;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.6rem;
+}
+
+.retry {
+  background: #103745;
+  border: 1px solid #0b2b36;
+  border-radius: 0.45rem;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.4rem 0.7rem;
+}
+
+@media (max-width: 820px) {
+  .sticky-context {
+    display: grid;
+  }
+}

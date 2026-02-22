@@ -1,0 +1,12 @@
+<section class="panel">
+  <h3>Clinical Messaging Queue</h3>
+  <p>Unread handoffs and cross-team escalations.</p>
+
+  <article *ngFor="let item of items">
+    <header>
+      <strong>{{ item.sender }}</strong>
+      <span>{{ item.age }}</span>
+    </header>
+    <p>{{ item.topic }}</p>
+  </article>
+</section>

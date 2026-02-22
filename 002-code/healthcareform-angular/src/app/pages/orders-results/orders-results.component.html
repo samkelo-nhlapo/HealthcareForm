@@ -1,0 +1,63 @@
+<section class="context-bar">
+  <div>
+    <p class="eyebrow">Orders and Results</p>
+    <h2>{{ contextLabel }}</h2>
+    <p class="error" *ngIf="loadError">{{ loadError }}</p>
+  </div>
+  <div class="quick-links" *ngIf="patient">
+    <a [routerLink]="['/patients/chart', patient.IdNumber]">Chart</a>
+    <a [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: patient.IdNumber }">Encounter</a>
+    <a [routerLink]="['/clinical/medication-reconciliation']" [queryParams]="{ idNumber: patient.IdNumber }">Med Reconciliation</a>
+  </div>
+</section>
+
+<section class="layout">
+  <article class="panel">
+    <header class="panel-head">
+      <h3>Pending Orders</h3>
+      <span>{{ pendingOrders.length }} open</span>
+    </header>
+    <ul>
+      <li *ngFor="let order of pendingOrders">{{ order }}</li>
+    </ul>
+  </article>
+
+  <article class="panel">
+    <header class="panel-head">
+      <h3>Recent Results</h3>
+      <button type="button" class="secondary" (click)="toggleAbnormalOnly()">
+        {{ abnormalOnly ? 'Show All' : 'Abnormal Only' }}
+      </button>
+    </header>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Value</th>
+            <th>Range</th>
+            <th>Severity</th>
+            <th>Completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let result of visibleResults" [class.row-abnormal]="result.severity === 'Abnormal'" [class.row-critical]="result.severity === 'Critical'">
+            <td>{{ result.test }}</td>
+            <td>{{ result.value }}</td>
+            <td>{{ result.referenceRange }}</td>
+            <td>
+              <span class="pill" [class.abnormal]="result.severity === 'Abnormal'" [class.critical]="result.severity === 'Critical'">
+                {{ result.severity }}
+              </span>
+            </td>
+            <td>{{ result.completedAt }}</td>
+          </tr>
+          <tr *ngIf="visibleResults.length === 0">
+            <td colspan="5" class="empty">No abnormal results in the selected range.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

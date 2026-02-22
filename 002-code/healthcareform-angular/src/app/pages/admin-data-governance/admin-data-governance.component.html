@@ -1,0 +1,134 @@
+<section class="panel">
+  <header class="head">
+    <div>
+      <h3>Data Governance Console</h3>
+      <p>Configuration baselines, template lifecycle governance, and lookup quality control.</p>
+    </div>
+  </header>
+
+  <div class="state loading" *ngIf="isLoading">Loading data-governance snapshot...</div>
+
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" (click)="retryLoad()">Retry</button>
+  </div>
+
+  <section class="metrics" *ngIf="!isLoading && !loadError">
+    <article>
+      <p class="label">Configuration Drift</p>
+      <p class="value danger">{{ configDriftCount }}</p>
+    </article>
+    <article>
+      <p class="label">Template Drafts</p>
+      <p class="value warning">{{ draftTemplates }}</p>
+    </article>
+    <article>
+      <p class="label">Lookup Warnings</p>
+      <p class="value">{{ warningLookups }}</p>
+    </article>
+    <article>
+      <p class="label">Stale Lookups</p>
+      <p class="value danger">{{ staleLookups }}</p>
+    </article>
+  </section>
+
+  <div class="view-switch" *ngIf="!isLoading && !loadError">
+    <button type="button" [class.active]="selectedView === 'Configuration'" (click)="selectView('Configuration')">Configuration</button>
+    <button type="button" [class.active]="selectedView === 'Templates'" (click)="selectView('Templates')">Templates</button>
+    <button type="button" [class.active]="selectedView === 'Lookups'" (click)="selectView('Lookups')">Lookups</button>
+  </div>
+
+  <article class="sub-panel" *ngIf="!isLoading && !loadError && selectedView === 'Configuration'">
+    <h4>Environment Baseline Comparison</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Setting</th>
+            <th>Scope</th>
+            <th>Current</th>
+            <th>Baseline</th>
+            <th>Status</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of configurationItems">
+            <td>{{ item.key }}</td>
+            <td>{{ item.scope }}</td>
+            <td><code>{{ item.currentValue }}</code></td>
+            <td><code>{{ item.baselineValue }}</code></td>
+            <td>
+              <span class="pill" [class.warning]="item.state === 'Drift'">{{ item.state }}</span>
+            </td>
+            <td>
+              <div>{{ item.owner }}</div>
+              <small>{{ item.lastUpdated }}</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="sub-panel" *ngIf="!isLoading && !loadError && selectedView === 'Templates'">
+    <h4>Template Lifecycle</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Template</th>
+            <th>Version</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Review Cycle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let template of templateItems">
+            <td>{{ template.templateName }}</td>
+            <td>{{ template.version }}</td>
+            <td>
+              <span class="pill" [class.warning]="template.status === 'Draft'">{{ template.status }}</span>
+            </td>
+            <td>{{ template.owner }}</td>
+            <td>
+              <div>Last {{ template.lastApproved }}</div>
+              <small>Next {{ template.nextReview }}</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="sub-panel" *ngIf="!isLoading && !loadError && selectedView === 'Lookups'">
+    <h4>Lookup Health</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Lookup</th>
+            <th>Records</th>
+            <th>Source</th>
+            <th>Cadence</th>
+            <th>Last Sync</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lookup of lookupItems">
+            <td>{{ lookup.name }}</td>
+            <td>{{ lookup.records }}</td>
+            <td><code>{{ lookup.source }}</code></td>
+            <td>{{ lookup.refreshCadence }}</td>
+            <td>{{ lookup.lastSync }}</td>
+            <td>
+              <span class="pill" [class.warning]="lookup.state === 'Warning'" [class.danger]="lookup.state === 'Stale'">{{ lookup.state }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

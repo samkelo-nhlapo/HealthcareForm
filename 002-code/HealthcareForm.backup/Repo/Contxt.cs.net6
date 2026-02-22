@@ -1,0 +1,28 @@
+using Microsoft.Extensions.Configuration;
+using System.Data.Entity;
+
+namespace HealthcareForm.Repo
+{
+    public class Contxt : DbContext
+    {
+        private readonly IConfiguration _configuration;
+
+        public Contxt(IConfiguration configuration) : base("name=HealthcareEntity")
+        {
+            _configuration = configuration;
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                string? connectionString = _configuration?.GetConnectionString("HealthcareEntity");
+                if (!string.IsNullOrEmpty(connectionString))
+                {
+                    optionsBuilder.UseSqlServer(connectionString);
+                }
+            }
+            base.OnConfiguring(optionsBuilder);
+        }
+    }
+}

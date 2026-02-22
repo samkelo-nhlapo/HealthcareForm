@@ -1,0 +1,258 @@
+:host {
+  color: #15303f;
+  display: block;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d4e2ea;
+  border-radius: 0.8rem;
+  padding: 0.95rem 1rem;
+}
+
+.head h3,
+h4 {
+  font-family: 'Space Grotesk', 'Verdana', sans-serif;
+  margin: 0;
+}
+
+.head p {
+  color: #607687;
+  margin: 0.35rem 0 0;
+}
+
+.metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 0.9rem 0;
+}
+
+.metrics article {
+  background: #f5fbff;
+  border: 1px solid #d7e8f2;
+  border-radius: 0.7rem;
+  padding: 0.65rem;
+}
+
+.label {
+  color: #5f7789;
+  font-size: 0.79rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0;
+}
+
+.value.success {
+  color: #1f6d38;
+}
+
+.value.danger {
+  color: #9d2319;
+}
+
+.filters {
+  align-items: end;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  margin-bottom: 0.9rem;
+}
+
+label {
+  display: grid;
+  font-size: 0.84rem;
+  gap: 0.25rem;
+}
+
+input,
+select {
+  border: 1px solid #b9ccd9;
+  border-radius: 0.5rem;
+  font: inherit;
+  padding: 0.45rem 0.5rem;
+}
+
+.toggle {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  padding-bottom: 0.35rem;
+}
+
+.toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 2fr 1fr;
+}
+
+.sub-panel {
+  background: #fbfdff;
+  border: 1px solid #deebf3;
+  border-radius: 0.72rem;
+  padding: 0.75rem;
+}
+
+.table-wrap {
+  margin-top: 0.6rem;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border-top: 1px solid #e4edf3;
+  padding: 0.62rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: #607687;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+small {
+  color: #5f7688;
+  display: block;
+  margin-top: 0.18rem;
+}
+
+.pill {
+  background: #e4edf3;
+  border-radius: 999px;
+  color: #1f3644;
+  display: inline-block;
+  font-size: 0.77rem;
+  padding: 0.2rem 0.55rem;
+}
+
+.pill.coder-review,
+.pill.pending {
+  background: #ffecc8;
+  color: #815500;
+}
+
+.pill.code-complete,
+.pill.ready {
+  background: #deefe4;
+  color: #1f6d38;
+}
+
+.pill.submitted {
+  background: #deedf5;
+  color: #0f4b64;
+}
+
+.pill.denied {
+  background: #ffd8d5;
+  color: #8f1f16;
+}
+
+.pill.paid {
+  background: #d8f0e0;
+  color: #145327;
+}
+
+.progress-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bar {
+  background: #e5edf3;
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 0.3rem;
+  overflow: hidden;
+}
+
+.fill {
+  background: #2d8a6f;
+  height: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+a {
+  color: #0f6173;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.side {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.denial-card {
+  background: #fff;
+  border: 1px solid #e4edf3;
+  border-radius: 0.62rem;
+  padding: 0.55rem;
+}
+
+.denial-card header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.denial-card p {
+  margin: 0.3rem 0 0;
+}
+
+.denial-card .reason {
+  color: #8f1f16;
+}
+
+.aging-title {
+  margin-top: 0.35rem;
+}
+
+.aging-row {
+  background: #fff;
+  border: 1px solid #e4edf3;
+  border-radius: 0.62rem;
+  padding: 0.5rem;
+}
+
+.aging-row p {
+  margin: 0.12rem 0;
+}
+
+.empty,
+.empty-note {
+  color: #607687;
+  text-align: center;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

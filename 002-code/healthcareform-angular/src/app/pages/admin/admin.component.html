@@ -1,0 +1,31 @@
+<section class="panel hero">
+  <div>
+    <p class="eyebrow">Admin and Compliance</p>
+    <h3>Governance Command Center</h3>
+    <p class="lead">Operate identity controls, security audit visibility, and data governance from one workflow.</p>
+  </div>
+  <div class="principal">
+    <p class="label">Signed in as</p>
+    <strong>{{ currentPrincipal }}</strong>
+    <p class="roles">{{ roleSummary }}</p>
+  </div>
+</section>
+
+<section class="grid">
+  <article class="panel card" *ngFor="let card of cards">
+    <h4>{{ card.title }}</h4>
+    <p>{{ card.description }}</p>
+    <div class="metric" [class.warning]="card.tone === 'warning'" [class.critical]="card.tone === 'critical'">
+      <span>{{ card.metricLabel }}</span>
+      <strong>{{ card.metricValue }}</strong>
+    </div>
+    <a [routerLink]="card.route">Open workspace</a>
+  </article>
+</section>
+
+<section class="panel checklist">
+  <h4>Operational Compliance Rhythm</h4>
+  <ul>
+    <li *ngFor="let item of complianceChecklist">{{ item }}</li>
+  </ul>
+</section>
