@@ -36,7 +36,12 @@ export const routes: Routes = [
       { path: 'clinical/encounter', component: EncounterWorkspaceComponent },
       { path: 'clinical/orders-results', component: OrdersResultsComponent },
       { path: 'clinical/medication-reconciliation', component: MedicationReconciliationComponent },
-      { path: 'scheduling', component: SchedulingComponent },
+      {
+        path: 'scheduling',
+        component: SchedulingComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'DOCTOR', 'NURSE', 'BILLING', 'PHARMACIST'] }
+      },
       {
         path: 'operations/task-queue',
         component: TaskQueueComponent,

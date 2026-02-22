@@ -59,3 +59,12 @@ export interface PatientLookupResultDto {
   Message: string;
   Patient: PatientRecordDto | null;
 }
+
+export interface PatientWorklistItemDto {
+  IdNumber: string;
+  Patient: string;
+  Status: string;
+  Clinic: string;
+  Risk: string;
+  UpdatedOn: string;
+}

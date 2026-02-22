@@ -30,17 +30,42 @@ h5 {
   margin: 0.3rem 0 0;
 }
 
+.state {
+  align-items: center;
+  background: #f3f8fb;
+  border: 1px solid #d4e2ea;
+  border-radius: 0.55rem;
+  color: #355062;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.state.error {
+  background: #fff1ef;
+  border-color: #f0c9c3;
+  color: #8d1d13;
+}
+
 label {
   display: grid;
   font-size: 0.83rem;
   gap: 0.22rem;
 }
 
-select {
+select,
+button {
   border: 1px solid #a7bfcd;
   border-radius: 0.45rem;
   font: inherit;
   padding: 0.42rem 0.5rem;
+}
+
+button {
+  background: #f5fbff;
+  cursor: pointer;
 }
 
 .metrics {
@@ -165,11 +190,6 @@ small {
   color: #3d5567;
   font-size: 0.83rem;
   margin: 0.15rem 0 0;
-}
-
-.compact-note p {
-  color: #4d6678;
-  margin: 0;
 }
 
 @media (max-width: 840px) {

@@ -16,6 +16,12 @@
     </label>
   </header>
 
+  <div class="state" *ngIf="isLoading">Loading scheduling snapshot...</div>
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" (click)="retryLoad()">Retry</button>
+  </div>
+
   <section class="metrics">
     <article>
       <p class="label">Booked Slots</p>
@@ -95,10 +101,4 @@
       </article>
     </div>
   </section>
-</section>
-
-<section class="panel compact-note">
-  <p>
-    Next phase action: wire this board to real appointment and room assignment endpoints and enable live queue synchronization.
-  </p>
 </section>

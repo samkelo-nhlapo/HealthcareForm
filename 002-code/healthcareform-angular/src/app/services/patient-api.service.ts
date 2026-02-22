@@ -6,7 +6,8 @@ import {
   PatientCommandResultDto,
   PatientCreateRequestDto,
   PatientLookupResultDto,
-  PatientRecordDto
+  PatientRecordDto,
+  PatientWorklistItemDto
 } from '../models/patient.models';
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +34,10 @@ export class PatientApiService {
 
   getCities(): Observable<LookupOptionDto[]> {
     return this.http.get<LookupOptionDto[]>(`${this.apiBaseUrl}/lookups/cities`);
+  }
+
+  getWorklist(): Observable<PatientWorklistItemDto[]> {
+    return this.http.get<PatientWorklistItemDto[]>(`${this.apiBaseUrl}/patients/worklist`);
   }
 
   createPatient(payload: PatientCreateRequestDto): Observable<PatientCommandResultDto> {

@@ -29,6 +29,8 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IOperationsService, OperationsService>();
+builder.Services.AddScoped<IRevenueService, RevenueService>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "HealthcareForm.Api";

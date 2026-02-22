@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { RevenueClaimRowDto, RevenueClaimsSnapshotDto } from '../../models/revenue.models';
+import { RevenueApiService } from '../../services/revenue-api.service';
 
 type CodingStatus = 'Uncoded' | 'Coder Review' | 'Code Complete';
 type ClaimStatus = 'Ready to Submit' | 'Submitted' | 'Pending Documentation' | 'Denied' | 'Paid';
@@ -34,8 +36,12 @@ type AgingBucket = {
   templateUrl: './billing-claims.component.html',
   styleUrl: './billing-claims.component.scss'
 })
-export class BillingClaimsComponent {
+export class BillingClaimsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly revenueApiService = inject(RevenueApiService);
+
+  isLoading = true;
+  loadError = '';
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
@@ -45,92 +51,11 @@ export class BillingClaimsComponent {
     deniedOnly: [false]
   });
 
-  readonly claims: ClaimRow[] = [
-    {
-      claimId: 'CLM-4021',
-      patient: 'Nomsa Mokoena',
-      idNumber: '9101015001089',
-      payer: 'Momentum Health',
-      serviceDate: '2026-02-20',
-      amount: 4620,
-      paidAmount: 0,
-      codingStatus: 'Code Complete',
-      claimStatus: 'Ready to Submit',
-      denialReason: '',
-      daysOpen: 1,
-      lastUpdated: '2026-02-21 08:11'
-    },
-    {
-      claimId: 'CLM-4017',
-      patient: 'Liam Smith',
-      idNumber: '8206066002087',
-      payer: 'Discovery Health',
-      serviceDate: '2026-02-16',
-      amount: 7890,
-      paidAmount: 0,
-      codingStatus: 'Code Complete',
-      claimStatus: 'Submitted',
-      denialReason: '',
-      daysOpen: 5,
-      lastUpdated: '2026-02-21 07:44'
-    },
-    {
-      claimId: 'CLM-3998',
-      patient: 'Asha Patel',
-      idNumber: '0310037003084',
-      payer: 'Bonitas',
-      serviceDate: '2026-02-10',
-      amount: 5380,
-      paidAmount: 0,
-      codingStatus: 'Code Complete',
-      claimStatus: 'Denied',
-      denialReason: 'Diagnosis and procedure mismatch',
-      daysOpen: 11,
-      lastUpdated: '2026-02-20 15:19'
-    },
-    {
-      claimId: 'CLM-3975',
-      patient: 'Sibusiso Khumalo',
-      idNumber: '7507078004082',
-      payer: 'GEMS',
-      serviceDate: '2026-02-05',
-      amount: 9160,
-      paidAmount: 4120,
-      codingStatus: 'Code Complete',
-      claimStatus: 'Pending Documentation',
-      denialReason: '',
-      daysOpen: 16,
-      lastUpdated: '2026-02-21 09:02'
-    },
-    {
-      claimId: 'CLM-3922',
-      patient: 'Jordan Daniels',
-      idNumber: '9902029005081',
-      payer: 'Discovery Health',
-      serviceDate: '2026-01-30',
-      amount: 4320,
-      paidAmount: 4320,
-      codingStatus: 'Code Complete',
-      claimStatus: 'Paid',
-      denialReason: '',
-      daysOpen: 22,
-      lastUpdated: '2026-02-19 11:25'
-    },
-    {
-      claimId: 'CLM-4050',
-      patient: 'Mandla Peters',
-      idNumber: '9303036006085',
-      payer: 'Momentum Health',
-      serviceDate: '2026-02-21',
-      amount: 3080,
-      paidAmount: 0,
-      codingStatus: 'Coder Review',
-      claimStatus: 'Pending Documentation',
-      denialReason: '',
-      daysOpen: 0,
-      lastUpdated: '2026-02-21 09:08'
-    }
-  ];
+  claims: ClaimRow[] = [];
+
+  ngOnInit(): void {
+    this.loadSnapshot();
+  }
 
   get filteredClaims(): ClaimRow[] {
     const value = this.filters.getRawValue();
@@ -202,6 +127,14 @@ export class BillingClaimsComponent {
     return this.claims.filter((claim) => claim.claimStatus === 'Denied');
   }
 
+  get payerOptions(): string[] {
+    return this.claims
+      .map((claim) => claim.payer)
+      .filter((payer) => payer.length > 0)
+      .filter((payer, index, values) => values.findIndex((value) => value.toLowerCase() === payer.toLowerCase()) === index)
+      .sort((a, b) => a.localeCompare(b));
+  }
+
   collectionPercent(claim: ClaimRow): number {
     if (claim.amount <= 0) {
       return 0;
@@ -212,5 +145,111 @@ export class BillingClaimsComponent {
 
   balance(claim: ClaimRow): number {
     return Math.max(0, claim.amount - claim.paidAmount);
+  }
+
+  retryLoad(): void {
+    this.loadSnapshot();
+  }
+
+  private loadSnapshot(): void {
+    this.isLoading = true;
+    this.loadError = '';
+
+    this.revenueApiService.getClaimsSnapshot().subscribe({
+      next: (snapshot) => {
+        this.applySnapshot(snapshot);
+        this.isLoading = false;
+      },
+      error: () => {
+        this.claims = [];
+        this.loadError = 'Unable to load billing claims data. Check API connectivity and retry.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private applySnapshot(snapshot: RevenueClaimsSnapshotDto): void {
+    this.claims = Array.isArray(snapshot.Claims)
+      ? snapshot.Claims.map((claim) => this.mapClaim(claim))
+      : [];
+  }
+
+  private mapClaim(claim: RevenueClaimRowDto): ClaimRow {
+    return {
+      claimId: this.readText(claim.ClaimId, 'INV-UNKNOWN'),
+      patient: this.readText(claim.Patient, 'Unknown Patient'),
+      idNumber: this.readText(claim.IdNumber, ''),
+      payer: this.readText(claim.Payer, 'Self Pay'),
+      serviceDate: this.readText(claim.ServiceDate, ''),
+      amount: this.coerceCurrency(claim.Amount),
+      paidAmount: this.coerceCurrency(claim.PaidAmount),
+      codingStatus: this.normalizeCodingStatus(claim.CodingStatus),
+      claimStatus: this.normalizeClaimStatus(claim.ClaimStatus),
+      denialReason: this.readText(claim.DenialReason, ''),
+      daysOpen: this.coerceDays(claim.DaysOpen),
+      lastUpdated: this.readText(claim.LastUpdated, '')
+    };
+  }
+
+  private normalizeCodingStatus(value: string): CodingStatus {
+    const normalized = (value ?? '').trim().toLowerCase();
+    if (normalized === 'uncoded') {
+      return 'Uncoded';
+    }
+
+    if (normalized === 'coder review') {
+      return 'Coder Review';
+    }
+
+    return 'Code Complete';
+  }
+
+  private normalizeClaimStatus(value: string): ClaimStatus {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'submitted') {
+      return 'Submitted';
+    }
+
+    if (normalized === 'pending documentation') {
+      return 'Pending Documentation';
+    }
+
+    if (normalized === 'denied') {
+      return 'Denied';
+    }
+
+    if (normalized === 'paid') {
+      return 'Paid';
+    }
+
+    return 'Ready to Submit';
+  }
+
+  private coerceCurrency(value: unknown): number {
+    const number = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+
+    return Math.max(0, Number(number));
+  }
+
+  private coerceDays(value: unknown): number {
+    const number = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+
+    return Math.max(0, Math.round(number));
+  }
+
+  private readText(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') {
+      return fallback;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : fallback;
   }
 }

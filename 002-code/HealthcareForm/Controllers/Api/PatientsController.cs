@@ -18,6 +18,10 @@ public sealed class PatientsController : ControllerBase
         _patientService = patientService;
     }
 
+    [HttpGet("worklist")]
+    public async Task<ActionResult<IReadOnlyList<PatientWorklistItemDto>>> GetWorklist(CancellationToken cancellationToken)
+        => Ok(await _patientService.GetWorklistAsync(cancellationToken));
+
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.PatientsWrite)]
     public async Task<ActionResult<PatientCommandResult>> CreatePatient([FromBody] PatientCreateRequest request, CancellationToken cancellationToken)

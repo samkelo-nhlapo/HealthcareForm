@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import {
+  SchedulingResourceLoadDto,
+  SchedulingSnapshotDto,
+  SchedulingTimeBlockDto,
+  SchedulingProviderLoadDto
+} from '../../models/operations.models';
+import { OperationsApiService } from '../../services/operations-api.service';
 
 type Clinic = 'General' | 'Cardiology' | 'Pediatrics' | 'Oncology';
 
@@ -35,30 +42,22 @@ type TimeBlock = {
   templateUrl: './scheduling.component.html',
   styleUrl: './scheduling.component.scss'
 })
-export class SchedulingComponent {
+export class SchedulingComponent implements OnInit {
+  private readonly operationsApiService = inject(OperationsApiService);
+
   selectedClinic: 'ALL' | Clinic = 'ALL';
+  isLoading = true;
+  loadError = '';
 
-  readonly providers: ProviderLoad[] = [
-    { provider: 'Dr. Naidoo', clinic: 'General', room: 'Room 2A', booked: 14, capacity: 18, nextSlot: '10:20' },
-    { provider: 'Dr. Patel', clinic: 'Cardiology', room: 'Room 4C', booked: 12, capacity: 12, nextSlot: '11:10' },
-    { provider: 'Dr. Maseko', clinic: 'Oncology', room: 'Room 5B', booked: 10, capacity: 11, nextSlot: '09:55' },
-    { provider: 'Dr. Adams', clinic: 'Pediatrics', room: 'Room 3D', booked: 8, capacity: 14, nextSlot: '10:40' }
-  ];
+  providers: ProviderLoad[] = [];
 
-  readonly resources: ResourceLoad[] = [
-    { resource: 'Ultrasound Unit A', clinic: 'General', allocated: 7, available: 2, turnaroundMinutes: 14 },
-    { resource: 'ECG Machine 2', clinic: 'Cardiology', allocated: 12, available: 0, turnaroundMinutes: 32 },
-    { resource: 'Infusion Bay 1', clinic: 'Oncology', allocated: 6, available: 1, turnaroundMinutes: 29 },
-    { resource: 'Peds Observation Bed', clinic: 'Pediatrics', allocated: 9, available: 3, turnaroundMinutes: 11 }
-  ];
+  resources: ResourceLoad[] = [];
 
-  readonly blocks: TimeBlock[] = [
-    { time: '08:00', general: 68, cardiology: 75, pediatrics: 41, oncology: 56 },
-    { time: '10:00', general: 76, cardiology: 92, pediatrics: 58, oncology: 63 },
-    { time: '12:00', general: 61, cardiology: 88, pediatrics: 66, oncology: 71 },
-    { time: '14:00', general: 54, cardiology: 79, pediatrics: 52, oncology: 69 },
-    { time: '16:00', general: 42, cardiology: 55, pediatrics: 48, oncology: 57 }
-  ];
+  blocks: TimeBlock[] = this.defaultBlocks();
+
+  ngOnInit(): void {
+    this.loadSnapshot();
+  }
 
   setClinic(clinic: string): void {
     if (clinic === 'General' || clinic === 'Cardiology' || clinic === 'Pediatrics' || clinic === 'Oncology') {
@@ -67,6 +66,10 @@ export class SchedulingComponent {
     }
 
     this.selectedClinic = 'ALL';
+  }
+
+  retryLoad(): void {
+    this.loadSnapshot();
   }
 
   get filteredProviders(): ProviderLoad[] {
@@ -149,5 +152,122 @@ export class SchedulingComponent {
     }
 
     return Math.round((resource.allocated / total) * 100);
+  }
+
+  private loadSnapshot(): void {
+    this.isLoading = true;
+    this.loadError = '';
+
+    this.operationsApiService.getSchedulingSnapshot().subscribe({
+      next: (snapshot) => {
+        this.applySnapshot(snapshot);
+        this.isLoading = false;
+      },
+      error: () => {
+        this.providers = [];
+        this.resources = [];
+        this.blocks = this.defaultBlocks();
+        this.loadError = 'Unable to load scheduling data. Check API connectivity and retry.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private applySnapshot(snapshot: SchedulingSnapshotDto): void {
+    this.providers = Array.isArray(snapshot.Providers)
+      ? snapshot.Providers.map((provider) => this.mapProvider(provider))
+      : [];
+
+    this.resources = Array.isArray(snapshot.Resources)
+      ? snapshot.Resources.map((resource) => this.mapResource(resource))
+      : [];
+
+    this.blocks = Array.isArray(snapshot.Blocks) && snapshot.Blocks.length > 0
+      ? snapshot.Blocks.map((block) => this.mapBlock(block))
+      : this.defaultBlocks();
+  }
+
+  private mapProvider(provider: SchedulingProviderLoadDto): ProviderLoad {
+    const booked = this.coerceNumber(provider.Booked);
+    const capacity = Math.max(booked, this.coerceNumber(provider.Capacity, 12));
+
+    return {
+      provider: this.readText(provider.Provider, 'Provider'),
+      clinic: this.normalizeClinic(provider.Clinic),
+      room: this.readText(provider.Room, 'Unassigned'),
+      booked,
+      capacity,
+      nextSlot: this.readText(provider.NextSlot, 'N/A')
+    };
+  }
+
+  private mapResource(resource: SchedulingResourceLoadDto): ResourceLoad {
+    const allocated = this.coerceNumber(resource.Allocated);
+    const available = this.coerceNumber(resource.Available);
+
+    return {
+      resource: this.readText(resource.Resource, 'Resource Pool'),
+      clinic: this.normalizeClinic(resource.Clinic),
+      allocated,
+      available,
+      turnaroundMinutes: this.coerceNumber(resource.TurnaroundMinutes, 15)
+    };
+  }
+
+  private mapBlock(block: SchedulingTimeBlockDto): TimeBlock {
+    return {
+      time: this.readText(block.Time, '00:00'),
+      general: this.coercePercent(block.General),
+      cardiology: this.coercePercent(block.Cardiology),
+      pediatrics: this.coercePercent(block.Pediatrics),
+      oncology: this.coercePercent(block.Oncology)
+    };
+  }
+
+  private defaultBlocks(): TimeBlock[] {
+    return [
+      { time: '08:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
+      { time: '10:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
+      { time: '12:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
+      { time: '14:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
+      { time: '16:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 }
+    ];
+  }
+
+  private normalizeClinic(value: string): Clinic {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'cardiology') {
+      return 'Cardiology';
+    }
+
+    if (normalized === 'pediatrics') {
+      return 'Pediatrics';
+    }
+
+    if (normalized === 'oncology') {
+      return 'Oncology';
+    }
+
+    return 'General';
+  }
+
+  private coercePercent(value: unknown): number {
+    const number = this.coerceNumber(value);
+    return Math.max(0, Math.min(100, number));
+  }
+
+  private coerceNumber(value: unknown, fallback = 0): number {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(numeric) ? Math.round(numeric) : fallback;
+  }
+
+  private readText(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') {
+      return fallback;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : fallback;
   }
 }

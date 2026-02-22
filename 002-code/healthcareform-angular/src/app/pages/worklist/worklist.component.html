@@ -4,6 +4,12 @@
     <p>Cohort filters for triage and operational handoff.</p>
   </header>
 
+  <div class="state" *ngIf="isLoading">Loading worklist...</div>
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" class="ghost" (click)="retryLoad()">Retry</button>
+  </div>
+
   <form [formGroup]="filters" class="filters">
     <label>
       Search

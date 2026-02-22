@@ -7,6 +7,7 @@ namespace HealthcareForm.Services;
 public sealed class PatientService : IPatientService
 {
     private const string ConnectionStringKey = "HealthcareEntity";
+    private const int MaxWorklistRows = 250;
 
     private readonly IConfiguration _configuration;
     private readonly ILogger<PatientService> _logger;
@@ -82,6 +83,137 @@ public sealed class PatientService : IPatientService
                 StatusCode = null,
                 PatientId = null
             };
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientWorklistItemDto>> GetWorklistAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand(
+                @"
+WITH LatestAppointment AS
+(
+    SELECT
+        A.PatientIdFK,
+        A.Status,
+        A.AppointmentDateTime,
+        HP.Specialization,
+        ROW_NUMBER() OVER
+        (
+            PARTITION BY A.PatientIdFK
+            ORDER BY A.AppointmentDateTime DESC, A.UpdatedDate DESC, A.CreatedDate DESC
+        ) AS RowNum
+    FROM Profile.Appointments A
+    LEFT JOIN Profile.HealthcareProviders HP
+        ON HP.ProviderId = A.ProviderIdFK
+),
+HistoryAgg AS
+(
+    SELECT
+        MH.PatientIdFK,
+        SUM(CASE WHEN MH.IsActive = 1 THEN 1 ELSE 0 END) AS ActiveConditions,
+        SUM(CASE WHEN MH.IsActive = 1 AND UPPER(MH.Status) = 'CHRONIC' THEN 1 ELSE 0 END) AS ChronicConditions
+    FROM Profile.MedicalHistory MH
+    GROUP BY MH.PatientIdFK
+)
+SELECT TOP (@MaxRows)
+    P.ID_Number AS IdNumber,
+    P.FirstName,
+    P.LastName,
+    P.DateOfBirth,
+    P.UpdatedDate,
+    LA.Status AS AppointmentStatus,
+    LA.Specialization,
+    ISNULL(HA.ActiveConditions, 0) AS ActiveConditions,
+    ISNULL(HA.ChronicConditions, 0) AS ChronicConditions
+FROM Profile.Patient P
+LEFT JOIN LatestAppointment LA
+    ON LA.PatientIdFK = P.PatientId
+   AND LA.RowNum = 1
+LEFT JOIN HistoryAgg HA
+    ON HA.PatientIdFK = P.PatientId
+WHERE ISNULL(P.IsDeleted, 0) = 0
+ORDER BY COALESCE(LA.AppointmentDateTime, P.UpdatedDate) DESC, P.UpdatedDate DESC;",
+                connection);
+
+            command.Parameters.Add(new SqlParameter("@MaxRows", SqlDbType.Int) { Value = MaxWorklistRows });
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idNumberOrdinal = reader.GetOrdinal("IdNumber");
+            var firstNameOrdinal = reader.GetOrdinal("FirstName");
+            var lastNameOrdinal = reader.GetOrdinal("LastName");
+            var dateOfBirthOrdinal = reader.GetOrdinal("DateOfBirth");
+            var updatedDateOrdinal = reader.GetOrdinal("UpdatedDate");
+            var appointmentStatusOrdinal = reader.GetOrdinal("AppointmentStatus");
+            var specializationOrdinal = reader.GetOrdinal("Specialization");
+            var activeConditionsOrdinal = reader.GetOrdinal("ActiveConditions");
+            var chronicConditionsOrdinal = reader.GetOrdinal("ChronicConditions");
+
+            var rows = new List<PatientWorklistItemDto>();
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var dateOfBirth = reader.IsDBNull(dateOfBirthOrdinal)
+                    ? (DateTime?)null
+                    : Convert.ToDateTime(reader.GetValue(dateOfBirthOrdinal));
+
+                var updatedDate = reader.IsDBNull(updatedDateOrdinal)
+                    ? DateTime.UtcNow
+                    : Convert.ToDateTime(reader.GetValue(updatedDateOrdinal));
+
+                var appointmentStatus = reader.IsDBNull(appointmentStatusOrdinal)
+                    ? string.Empty
+                    : Convert.ToString(reader.GetValue(appointmentStatusOrdinal)) ?? string.Empty;
+
+                var specialization = reader.IsDBNull(specializationOrdinal)
+                    ? string.Empty
+                    : Convert.ToString(reader.GetValue(specializationOrdinal)) ?? string.Empty;
+
+                var activeConditions = reader.IsDBNull(activeConditionsOrdinal)
+                    ? 0
+                    : Convert.ToInt32(reader.GetValue(activeConditionsOrdinal));
+
+                var chronicConditions = reader.IsDBNull(chronicConditionsOrdinal)
+                    ? 0
+                    : Convert.ToInt32(reader.GetValue(chronicConditionsOrdinal));
+
+                var firstName = reader.IsDBNull(firstNameOrdinal)
+                    ? string.Empty
+                    : Convert.ToString(reader.GetValue(firstNameOrdinal)) ?? string.Empty;
+
+                var lastName = reader.IsDBNull(lastNameOrdinal)
+                    ? string.Empty
+                    : Convert.ToString(reader.GetValue(lastNameOrdinal)) ?? string.Empty;
+
+                var patient = $"{firstName} {lastName}".Trim();
+                if (string.IsNullOrWhiteSpace(patient))
+                {
+                    patient = "Unknown Patient";
+                }
+
+                rows.Add(new PatientWorklistItemDto
+                {
+                    IdNumber = reader.IsDBNull(idNumberOrdinal)
+                        ? string.Empty
+                        : Convert.ToString(reader.GetValue(idNumberOrdinal)) ?? string.Empty,
+                    Patient = patient,
+                    Status = ResolveWorklistStatus(appointmentStatus),
+                    Clinic = ResolveWorklistClinic(specialization),
+                    Risk = ResolveWorklistRisk(dateOfBirth, activeConditions, chronicConditions),
+                    UpdatedOn = updatedDate.ToString("yyyy-MM-dd")
+                });
+            }
+
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to build patient worklist snapshot.");
+            return [];
         }
     }
 
@@ -266,6 +398,86 @@ public sealed class PatientService : IPatientService
                 PatientId = null
             };
         }
+    }
+
+    private static string ResolveWorklistStatus(string status)
+    {
+        var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalized.Contains("PROGRESS", StringComparison.Ordinal))
+        {
+            return "In Progress";
+        }
+
+        if (normalized.Contains("COMPLETE", StringComparison.Ordinal)
+            || normalized.Contains("CANCEL", StringComparison.Ordinal)
+            || normalized.Contains("NO-SHOW", StringComparison.Ordinal)
+            || normalized.Contains("NO SHOW", StringComparison.Ordinal))
+        {
+            return "Discharged";
+        }
+
+        return "Waiting";
+    }
+
+    private static string ResolveWorklistClinic(string specialization)
+    {
+        var normalized = (specialization ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalized.Contains("CARDIO", StringComparison.Ordinal))
+        {
+            return "Cardiology";
+        }
+
+        if (normalized.Contains("PEDI", StringComparison.Ordinal))
+        {
+            return "Pediatrics";
+        }
+
+        if (normalized.Contains("ONCO", StringComparison.Ordinal))
+        {
+            return "Oncology";
+        }
+
+        return "General";
+    }
+
+    private static string ResolveWorklistRisk(DateTime? dateOfBirth, int activeConditions, int chronicConditions)
+    {
+        var age = dateOfBirth.HasValue
+            ? CalculateAge(dateOfBirth.Value)
+            : 0;
+
+        if (chronicConditions >= 2 || activeConditions >= 4)
+        {
+            return "Critical";
+        }
+
+        if (chronicConditions >= 1 || activeConditions >= 3 || age >= 75)
+        {
+            return "High";
+        }
+
+        if (activeConditions >= 1 || age >= 60)
+        {
+            return "Moderate";
+        }
+
+        return "Low";
+    }
+
+    private static int CalculateAge(DateTime dateOfBirth)
+    {
+        var today = DateTime.UtcNow.Date;
+        var birthDate = dateOfBirth.Date;
+
+        var age = today.Year - birthDate.Year;
+        if (birthDate > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return Math.Max(0, age);
     }
 
     private string GetConnectionString()

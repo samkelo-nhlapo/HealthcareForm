@@ -6,6 +6,12 @@
     </div>
   </header>
 
+  <div class="state" *ngIf="isLoading">Loading claims snapshot...</div>
+  <div class="state error" *ngIf="!isLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" (click)="retryLoad()">Retry</button>
+  </div>
+
   <section class="metrics">
     <article>
       <p class="label">Outstanding Balance</p>
@@ -35,10 +41,7 @@
       Payer
       <select formControlName="payer">
         <option value="ALL">All Payers</option>
-        <option value="Discovery Health">Discovery Health</option>
-        <option value="Momentum Health">Momentum Health</option>
-        <option value="Bonitas">Bonitas</option>
-        <option value="GEMS">GEMS</option>
+        <option *ngFor="let payer of payerOptions" [value]="payer">{{ payer }}</option>
       </select>
     </label>
 

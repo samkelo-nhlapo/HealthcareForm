@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PatientWorklistItemDto } from '../../models/patient.models';
+import { PatientApiService } from '../../services/patient-api.service';
 
 type WorklistRow = {
   idNumber: string;
@@ -19,8 +21,12 @@ type WorklistRow = {
   templateUrl: './worklist.component.html',
   styleUrl: './worklist.component.scss'
 })
-export class WorklistComponent {
+export class WorklistComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly patientApiService = inject(PatientApiService);
+
+  isLoading = true;
+  loadError = '';
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
@@ -31,13 +37,11 @@ export class WorklistComponent {
     dateTo: ['']
   });
 
-  readonly rows: WorklistRow[] = [
-    { idNumber: '9101015001089', patient: 'Nomsa Mokoena', status: 'Waiting', clinic: 'General', risk: 'Critical', updatedOn: '2026-02-21' },
-    { idNumber: '8206066002087', patient: 'Liam Smith', status: 'In Progress', clinic: 'Cardiology', risk: 'High', updatedOn: '2026-02-20' },
-    { idNumber: '0310037003084', patient: 'Asha Patel', status: 'Waiting', clinic: 'Pediatrics', risk: 'Moderate', updatedOn: '2026-02-18' },
-    { idNumber: '7507078004082', patient: 'Sibusiso Khumalo', status: 'Discharged', clinic: 'Oncology', risk: 'High', updatedOn: '2026-02-15' },
-    { idNumber: '9902029005081', patient: 'Jordan Daniels', status: 'Waiting', clinic: 'General', risk: 'Low', updatedOn: '2026-02-11' }
-  ];
+  rows: WorklistRow[] = [];
+
+  ngOnInit(): void {
+    this.loadWorklist();
+  }
 
   get filteredRows(): WorklistRow[] {
     const value = this.filters.getRawValue();
@@ -72,5 +76,87 @@ export class WorklistComponent {
       dateFrom: '',
       dateTo: ''
     });
+  }
+
+  retryLoad(): void {
+    this.loadWorklist();
+  }
+
+  private loadWorklist(): void {
+    this.isLoading = true;
+    this.loadError = '';
+
+    this.patientApiService.getWorklist().subscribe({
+      next: (rows) => {
+        this.rows = Array.isArray(rows) ? rows.map((row) => this.toWorklistRow(row)) : [];
+        this.isLoading = false;
+      },
+      error: () => {
+        this.rows = [];
+        this.loadError = 'Unable to load patient worklist. Check API connectivity and retry.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private toWorklistRow(row: PatientWorklistItemDto): WorklistRow {
+    return {
+      idNumber: row.IdNumber,
+      patient: row.Patient,
+      status: this.normalizeStatus(row.Status),
+      clinic: this.normalizeClinic(row.Clinic),
+      risk: this.normalizeRisk(row.Risk),
+      updatedOn: row.UpdatedOn
+    };
+  }
+
+  private normalizeStatus(value: string): WorklistRow['status'] {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'in progress') {
+      return 'In Progress';
+    }
+
+    if (normalized === 'discharged') {
+      return 'Discharged';
+    }
+
+    return 'Waiting';
+  }
+
+  private normalizeClinic(value: string): WorklistRow['clinic'] {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'cardiology') {
+      return 'Cardiology';
+    }
+
+    if (normalized === 'pediatrics') {
+      return 'Pediatrics';
+    }
+
+    if (normalized === 'oncology') {
+      return 'Oncology';
+    }
+
+    return 'General';
+  }
+
+  private normalizeRisk(value: string): WorklistRow['risk'] {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (normalized === 'critical') {
+      return 'Critical';
+    }
+
+    if (normalized === 'high') {
+      return 'High';
+    }
+
+    if (normalized === 'moderate') {
+      return 'Moderate';
+    }
+
+    return 'Low';
   }
 }
