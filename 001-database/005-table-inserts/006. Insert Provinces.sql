@@ -1,29 +1,32 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date:	14/02/2026
---	Description:	Insert South African provinces lookup data
---	TFS Task:		Initialize provinces lookup table
---================================================================================================
+DECLARE @CountryId INT = (SELECT CountryId FROM Location.Countries WHERE Alpha2Code = 'ZA'),
+        @DefaultDate DATETIME = GETDATE();
 
-DECLARE @CountryId INT = (SELECT CountryId FROM Location.Countries WHERE CountryCode = 'ZA'),
-		@DefaultDate DATETIME = GETDATE()
-
-INSERT INTO Location.Provinces (ProvinceName, ProvinceCode, CountryIdFK, IsActive, CreatedDate, CreatedBy)
-VALUES	
-	('Western Cape', 'WC', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Eastern Cape', 'EC', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Northern Cape', 'NC', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Free State', 'FS', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('KwaZulu-Natal', 'KZN', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Gauteng', 'GT', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Limpopo', 'LP', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('Mpumalanga', 'MP', @CountryId, 1, @DefaultDate, 'SYSTEM'),
-	('North West', 'NW', @CountryId, 1, @DefaultDate, 'SYSTEM')
-
+INSERT INTO Location.Provinces (ProvinceName, CountryIDFK, IsActive, UpdateDate)
+SELECT V.ProvinceName, V.CountryIDFK, V.IsActive, @DefaultDate
+FROM (
+    VALUES
+        ('Western Cape', @CountryId, 1),
+        ('Eastern Cape', @CountryId, 1),
+        ('Northern Cape', @CountryId, 1),
+        ('Free State', @CountryId, 1),
+        ('KwaZulu-Natal', @CountryId, 1),
+        ('Gauteng', @CountryId, 1),
+        ('Limpopo', @CountryId, 1),
+        ('Mpumalanga', @CountryId, 1),
+        ('North West', @CountryId, 1)
+) V(ProvinceName, CountryIDFK, IsActive)
+WHERE @CountryId IS NOT NULL
+  AND NOT EXISTS
+  (
+      SELECT 1
+      FROM Location.Provinces P
+      WHERE P.ProvinceName = V.ProvinceName
+        AND P.CountryIDFK = V.CountryIDFK
+  );
 GO
 
-PRINT 'Provinces lookup table populated successfully'
+PRINT 'Provinces lookup table populated successfully';
 GO

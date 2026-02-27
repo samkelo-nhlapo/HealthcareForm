@@ -1,34 +1,59 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date:	14/02/2026
---	Description:	Insert healthcare provider reference data
---	TFS Task:		Initialize healthcare providers
---================================================================================================
+DECLARE @DefaultDate DATETIME = GETDATE();
 
-DECLARE @DefaultDate DATETIME = GETDATE(),
-		@CountryId INT = (SELECT CountryId FROM Location.Countries WHERE CountryCode = 'ZA'),
-		@CityId_JNB INT = (SELECT CityId FROM Location.Cities WHERE CityName = 'Johannesburg'),
-		@CityId_CPT INT = (SELECT CityId FROM Location.Cities WHERE CityName = 'Cape Town'),
-		@CityId_DBN INT = (SELECT CityId FROM Location.Cities WHERE CityName = 'Durban')
-
--- Insert sample healthcare providers
-INSERT INTO HealthcareServices.HealthcareProviders (ProviderName, ProviderType, SpecializationCode, LicenseNumber, ContactPhone, ContactEmail, 
-													 CityIdFK, IsActive, CreatedDate, CreatedBy)
-VALUES	
-	('Dr. Thabo Mthembu', 'GENERAL_PRACTITIONER', 'GP', 'ZA-MP-0012345', '+27 11 234 5678', 'dr.mthembu@email.com', @CityId_JNB, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Naledi Johnson', 'CARDIOLOGIST', 'CARDIOLOGY', 'ZA-MP-0054321', '+27 11 345 6789', 'dr.johnson@email.com', @CityId_JNB, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Amira Hassan', 'NEUROLOGIST', 'NEUROLOGY', 'ZA-MP-0098765', '+27 21 456 7890', 'dr.hassan@email.com', @CityId_CPT, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Kevin Smith', 'ORTHOPEDIC_SURGEON', 'ORTHOPEDICS', 'ZA-MP-0011111', '+27 21 567 8901', 'dr.smith@email.com', @CityId_CPT, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Patricia Ndlovu', 'PEDIATRICIAN', 'PEDIATRICS', 'ZA-MP-0022222', '+27 31 678 9012', 'dr.ndlovu@email.com', @CityId_DBN, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Michael Chen', 'PSYCHIATRIST', 'PSYCHIATRY', 'ZA-MP-0033333', '+27 31 789 0123', 'dr.chen@email.com', @CityId_DBN, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Sarah Botha', 'ENDOCRINOLOGIST', 'ENDOCRINOLOGY', 'ZA-MP-0044444', '+27 11 890 1234', 'dr.botha@email.com', @CityId_JNB, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. James Okafor', 'PULMONOLOGIST', 'PULMONOLOGY', 'ZA-MP-0055555', '+27 21 901 2345', 'dr.okafor@email.com', @CityId_CPT, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Kavya Patel', 'GASTROENTEROLOGIST', 'GASTROENTEROLOGY', 'ZA-MP-0066666', '+27 31 012 3456', 'dr.patel@email.com', @CityId_DBN, 1, @DefaultDate, 'SYSTEM'),
-	('Dr. Robert Mendes', 'UROLOGIST', 'UROLOGY', 'ZA-MP-0077777', '+27 11 123 4567', 'dr.mendes@email.com', @CityId_JNB, 1, @DefaultDate, 'SYSTEM')
-
+INSERT INTO Profile.HealthcareProviders
+(
+    ProviderId,
+    FirstName,
+    LastName,
+    Title,
+    Specialization,
+    LicenseNumber,
+    RegistrationBody,
+    ProviderType,
+    Qualifications,
+    YearsOfExperience,
+    OfficeAddressIdFK,
+    IsActive,
+    CreatedDate,
+    CreatedBy
+)
+SELECT
+    NEWID(),
+    V.FirstName,
+    V.LastName,
+    V.Title,
+    V.Specialization,
+    V.LicenseNumber,
+    V.RegistrationBody,
+    V.ProviderType,
+    V.Qualifications,
+    V.YearsOfExperience,
+    V.OfficeAddressIdFK,
+    1,
+    @DefaultDate,
+    'SYSTEM'
+FROM (
+    VALUES
+        ('Dr. Thabo Mthembu', '', CAST(NULL AS VARCHAR(50)), 'GP', 'ZA-MP-0012345', 'N/A', 'GENERAL_PRACTITIONER', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Naledi Johnson', '', CAST(NULL AS VARCHAR(50)), 'CARDIOLOGY', 'ZA-MP-0054321', 'N/A', 'CARDIOLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Amira Hassan', '', CAST(NULL AS VARCHAR(50)), 'NEUROLOGY', 'ZA-MP-0098765', 'N/A', 'NEUROLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Kevin Smith', '', CAST(NULL AS VARCHAR(50)), 'ORTHOPEDICS', 'ZA-MP-0011111', 'N/A', 'ORTHOPEDIC_SURGEON', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Patricia Ndlovu', '', CAST(NULL AS VARCHAR(50)), 'PEDIATRICS', 'ZA-MP-0022222', 'N/A', 'PEDIATRICIAN', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Michael Chen', '', CAST(NULL AS VARCHAR(50)), 'PSYCHIATRY', 'ZA-MP-0033333', 'N/A', 'PSYCHIATRIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Sarah Botha', '', CAST(NULL AS VARCHAR(50)), 'ENDOCRINOLOGY', 'ZA-MP-0044444', 'N/A', 'ENDOCRINOLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. James Okafor', '', CAST(NULL AS VARCHAR(50)), 'PULMONOLOGY', 'ZA-MP-0055555', 'N/A', 'PULMONOLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Kavya Patel', '', CAST(NULL AS VARCHAR(50)), 'GASTROENTEROLOGY', 'ZA-MP-0066666', 'N/A', 'GASTROENTEROLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER)),
+        ('Dr. Robert Mendes', '', CAST(NULL AS VARCHAR(50)), 'UROLOGY', 'ZA-MP-0077777', 'N/A', 'UROLOGIST', CAST(NULL AS VARCHAR(MAX)), CAST(NULL AS INT), CAST(NULL AS UNIQUEIDENTIFIER))
+) V(FirstName, LastName, Title, Specialization, LicenseNumber, RegistrationBody, ProviderType, Qualifications, YearsOfExperience, OfficeAddressIdFK)
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM Profile.HealthcareProviders HP
+    WHERE HP.LicenseNumber = V.LicenseNumber
+);
 GO
 
 PRINT 'Healthcare providers inserted successfully'

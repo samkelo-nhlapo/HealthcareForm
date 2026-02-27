@@ -1,21 +1,30 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date	22/01/2022
---	Description	Phone number Function
---	TFS Task	Ensure Phone number format has - between numbers
---================================================================================================
-
-CREATE OR ALTER FUNCTION Contacts.FormatPhoneNumber
+CREATE OR ALTER FUNCTION [Contacts].[FormatPhoneNumber]
 (
-	@PhoneNumber VARCHAR(10)
+    @PhoneNumber VARCHAR(25)
 )
-RETURNS 
-	VARCHAR(12)
+RETURNS VARCHAR(12)
+AS
 BEGIN
-    RETURN SUBSTRING(@PhoneNumber, 1, 3) + '-' + 
-           SUBSTRING(@PhoneNumber, 4, 3) + '-' + 
-           SUBSTRING(@PhoneNumber, 7, 4)
+    DECLARE @Normalized VARCHAR(25);
+
+    IF @PhoneNumber IS NULL
+        RETURN NULL;
+
+    SET @Normalized = LTRIM(RTRIM(@PhoneNumber));
+    SET @Normalized = REPLACE(@Normalized, '-', '');
+    SET @Normalized = REPLACE(@Normalized, ' ', '');
+    SET @Normalized = REPLACE(@Normalized, '+', '');
+    SET @Normalized = REPLACE(@Normalized, '(', '');
+    SET @Normalized = REPLACE(@Normalized, ')', '');
+
+    IF LEN(@Normalized) <> 10 OR @Normalized LIKE '%[^0-9]%'
+        RETURN NULL;
+
+    RETURN SUBSTRING(@Normalized, 1, 3) + '-' +
+           SUBSTRING(@Normalized, 4, 3) + '-' +
+           SUBSTRING(@Normalized, 7, 4);
 END
+GO

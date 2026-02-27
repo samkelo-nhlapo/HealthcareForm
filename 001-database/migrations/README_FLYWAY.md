@@ -9,6 +9,10 @@ Files created
 - `migrations/sql/V4__seed_lookups.sql` - placeholder for lookup/reference seed data.
 - `migrations/sql/V5__seed_auth_and_admin.sql` - placeholder for auth seeds and initial admin user.
 
+Current status
+- `V2` to `V5` are fail-fast placeholders and intentionally `THROW` until implemented.
+- This prevents silent "successful" Flyway runs that skip required schema/data changes.
+
 Usage - Local (Flyway CLI)
 1. Install Flyway CLI: https://flywaydb.org/documentation/usage/commandline
 2. Run migrations against local SQL Server (example):

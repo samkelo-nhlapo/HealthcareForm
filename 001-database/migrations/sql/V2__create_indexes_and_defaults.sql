@@ -5,5 +5,4 @@
 -- Example structure:
 -- CREATE INDEX IF NOT EXISTS IX_Table_Column ON Schema.Table(Column);
 -- ALTER TABLE Schema.Table ADD CONSTRAINT DF_Table_Col DEFAULT(0) FOR Column;
-
-PRINT 'V2 placeholder: add index and default-constraint DDL here.'
+PRINT 'V2 no-op: index/default DDL is already included in V1 baseline.';

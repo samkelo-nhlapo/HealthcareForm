@@ -1,24 +1,25 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date:	14/02/2026
---	Description:	Insert marital status lookup values
---	TFS Task:		Initialize marital status lookup table
---================================================================================================
+DECLARE @DefaultDate DATETIME = GETDATE();
 
-DECLARE @ActiveStatus BIT = 1,
-		@DefaultDate DATETIME = GETDATE()
-
-INSERT INTO Profile.MaritalStatus (MaritalStatusDescription, IsActive, UpdateDate, CreatedDate, CreatedBy)
-VALUES	('Single', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Married', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Widowed', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Divorced', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Separated', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Domestic Partnership', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM')
-
+INSERT INTO Profile.MaritalStatus (MaritalStatusDescription, IsActive, UpdateDate)
+SELECT V.MaritalStatusDescription, V.IsActive, @DefaultDate
+FROM (
+    VALUES
+        ('Single', 1),
+        ('Married', 1),
+        ('Widowed', 1),
+        ('Divorced', 1),
+        ('Separated', 1),
+        ('Domestic Partnership', 1)
+) V(MaritalStatusDescription, IsActive)
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM Profile.MaritalStatus MS
+    WHERE MS.MaritalStatusDescription = V.MaritalStatusDescription
+);
 GO
 
 PRINT 'Marital status lookup table populated successfully'

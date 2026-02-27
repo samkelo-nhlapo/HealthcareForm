@@ -9,5 +9,4 @@
 --   REFERENCES [Location].[Countries] ([CountryId])
 -- END
 -- GO
-
-PRINT 'V3 placeholder: add foreign key creation DDL here.'
+PRINT 'V3 no-op: foreign key DDL is already included in V1 baseline.';

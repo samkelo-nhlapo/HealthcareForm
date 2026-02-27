@@ -8,6 +8,13 @@
 EXECUTION ORDER & CHECKLIST
 =============================
 
+STEP 0: Functions/Triggers (Execute Before Data Seeding)
+--------------------------------------------------------
+[ ] 007-triggers-functions/000. MASTER_DEPLOYMENT_SCRIPT.sql
+    Deploys helper functions and all data-quality/audit triggers
+    Dependencies: Core tables created
+    Verification: SELECT name FROM sys.triggers WHERE name LIKE 'tr_%'
+
 STEP 1: Location Lookups (NO DEPENDENCIES - Execute First)
 ----------------------------------------------------------
 [ ] 005. Insert Countries.sql
@@ -87,7 +94,7 @@ STEP 5: Admin Bootstrap (Execute After Roles Created)
     Records to insert: 1 admin user + 1 user-role mapping
     Dependencies: Security.Roles (ADMIN role must exist)
     Verification: SELECT * FROM Security.Users WHERE UserName = 'admin'
-    Credentials: Username: admin | Password: HealthcareAdmin@2026! (CHANGE ON FIRST LOGIN)
+    Credentials: Username: admin | Password: set from secure deploy secret (no repository default)
 
 
 STEP 6: Sample Test Data (Execute After ALL Lookups and Reference Data)
@@ -173,7 +180,7 @@ EXECUTION NOTES
    - Perform user acceptance testing (use John Anderson sample patient)
 
 5. SECURITY REMINDERS
-   - Admin default password: HealthcareAdmin@2026! (MUST CHANGE)
+   - Admin password must be provisioned from secure secret at deploy time
    - Store secure passwords in encrypted vault
    - Audit all user access
    - Review permissions regularly
@@ -229,6 +236,12 @@ Follow the checklist above in order, executing one script at a time
 Allows for verification between steps
 More time-consuming but provides better control
 
+OPTION 3: Use Full Modular Deployment
+-------------------------------------
+:r "C:\Path\To\000_MODULAR_MASTER_DEPLOYMENT.sql"
+
+This executes schema + tables + procedures + triggers + seeds in one run.
+
 
 =============================
 QUICK START (COPY & PASTE)
@@ -238,6 +251,7 @@ USE HealthcareForm
 GO
 
 -- Execute all inserts in order
+:r "C:\Path\To\007-triggers-functions\000. MASTER_DEPLOYMENT_SCRIPT.sql"
 :r "C:\Path\To\005. Insert Countries.sql"
 :r "C:\Path\To\006. Insert Provinces.sql"
 :r "C:\Path\To\007. Insert Cities.sql"

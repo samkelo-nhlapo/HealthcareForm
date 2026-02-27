@@ -1,26 +1,24 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date:	14/02/2026
---	Description:	Insert security roles for role-based access control (RBAC)
---	TFS Task:		Initialize security roles
---================================================================================================
+DECLARE @DefaultDate DATETIME = GETDATE();
 
-DECLARE @DefaultDate DATETIME = GETDATE()
-
-INSERT INTO Security.Roles (RoleName, RoleDescription, IsActive, CreatedDate, CreatedBy)
-VALUES	
-	('ADMIN', 'System Administrator - Full system access', 1, @DefaultDate, 'SYSTEM'),
-	('DOCTOR', 'Medical Doctor - Patient care and clinical decision making', 1, @DefaultDate, 'SYSTEM'),
-	('NURSE', 'Registered Nurse - Patient care and monitoring', 1, @DefaultDate, 'SYSTEM'),
-	('RECEPTIONIST', 'Receptionist - Appointment scheduling and patient check-in', 1, @DefaultDate, 'SYSTEM'),
-	('PATIENT', 'Patient - Access own health records and appointment booking', 1, @DefaultDate, 'SYSTEM'),
-	('BILLING', 'Billing Administrator - Invoice and payment management', 1, @DefaultDate, 'SYSTEM'),
-	('PHARMACIST', 'Pharmacist - Medication management and dispensing', 1, @DefaultDate, 'SYSTEM')
-
+INSERT INTO Auth.Roles (RoleId, RoleName, Description, IsActive, CreatedDate, CreatedBy)
+SELECT NEWID(), V.RoleName, V.Description, 1, @DefaultDate, 'SYSTEM'
+FROM (
+    VALUES
+        ('ADMIN', 'System Administrator - Full system access'),
+        ('DOCTOR', 'Medical Doctor - Patient care and clinical decision making'),
+        ('NURSE', 'Registered Nurse - Patient care and monitoring'),
+        ('RECEPTIONIST', 'Receptionist - Appointment scheduling and patient check-in'),
+        ('PATIENT', 'Patient - Access own health records and appointment booking'),
+        ('BILLING', 'Billing Administrator - Invoice and payment management'),
+        ('PHARMACIST', 'Pharmacist - Medication management and dispensing')
+) V(RoleName, Description)
+WHERE NOT EXISTS (
+    SELECT 1 FROM Auth.Roles R WHERE R.RoleName = V.RoleName
+);
 GO
 
-PRINT 'Security roles inserted successfully'
+PRINT 'Auth roles inserted/verified successfully';
 GO

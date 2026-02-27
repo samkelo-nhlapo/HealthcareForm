@@ -10,16 +10,29 @@ namespace Insert_Countries
     {
         static void Main(string[] args)
         {
-            var fileName = Path.GetFullPath(@"C:\Users\Sam\Music\PatientEnrollment\Enrollment DB\005. Table Inserts\all Countries.xlsx");
+            var connectionString = Environment.GetEnvironmentVariable("PATIENT_ENROLLMENT_SQL_CONNECTION_STRING")
+                ?? Environment.GetEnvironmentVariable("MSSQL_CONNECTION_STRING");
 
-            if (fileName is null)
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                Console.WriteLine("where is the file");
+                Console.WriteLine("Missing DB connection string. Set PATIENT_ENROLLMENT_SQL_CONNECTION_STRING or MSSQL_CONNECTION_STRING.");
+                return;
             }
-            else
+
+            var fileNameInput = args.Length > 0
+                ? args[0]
+                : Environment.GetEnvironmentVariable("INSERT_PATIENTENROLLMENT_COUNTRIES_FILE")
+                    ?? @"C:\Users\Sam\Music\PatientEnrollment\Enrollment DB\005. Table Inserts\all Countries.xlsx";
+            var fileName = Path.GetFullPath(fileNameInput);
+
+            if (!File.Exists(fileName))
             {
-                Console.WriteLine("found file");
+                Console.WriteLine($"Input file not found: {fileName}");
+                Console.WriteLine("Pass the Excel file path as arg[0] or set INSERT_PATIENTENROLLMENT_COUNTRIES_FILE.");
+                return;
             }
+
+            Console.WriteLine($"Using input file: {fileName}");
 
             using (var doc = new SLDocument(fileName))
             {
@@ -29,9 +42,8 @@ namespace Insert_Countries
                 string Alpha2Code = "";
                 string Alpha3Code = "";
                 string Numeric = "";
-                string isActive = "0";
+                bool isActive = false;
                 DateTime datetime = DateTime.Now;
-                string message = "";
 
                 if (count.NumberOfColumns is 0)
                 {
@@ -44,11 +56,37 @@ namespace Insert_Countries
                     Alpha3Code = doc.GetCellValueAsString(rowIndex, 3);
                     Numeric = doc.GetCellValueAsString(rowIndex, 4);
 
-                    using (SqlConnection conn = new SqlConnection("Server=localhost,8080;Database=PatientEnrollment;User Id=sa;Password=111GkiPQ25af;"))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     {
-                        //Console.WriteLine("Connected to sql");
-                        SqlCommand command = new SqlCommand("Location.spInsertCountries", conn);
-                        command.CommandType = CommandType.StoredProcedure;
+                        SqlCommand command = new SqlCommand(@"
+SET NOCOUNT ON;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM Location.Countries
+    WHERE CountryName = @Country
+)
+BEGIN
+    INSERT INTO Location.Countries
+    (
+        CountryName,
+        Alpha2Code,
+        Alpha3Code,
+        Numeric,
+        IsActive,
+        UpdateDate
+    )
+    VALUES
+    (
+        @Country,
+        @Alpha2Code,
+        @Alpha3Code,
+        @Numeric,
+        @IsActive,
+        @UpdateDate
+    );
+END;", conn);
+                        command.CommandType = CommandType.Text;
 
                         command.Parameters.Add(new SqlParameter("@Country", Country));
                         command.Parameters.Add(new SqlParameter("@Alpha2Code", Alpha2Code));
@@ -56,15 +94,9 @@ namespace Insert_Countries
                         command.Parameters.Add(new SqlParameter("@Numeric", Numeric));
                         command.Parameters.Add(new SqlParameter("@IsActive", isActive));
                         command.Parameters.Add(new SqlParameter("@UpdateDate", datetime));
-                        command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250)).Direction = ParameterDirection.Output;
 
                         conn.Open();
                         command.ExecuteNonQuery();
-                        if (Convert.ToString(command.Parameters["@Message"].Value) != "")
-                        {
-                            Console.WriteLine(Convert.ToString(command.Parameters["@Message"].Value));
-                        }
-
                         conn.Close();
                     }
 

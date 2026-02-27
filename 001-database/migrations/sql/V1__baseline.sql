@@ -48,8 +48,14 @@ GO
 -- =================================================================================================
 IF DB_ID('HealthcareForm') IS NOT NULL
 BEGIN
-    ALTER DATABASE HealthcareForm 
-      MODIFY FILEGROUP PatientDataGroup DEFAULT;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM HealthcareForm.sys.filegroups
+        WHERE name = 'PatientDataGroup'
+          AND is_default = 0
+    )
+        ALTER DATABASE HealthcareForm MODIFY FILEGROUP PatientDataGroup DEFAULT;
     ALTER DATABASE HealthcareForm SET RECOVERY FULL;
     ALTER DATABASE HealthcareForm SET AUTO_UPDATE_STATISTICS ON;
     ALTER DATABASE HealthcareForm SET AUTO_SHRINK OFF;
@@ -97,6 +103,8 @@ GO
 -- =================================================================================================
 
 -- Auth.AuditLog
+IF OBJECT_ID(N'[Auth].[AuditLog]', N'U') IS NULL
+BEGIN
 CREATE TABLE Auth.AuditLog
 (
 	AuditLogID INT NOT NULL PRIMARY KEY IDENTITY (1,1),
@@ -106,8 +114,9 @@ CREATE TABLE Auth.AuditLog
 	SchemaName VARCHAR(250) NOT NULL,
 	TableName VARCHAR(250) NOT NULL,
 	TableID UNIQUEIDENTIFIER NOT NULL,
-	LogData VARCHAR(MAX) NOT NULL,
+	LogData VARCHAR(MAX) NOT NULL
 )
+END
 GO
 
 -- Auth.Permissions
@@ -115,6 +124,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[Permissions]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[Permissions](
 	[PermissionId] [uniqueidentifier] NOT NULL,
 	[PermissionName] [varchar](250) NOT NULL UNIQUE,
@@ -132,12 +143,31 @@ PRIMARY KEY CLUSTERED
 	[PermissionId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[Permissions]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[Permissions]')
+      AND c.name = N'PermissionId'
+)
+BEGIN
 ALTER TABLE [Auth].[Permissions] ADD DEFAULT (newid()) FOR [PermissionId]
+END
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Auth].[Permissions]') AND name = 'IX_Permissions_Category')
+BEGIN
 CREATE INDEX IX_Permissions_Category ON [Auth].[Permissions]([Category])
+END
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Auth].[Permissions]') AND name = 'IX_Permissions_Module')
+BEGIN
 CREATE INDEX IX_Permissions_Module ON [Auth].[Permissions]([Module])
+END
 GO
 
 -- Auth.RolePermissions
@@ -145,6 +175,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[RolePermissions]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[RolePermissions](
 	[RolePermissionId] [uniqueidentifier] NOT NULL,
 	[RoleIdFK] [uniqueidentifier] NOT NULL,
@@ -161,8 +193,21 @@ PRIMARY KEY CLUSTERED
 	[RolePermissionId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[RolePermissions]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[RolePermissions]')
+      AND c.name = N'RolePermissionId'
+)
+BEGIN
 ALTER TABLE [Auth].[RolePermissions] ADD DEFAULT (newid()) FOR [RolePermissionId]
+END
 GO
 -- Foreign keys created later since referenced tables may not exist yet (we will recreate constraints after all tables created)
 
@@ -171,6 +216,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[Roles]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[Roles](
 	[RoleId] [uniqueidentifier] NOT NULL,
 	[RoleName] [varchar](100) NOT NULL UNIQUE,
@@ -185,10 +232,26 @@ PRIMARY KEY CLUSTERED
 	[RoleId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[Roles]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[Roles]')
+      AND c.name = N'RoleId'
+)
+BEGIN
 ALTER TABLE [Auth].[Roles] ADD DEFAULT (newid()) FOR [RoleId]
+END
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Auth].[Roles]') AND name = 'IX_Roles_RoleName')
+BEGIN
 CREATE INDEX IX_Roles_RoleName ON [Auth].[Roles]([RoleName])
+END
 GO
 
 -- Auth.UserActivityAudit
@@ -196,6 +259,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[UserActivityAudit]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[UserActivityAudit](
 	[UserActivityId] [uniqueidentifier] NOT NULL,
 	[UserIdFK] [uniqueidentifier] NOT NULL,
@@ -217,8 +282,21 @@ PRIMARY KEY CLUSTERED
 	[UserActivityId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[UserActivityAudit]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[UserActivityAudit]')
+      AND c.name = N'UserActivityId'
+)
+BEGIN
 ALTER TABLE [Auth].[UserActivityAudit] ADD DEFAULT (newid()) FOR [UserActivityId]
+END
 GO
 
 -- Auth.UserRoles
@@ -226,6 +304,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[UserRoles]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[UserRoles](
 	[UserRoleId] [uniqueidentifier] NOT NULL,
 	[UserIdFK] [uniqueidentifier] NOT NULL,
@@ -243,8 +323,21 @@ PRIMARY KEY CLUSTERED
 	[UserRoleId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[UserRoles]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[UserRoles]')
+      AND c.name = N'UserRoleId'
+)
+BEGIN
 ALTER TABLE [Auth].[UserRoles] ADD DEFAULT (newid()) FOR [UserRoleId]
+END
 GO
 
 -- Auth.Users
@@ -252,6 +345,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+IF OBJECT_ID(N'[Auth].[Users]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[Users](
 	[UserId] [uniqueidentifier] NOT NULL,
 	[Username] [varchar](100) NOT NULL UNIQUE,
@@ -279,12 +374,31 @@ PRIMARY KEY CLUSTERED
 	[UserId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
 GO
+IF OBJECT_ID(N'[Auth].[Users]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Auth].[Users]')
+      AND c.name = N'UserId'
+)
+BEGIN
 ALTER TABLE [Auth].[Users] ADD DEFAULT (newid()) FOR [UserId]
+END
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Auth].[Users]') AND name = 'IX_Users_Username')
+BEGIN
 CREATE INDEX IX_Users_Username ON [Auth].[Users]([Username])
+END
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Auth].[Users]') AND name = 'IX_Users_Email')
+BEGIN
 CREATE INDEX IX_Users_Email ON [Auth].[Users]([Email])
+END
 GO
 
 -- (rest of inline master continues...)

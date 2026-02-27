@@ -1,50 +1,62 @@
 USE [HealthcareForm]
 GO
 
-/****** Object:  Trigger [Profile].[tr_AfterInsertPatient]    Script Date: 17-Aug-22 10:58:54 PM ******/
 SET ANSI_NULLS ON
 GO
-
 SET QUOTED_IDENTIFIER ON
 GO
 
--- This Trigger is activated when a patient is added into the database
-
 CREATE OR ALTER TRIGGER [Profile].[tr_AfterInsertPatient]
 ON [Profile].[Patient]
-AFTER INSERT 
+AFTER INSERT
 AS
 BEGIN
+    IF (ROWCOUNT_BIG() = 0)
+        RETURN;
 
-	--CHECK IF ANYTHING IS INSERTED 
-	IF(ROWCOUNT_BIG() = 0)
-		RETURN;
+    SET NOCOUNT ON;
 
-	SET NOCOUNT ON
-	
-	IF NOT EXISTS(SELECT 1 FROM inserted)
-		RETURN;
-
-	--SAVES DATA INSERTED AS JSON PATH XML
-	INSERT INTO Auth.AuditLog
-	(
-		ModifiedTime, 
-		ModifiedBy, 
-		Operation, 
-		SchemaName, 
-		TableName, 
-		TableID, 
-		LogData
-	)
-	SELECT GETDATE(), SYSTEM_USER, 'Inserted', SCHEMA_NAME(), 'Patient', S1.PatientId , D2.LogData
-	FROM inserted S1
-	CROSS APPLY
-	(
-		SELECT LogData = (SELECT * FROM inserted WHERE inserted.PatientId = S1.PatientId FOR Json Path, without_Array_wrapper)
-	)AS D2
-
-	SET NOCOUNT OFF
+    INSERT INTO Auth.AuditLog
+    (
+        ModifiedTime,
+        ModifiedBy,
+        Operation,
+        SchemaName,
+        TableName,
+        TableID,
+        LogData
+    )
+    SELECT
+        GETDATE(),
+        SYSTEM_USER,
+        'Inserted',
+        'Profile',
+        'Patient',
+        I.PatientId,
+        J.LogData
+    FROM inserted I
+    CROSS APPLY
+    (
+        SELECT LogData =
+        (
+            SELECT
+                I.PatientId,
+                I.FirstName,
+                I.LastName,
+                I.ID_Number,
+                I.DateOfBirth,
+                I.GenderIDFK,
+                I.MedicationList,
+                I.AddressIDFK,
+                I.MaritalStatusIDFK,
+                I.EmergencyIDFK,
+                I.IsDeleted,
+                I.CreatedDate,
+                I.CreatedBy,
+                I.UpdatedDate,
+                I.UpdatedBy
+            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+        )
+    ) J;
 END
 GO
-
-

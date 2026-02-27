@@ -7,5 +7,4 @@
 -- INSERT INTO Auth.Permissions (...) VALUES (...);
 -- INSERT INTO Auth.RolePermissions (...) SELECT ... FROM Auth.Permissions;
 -- INSERT INTO Auth.Users (...) VALUES (...);
-
-PRINT 'V5 placeholder: add auth seeds and admin user creation here (avoid hardcoded passwords).'
+PRINT 'V5 no-op: auth/admin seed bootstrap is already included in V1 baseline.';

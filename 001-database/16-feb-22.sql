@@ -335,7 +335,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE PROC [Auth].[Exception]
+CREATE OR ALTER PROC [Auth].[Exception]
 (
 	@UserName VARCHAR(200),
 	@ErrorSchema VARCHAR(200),
@@ -383,7 +383,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE PROC [Location].[spGetCities]
+CREATE OR ALTER PROC [Location].[spGetCities]
 (
 	@CityId INT = 0,
 	@CityName VARCHAR(250) = '' 
@@ -407,7 +407,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE PROC [Location].[spGetCountries]
+CREATE OR ALTER PROC [Location].[spGetCountries]
 (
 	@CountryId INT = 0,
 	@CountryName VARCHAR(250) = ''
@@ -432,7 +432,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE PROC [Location].[spGetProvinces]
+CREATE OR ALTER PROC [Location].[spGetProvinces]
 (
 	@ProvinceId INT = '',
 	@ProvinceName VARCHAR(250) = ''
@@ -453,7 +453,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE   PROC [Location].[spInsertCountries]
+CREATE OR ALTER PROC [Location].[spInsertCountries]
 (
 	@Country VARCHAR(250), 
 	@Alpha2Code VARCHAR(250),
@@ -501,7 +501,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE   PROC [Location].[spInsertSouthAfrican_Cities]
+CREATE OR ALTER PROC [Location].[spInsertSouthAfrican_Cities]
 (
 	@CityName VARCHAR(250),
 	@Province VARCHAR(250),
@@ -534,7 +534,7 @@ GO
 
 
 
-CREATE   PROC [Profile].[spAddPatientProfile]
+CREATE OR ALTER PROC [Profile].[spAddPatientProfile]
 (
 	@FirstName VARCHAR(250) = '',
 	@LastName VARCHAR(250) = '',
@@ -777,7 +777,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE   PROC [Profile].[spGetMaritalStatus]
+CREATE OR ALTER PROC [Profile].[spGetMaritalStatus]
 (
 	@MaritalStatusId INT = 0,
 	@MaritalStatusDescription VARCHAR(250) = ''

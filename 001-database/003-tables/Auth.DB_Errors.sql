@@ -8,6 +8,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+IF OBJECT_ID(N'[Auth].[DB_Errors]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Auth].[DB_Errors](
 	[ErrorID] [int] IDENTITY(1,1) NOT NULL,
 	[UserName] [varchar](100) NULL,
@@ -20,6 +22,7 @@ CREATE TABLE [Auth].[DB_Errors](
 	[ErrorMessage] [varchar](max) NULL,
 	[ErrorDateTime] [datetime] NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+END
 GO
 
 

@@ -1,0 +1,41 @@
+services:
+  mssql:
+    image: ${MSSQL_IMAGE:-samkelo1nhlapo/healthcare_form:seeded}
+    container_name: healthcare-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in your shell or .env}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - ${MSSQL_VOLUME_ROOT:-./docker-volumes/mssql}/data:/var/opt/mssql/data
+      - ${MSSQL_VOLUME_ROOT:-./docker-volumes/mssql}/log:/var/opt/mssql/log
+      - ${MSSQL_VOLUME_ROOT:-./docker-volumes/mssql}/backup:/var/opt/mssql/backup
+    restart: unless-stopped
+
+  backend:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    container_name: healthcare-backend
+    working_dir: /src/HealthcareForm
+    command: >
+      bash -lc "dotnet run --project HealthcareForm.csproj --urls http://0.0.0.0:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__HealthcareEntity: "Server=mssql,1433;Database=${MSSQL_APP_DB_NAME:-HealthcareForm};User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in your shell or .env};TrustServerCertificate=true"
+    volumes:
+      - ../002-code:/src
+      - ${BACKEND_VOLUME_ROOT:-./docker-volumes/backend}/dataprotection-keys:/root/.aspnet/DataProtection-Keys
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'"
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped

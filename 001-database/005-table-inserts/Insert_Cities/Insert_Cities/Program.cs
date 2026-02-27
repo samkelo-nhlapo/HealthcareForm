@@ -10,25 +10,37 @@ namespace Insert_Cities
     {
         static void Main(string[] args)
         {
-            var fileName = Path.GetFullPath(@"C:\Users\Sam\Music\PatientEnrollment\001. Enrollment DB\005. Table Inserts\XML files\za.xlsx");
+            var connectionString = Environment.GetEnvironmentVariable("HEALTHCAREFORM_SQL_CONNECTION_STRING")
+                ?? Environment.GetEnvironmentVariable("MSSQL_CONNECTION_STRING");
 
-            if (fileName is null)
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                Console.WriteLine("where is the file");
+                Console.WriteLine("Missing DB connection string. Set HEALTHCAREFORM_SQL_CONNECTION_STRING or MSSQL_CONNECTION_STRING.");
+                return;
             }
-            else
+
+            var fileNameInput = args.Length > 0
+                ? args[0]
+                : Environment.GetEnvironmentVariable("INSERT_HEALTHCAREFORM_CITIES_FILE")
+                    ?? @"C:\Users\Sam\Music\PatientEnrollment\001. Enrollment DB\005. Table Inserts\XML files\za.xlsx";
+            var fileName = Path.GetFullPath(fileNameInput);
+
+            if (!File.Exists(fileName))
             {
-                Console.WriteLine("found file");
+                Console.WriteLine($"Input file not found: {fileName}");
+                Console.WriteLine("Pass the Excel file path as arg[0] or set INSERT_HEALTHCAREFORM_CITIES_FILE.");
+                return;
             }
+
+            Console.WriteLine($"Using input file: {fileName}");
             using (var doc = new SLDocument(fileName))
             {
                 SLWorksheetStatistics count = doc.GetWorksheetStatistics();
 
                 string CityName = "";
                 string ProvinceId = "";
-                string isActive = "0";
+                bool isActive = false;
                 DateTime datetime = DateTime.Now;
-                string message = "";
 
                 if (count.NumberOfColumns is 0)
                 {
@@ -39,25 +51,53 @@ namespace Insert_Cities
                     CityName = doc.GetCellValueAsString(rowIndex, 1);
                     ProvinceId = doc.GetCellValueAsString(rowIndex, 2);
 
-                    using (SqlConnection conn = new SqlConnection("Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=111GkiPQ25af; "))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     {
-                        //Console.WriteLine("Connected to sql");
-                        SqlCommand command = new SqlCommand("Location.spInsertSouthAfrican_Cities", conn);
-                        command.CommandType = CommandType.StoredProcedure;
+                        SqlCommand command = new SqlCommand(@"
+SET NOCOUNT ON;
+
+DECLARE @ProvinceKey INT;
+SELECT TOP (1) @ProvinceKey = ProvinceId
+FROM Location.Provinces
+WHERE ProvinceName = @Province
+   OR CAST(ProvinceId AS VARCHAR(50)) = @Province;
+
+IF @ProvinceKey IS NULL
+BEGIN
+    THROW 50001, 'Province not found for city insert.', 1;
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM Location.Cities
+    WHERE CityName = @CityName
+      AND ProvinceIDFK = @ProvinceKey
+)
+BEGIN
+    INSERT INTO Location.Cities
+    (
+        CityName,
+        ProvinceIDFK,
+        IsActive,
+        UpdateDate
+    )
+    VALUES
+    (
+        @CityName,
+        @ProvinceKey,
+        @IsActive,
+        @UpdateDate
+    );
+END;", conn);
+                        command.CommandType = CommandType.Text;
 
                         command.Parameters.Add(new SqlParameter("@CityName", CityName));
                         command.Parameters.Add(new SqlParameter("@Province", ProvinceId));
                         command.Parameters.Add(new SqlParameter("@IsActive", isActive));
                         command.Parameters.Add(new SqlParameter("@UpdateDate", datetime));
-                        command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250)).Direction = ParameterDirection.Output;
 
                         conn.Open();
                         command.ExecuteNonQuery();
-                        if (Convert.ToString(command.Parameters["@Message"].Value) != "")
-                        {
-                            Console.WriteLine(Convert.ToString(command.Parameters["@Message"].Value));
-                        }
-
                         conn.Close();
                     }
 

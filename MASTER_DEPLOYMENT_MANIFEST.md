@@ -348,9 +348,9 @@ These files are executed BY the master deployment script:
 
 ## 🔐 Security Notes
 
-### Default Credentials
+### Bootstrap Credentials
 - **Username**: admin
-- **Password**: HealthcareAdmin@2026!
+- **Password**: Supplied via `ADMIN_PASSWORD_HASH` at deployment
 - **Status**: ACTIVE
 - **Action Required**: CHANGE IMMEDIATELY ON FIRST LOGIN
 

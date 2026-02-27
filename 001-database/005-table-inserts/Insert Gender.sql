@@ -1,22 +1,23 @@
 USE HealthcareForm
 GO
 
---================================================================================================
---	Author:		Samkelo Nhlapo
---	Create date:	14/02/2026
---	Description:	Insert gender lookup values
---	TFS Task:		Initialize gender lookup table
---================================================================================================
+DECLARE @DefaultDate DATETIME = GETDATE();
 
-DECLARE @ActiveStatus BIT = 1,
-		@DefaultDate DATETIME = GETDATE()
-
-INSERT INTO Profile.Gender (GenderDescription, IsActive, UpdateDate, CreatedDate, CreatedBy)
-VALUES	('Male', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Female', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Other', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM'),
-		('Prefer Not to Say', @ActiveStatus, @DefaultDate, @DefaultDate, 'SYSTEM')
-
+INSERT INTO Profile.Gender (GenderDescription, IsActive, UpdateDate)
+SELECT V.GenderDescription, V.IsActive, @DefaultDate
+FROM (
+    VALUES
+        ('Male', 1),
+        ('Female', 1),
+        ('Other', 1),
+        ('Prefer Not to Say', 1)
+) V(GenderDescription, IsActive)
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM Profile.Gender G
+    WHERE G.GenderDescription = V.GenderDescription
+);
 GO
 
 PRINT 'Gender lookup table populated successfully'

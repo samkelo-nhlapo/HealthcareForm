@@ -23,7 +23,7 @@
 - `008. Insert Roles.sql` - 7 security roles (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT, BILLING, PHARMACIST)
 - `009. Insert Permissions.sql` - 52 granular permissions across 12 categories
 - `010. Insert RolePermissions.sql` - 210+ role-permission mappings with specific access per role
-- `016. Insert AdminUser.sql` - Initial admin user (username: admin, default password: HealthcareAdmin@2026!)
+- `016. Insert AdminUser.sql` - Initial admin user (username: admin, password hash supplied via deployment secret)
 
 #### Healthcare Reference Data (4 files)
 - `011. Insert BillingCodes.sql` - 50 billing codes (ICD-10 diagnoses, CPT procedures, HCPCS services)

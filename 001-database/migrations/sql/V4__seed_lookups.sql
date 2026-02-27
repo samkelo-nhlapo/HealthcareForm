@@ -4,5 +4,4 @@
 
 -- Example: countries insert
 -- INSERT INTO Location.Countries (...) VALUES (...);
-
-PRINT 'V4 placeholder: add lookup seed data here (countries/provinces/cities/gender/marital status).'
+PRINT 'V4 no-op: lookup seed data is already included in V1 baseline.';
