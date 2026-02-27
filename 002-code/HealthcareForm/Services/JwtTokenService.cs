@@ -20,6 +20,10 @@ public sealed class JwtTokenService : IJwtTokenService
         var issuer = _configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is not configured.");
         var audience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is not configured.");
         var key = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+        if (key.StartsWith("__SET_", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Jwt:Key is not configured.");
+        }
 
         if (key.Length < 32)
         {

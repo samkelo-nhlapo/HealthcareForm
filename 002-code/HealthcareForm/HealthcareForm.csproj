@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>HealthcareForm</RootNamespace>
     <AssemblyName>HealthcareForm</AssemblyName>
+    <UserSecretsId>80f03fd1-a3cd-40b6-8312-217ed4b83be8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

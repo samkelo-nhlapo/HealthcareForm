@@ -13,6 +13,7 @@ API_HEALTH_PATH="${HF_API_HEALTH_PATH:-/api/health/live}"
 API_DB_HEALTH_PATH="${HF_API_DB_HEALTH_PATH:-/api/health/db}"
 REQUIRE_DB_HEALTH="${HF_API_REQUIRE_DB_HEALTH:-1}"
 CONNECTION_STRING_FROM_ENV="${ConnectionStrings__HealthcareEntity:-}"
+JWT_KEY_FROM_ENV="${Jwt__Key:-}"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -25,11 +26,40 @@ if [[ -n "$CONNECTION_STRING_FROM_ENV" ]]; then
   ConnectionStrings__HealthcareEntity="$CONNECTION_STRING_FROM_ENV"
 fi
 
+if [[ -n "$JWT_KEY_FROM_ENV" ]]; then
+  Jwt__Key="$JWT_KEY_FROM_ENV"
+fi
+
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1" >&2
     exit 1
   fi
+}
+
+is_placeholder_connection_string() {
+  local value="${1:-}"
+  [[ -z "$value" \
+     || "$value" == "YOUR_CONNECTION_STRING" \
+     || "$value" == "__SET_CONNECTIONSTRINGS__HEALTHCAREENTITY_ENV_VAR__" \
+     || "$value" == REPLACE_WITH_* \
+     || "$value" == *"<password>"* \
+     || "$value" != *"="* \
+     || "$value" != *";"* ]]
+}
+
+is_placeholder_jwt_key() {
+  local value="${1:-}"
+  [[ -z "$value" \
+     || "$value" == "__SET_JWT__KEY_ENV_VAR_MIN_32_CHARS__" \
+     || "$value" == REPLACE_WITH_* \
+     || ${#value} -lt 32 ]]
+}
+
+read_user_secret() {
+  local key="$1"
+  dotnet user-secrets list --project "$API_PROJECT" 2>/dev/null \
+    | awk -v k="$key" 'index($0, k " = ") == 1 { print substr($0, length(k) + 4); exit }'
 }
 
 listening_pid() {
@@ -53,29 +83,46 @@ require_command npm
 require_command lsof
 require_command curl
 
-if [[ -z "${ConnectionStrings__HealthcareEntity:-}" ]]; then
-  cat >&2 <<EOF
-ConnectionStrings__HealthcareEntity is not set.
-Set it in your shell or add it to ${ENV_FILE}.
+if is_placeholder_connection_string "${ConnectionStrings__HealthcareEntity:-}"; then
+  USER_SECRET_CONNECTION_STRING="$(read_user_secret "ConnectionStrings:HealthcareEntity")"
+  if [[ -n "$USER_SECRET_CONNECTION_STRING" ]]; then
+    ConnectionStrings__HealthcareEntity="$USER_SECRET_CONNECTION_STRING"
+    echo "Loaded ConnectionStrings__HealthcareEntity from dotnet user-secrets."
+  fi
+fi
 
+if is_placeholder_connection_string "${ConnectionStrings__HealthcareEntity:-}"; then
+  cat >&2 <<EOF
+ConnectionStrings__HealthcareEntity appears to be a placeholder or invalid format.
+Current value starts with: ${ConnectionStrings__HealthcareEntity:0:48}
+
+Set it using dotnet user-secrets (recommended):
+  dotnet user-secrets set "ConnectionStrings:HealthcareEntity" "Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=<password>;TrustServerCertificate=true" --project "$API_PROJECT"
+
+Or set a valid SQL Server connection string in ${ENV_FILE} or your shell.
 Example:
 ConnectionStrings__HealthcareEntity="Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=<password>;TrustServerCertificate=true"
 EOF
   exit 1
 fi
 
-if [[ "${ConnectionStrings__HealthcareEntity}" == "YOUR_CONNECTION_STRING" \
-   || "${ConnectionStrings__HealthcareEntity}" == "__SET_CONNECTIONSTRINGS__HEALTHCAREENTITY_ENV_VAR__" \
-   || "${ConnectionStrings__HealthcareEntity}" == *"<password>"* \
-   || "${ConnectionStrings__HealthcareEntity}" != *"="* \
-   || "${ConnectionStrings__HealthcareEntity}" != *";"* ]]; then
-  cat >&2 <<EOF
-ConnectionStrings__HealthcareEntity appears to be a placeholder or invalid format.
-Current value starts with: ${ConnectionStrings__HealthcareEntity:0:48}
+if is_placeholder_jwt_key "${Jwt__Key:-}"; then
+  USER_SECRET_JWT_KEY="$(read_user_secret "Jwt:Key")"
+  if [[ -n "$USER_SECRET_JWT_KEY" ]]; then
+    Jwt__Key="$USER_SECRET_JWT_KEY"
+    echo "Loaded Jwt__Key from dotnet user-secrets."
+  fi
+fi
 
-Set a valid SQL Server connection string in ${ENV_FILE} or your shell.
-Example:
-ConnectionStrings__HealthcareEntity="Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=<password>;TrustServerCertificate=true"
+if is_placeholder_jwt_key "${Jwt__Key:-}"; then
+  cat >&2 <<EOF
+Jwt__Key appears to be a placeholder or too short.
+It must be at least 32 characters.
+
+Set it using dotnet user-secrets (recommended):
+  dotnet user-secrets set "Jwt:Key" "<at-least-32-char-secret>" --project "$API_PROJECT"
+
+Or set Jwt__Key in ${ENV_FILE} or your shell.
 EOF
   exit 1
 fi

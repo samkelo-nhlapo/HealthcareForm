@@ -14,8 +14,18 @@ Run backend and frontend together from repo root:
 cp .env.dev.example .env.dev
 ```
 
-2. Edit `.env.dev` and set `ConnectionStrings__HealthcareEntity`.
-Do not leave placeholder values such as `YOUR_CONNECTION_STRING`.
+2. Recommended: set secrets once with .NET User Secrets:
+
+```bash
+cd 002-code/HealthcareForm
+dotnet user-secrets set "ConnectionStrings:HealthcareEntity" "Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=YOUR_REAL_PASSWORD;TrustServerCertificate=true"
+dotnet user-secrets set "Jwt:Key" "YOUR_SECRET_AT_LEAST_32_CHARS"
+```
+
+3. Optional fallback: edit `.env.dev` and set:
+- `ConnectionStrings__HealthcareEntity`
+- `Jwt__Key` (at least 32 characters)
+Do not leave placeholder values.
 
 ## Notes
 
