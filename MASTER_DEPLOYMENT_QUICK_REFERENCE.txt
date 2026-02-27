@@ -179,12 +179,12 @@ SELECT COUNT(*) FROM Profile.Gender            -- Expected: 4 ☐
 SELECT COUNT(*) FROM Profile.MaritalStatus     -- Expected: 6 ☐
 
 -- 5. Check security setup
-SELECT COUNT(*) FROM Security.Roles            -- Expected: 7 ☐
-SELECT COUNT(*) FROM Security.Permissions      -- Expected: 52 ☐
-SELECT COUNT(*) FROM Security.RolePermissions  -- Expected: 210+ ☐
+SELECT COUNT(*) FROM Auth.Roles            -- Expected: 7 ☐
+SELECT COUNT(*) FROM Auth.Permissions      -- Expected: 52 ☐
+SELECT COUNT(*) FROM Auth.RolePermissions  -- Expected: 210+ ☐
 
 -- 6. Check admin user
-SELECT UserName, Email, IsActive FROM Security.Users WHERE UserName = 'admin'
+SELECT UserName, Email, IsActive FROM Auth.Users WHERE UserName = 'admin'
 -- Expected: admin, admin@healthcareform.local, 1 ☐
 
 -- 7. Check stored procedures
@@ -212,7 +212,7 @@ Admin User:
 ☐ Username: admin
 ☐ Email: admin@healthcareform.local
 ☐ Status: Active (IsActive = 1)
-☐ Password: HealthcareAdmin@2026! (CHANGE IMMEDIATELY!)
+☐ Password: Supplied via ADMIN_PASSWORD_HASH at deployment (rotate immediately)
 
 
 TROUBLESHOOTING CHECKLIST
@@ -263,10 +263,10 @@ POST-DEPLOYMENT TASKS (Priority Order)
 =======================================
 
 CRITICAL (Do Immediately):
-☐ Change admin default password
-  - Current: HealthcareAdmin@2026!
-  - Create new strong password (12+ chars)
-  - Update Security.Users table
+☐ Rotate admin bootstrap credential
+  - Password hash is supplied via ADMIN_PASSWORD_HASH at deployment
+  - Create and apply a new strong bcrypt hash
+  - Update Auth.Users table
 
 HIGH (Do within 24 hours):
 ☐ Create application users (Doctors, Nurses, Receptionists, etc.)

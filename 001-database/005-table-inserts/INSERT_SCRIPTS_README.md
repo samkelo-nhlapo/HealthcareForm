@@ -97,8 +97,8 @@ Complete set of SQL insert scripts to initialize the HealthcareForm database wit
 - **Dependencies**: Roles table must exist
 - **Credentials**:
   - Username: admin
-  - Default Password: HealthcareAdmin@2026! (bcrypt hashed)
-  - **IMPORTANT**: Change immediately on first login
+  - Password hash supplied via `ADMIN_PASSWORD_HASH` during deployment
+  - **IMPORTANT**: Rotate immediately after first login
 
 ---
 
@@ -274,13 +274,13 @@ SELECT 'Gender', COUNT(*) FROM Profile.Gender
 UNION ALL
 SELECT 'MaritalStatus', COUNT(*) FROM Profile.MaritalStatus
 UNION ALL
-SELECT 'Roles', COUNT(*) FROM Security.Roles
+SELECT 'Roles', COUNT(*) FROM Auth.Roles
 UNION ALL
-SELECT 'Permissions', COUNT(*) FROM Security.Permissions
+SELECT 'Permissions', COUNT(*) FROM Auth.Permissions
 UNION ALL
-SELECT 'RolePermissions', COUNT(*) FROM Security.RolePermissions
+SELECT 'RolePermissions', COUNT(*) FROM Auth.RolePermissions
 UNION ALL
-SELECT 'Users', COUNT(*) FROM Security.Users
+SELECT 'Users', COUNT(*) FROM Auth.Users
 UNION ALL
 SELECT 'BillingCodes', COUNT(*) FROM Billing.BillingCodes
 UNION ALL
@@ -318,8 +318,8 @@ SELECT 'Patients', COUNT(*) FROM Profile.Patient
 
 ### Security
 - Admin password is hashed with bcrypt (salt rounds: 10)
-- Default password: `HealthcareAdmin@2026!`
-- **MUST be changed immediately on first login**
+- Password hash is supplied via `ADMIN_PASSWORD_HASH` during deployment
+- **MUST be rotated immediately after first login**
 - Use strong password for production
 
 ### Audit Trail
@@ -366,11 +366,11 @@ Use this patient to test:
 ### Issue: "Cannot insert duplicate value" on Roles/Permissions
 **Solution**: Roles and Permissions were already inserted. Delete and re-insert:
 ```sql
-DELETE FROM Security.RolePermissions
-DELETE FROM Security.Users
-DELETE FROM Security.UserRoles
-DELETE FROM Security.Roles
-DELETE FROM Security.Permissions
+DELETE FROM Auth.RolePermissions
+DELETE FROM Auth.Users
+DELETE FROM Auth.UserRoles
+DELETE FROM Auth.Roles
+DELETE FROM Auth.Permissions
 -- Then re-run insert scripts
 ```
 
@@ -391,11 +391,11 @@ DELETE FROM Security.Permissions
 1. **Create Application Users**
    ```sql
    -- Sample: Create a doctor user
-   INSERT INTO Security.Users (UserName, Email, PasswordHash, FirstName, LastName, IsActive, CreatedDate, CreatedBy)
+   INSERT INTO Auth.Users (UserName, Email, PasswordHash, FirstName, LastName, IsActive, CreatedDate, CreatedBy)
    VALUES ('dr.smith', 'dr.smith@healthcareform.local', '[bcrypt_hash]', 'Kevin', 'Smith', 1, GETDATE(), 'admin')
    
-   INSERT INTO Security.UserRoles (UserIdFK, RoleIdFK, CreatedDate, CreatedBy)
-   SELECT UserID FROM Security.Users WHERE UserName = 'dr.smith', RoleId FROM Security.Roles WHERE RoleName = 'DOCTOR'
+   INSERT INTO Auth.UserRoles (UserIdFK, RoleIdFK, CreatedDate, CreatedBy)
+   SELECT UserID FROM Auth.Users WHERE UserName = 'dr.smith', RoleId FROM Auth.Roles WHERE RoleName = 'DOCTOR'
    ```
 
 2. **Configure Backup Strategy**

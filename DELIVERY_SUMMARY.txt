@@ -158,7 +158,7 @@ SECURITY:
 ├─ Roles: 7 (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT, BILLING, PHARMACIST)
 ├─ Permissions: 52 granular permissions
 ├─ Mappings: 210+ role-permission assignments
-├─ Admin User: Created (username: admin, password: HealthcareAdmin@2026!)
+├─ Admin User: Created (username: admin, password hash supplied via deployment secret)
 └─ Audit Trail: All tables have CreatedDate, UpdateDate, CreatedBy, UpdatedBy
 
 DATA INITIALIZATION (500+ RECORDS):
@@ -237,9 +237,9 @@ Total Time: ~75 minutes
 ================================================================================
 
 IMMEDIATE ACTIONS (Do First):
-☐ Change admin default password
-  Current: HealthcareAdmin@2026!
-  Create new strong password and update
+☐ Rotate admin bootstrap credential
+  Password hash is supplied via ADMIN_PASSWORD_HASH at deployment
+  Create a new strong bcrypt hash and update
 
 VERIFY INSTALLATION (Do Second):
 ☐ Run provided verification queries
@@ -352,7 +352,7 @@ ROLE-PERMISSION MAPPINGS: 210+ assignments
 
 ADMIN BOOTSTRAP USER: 1
 - Username: admin
-- Password: HealthcareAdmin@2026! (MUST CHANGE)
+- Password: Supplied via ADMIN_PASSWORD_HASH at deployment (MUST ROTATE)
 - Status: Active
 - Role: ADMIN
 
@@ -428,9 +428,9 @@ Quick checks:
   SELECT COUNT(*) FROM Location.Cities         → Expected: 38
   SELECT COUNT(*) FROM Profile.Gender          → Expected: 4
   SELECT COUNT(*) FROM Profile.MaritalStatus   → Expected: 6
-  SELECT COUNT(*) FROM Security.Roles          → Expected: 7
-  SELECT COUNT(*) FROM Security.Permissions    → Expected: 52
-  SELECT COUNT(*) FROM Security.Users          → Expected: 1 (admin)
+  SELECT COUNT(*) FROM Auth.Roles          → Expected: 7
+  SELECT COUNT(*) FROM Auth.Permissions    → Expected: 52
+  SELECT COUNT(*) FROM Auth.Users          → Expected: 1 (admin)
 
 Full verification script included to check all tables.
 

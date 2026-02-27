@@ -175,25 +175,28 @@ After completing all phases, you should have:
 
 ### 1. Change Admin Password (CRITICAL)
 ```sql
-UPDATE Security.Users
-SET PasswordHash = HASHBYTES('SHA2_256', N'YourNewPasswordHere')
-WHERE UserName = 'admin'
+UPDATE Auth.Users
+SET PasswordHash = '<new_bcrypt_hash>',
+    UpdatedDate = GETDATE(),
+    UpdatedBy = 'ADMIN_ROTATION'
+WHERE Username = 'admin'
 ```
 
-**Current Credentials:**
+**Bootstrap Credential Source:**
 - Username: `admin`
-- Password: `HealthcareAdmin@2026!` (DEFAULT - MUST CHANGE)
+- Password hash supplied at deployment via `ADMIN_PASSWORD_HASH`
+- Repository does not define a default password
 
 ### 2. Create Application Users
 ```sql
 -- Example: Create a doctor user
-INSERT INTO Security.Users (UserName, PasswordHash, FirstName, LastName, IsActive, CreatedDate)
+INSERT INTO Auth.Users (UserName, PasswordHash, FirstName, LastName, IsActive, CreatedDate)
 VALUES ('dr_johnson', HASHBYTES('SHA2_256', N'password'), 'Johnson', 'Smith', 1, GETDATE())
 
 -- Then assign role
-INSERT INTO Security.UserRoles (UserID, RoleID)
-VALUES ((SELECT UserID FROM Security.Users WHERE UserName = 'dr_johnson'),
-        (SELECT RoleID FROM Security.Roles WHERE RoleName = 'DOCTOR'))
+INSERT INTO Auth.UserRoles (UserID, RoleID)
+VALUES ((SELECT UserID FROM Auth.Users WHERE UserName = 'dr_johnson'),
+        (SELECT RoleID FROM Auth.Roles WHERE RoleName = 'DOCTOR'))
 ```
 
 ### 3. Configure Backups

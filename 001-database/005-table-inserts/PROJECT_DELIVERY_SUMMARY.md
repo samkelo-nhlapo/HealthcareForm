@@ -280,12 +280,12 @@ ADMIN (7 roles defined)
 ```sql
 -- Check total records
 SELECT COUNT(*) FROM Location.Countries     -- 20
-SELECT COUNT(*) FROM Security.Roles         -- 7
+SELECT COUNT(*) FROM Auth.Roles         -- 7
 SELECT COUNT(*) FROM Profile.Patient        -- 1+
 ```
 
 ### 4. Post-Installation
-- [ ] Change admin password (default: HealthcareAdmin@2026!)
+- [ ] Rotate admin bootstrap credential (set via `ADMIN_PASSWORD_HASH`)
 - [ ] Create application users
 - [ ] Configure backup strategy
 - [ ] Test patient workflows

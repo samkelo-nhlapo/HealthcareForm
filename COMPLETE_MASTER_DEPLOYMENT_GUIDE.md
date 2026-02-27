@@ -373,23 +373,23 @@ SELECT COUNT(*) FROM Location.Provinces      -- 9
 SELECT COUNT(*) FROM Location.Cities         -- 38
 SELECT COUNT(*) FROM Profile.Gender          -- 4
 SELECT COUNT(*) FROM Profile.MaritalStatus   -- 6
-SELECT COUNT(*) FROM Security.Roles          -- 7
-SELECT COUNT(*) FROM Security.Permissions    -- 52
-SELECT COUNT(*) FROM Security.Users          -- 1 (admin)
+SELECT COUNT(*) FROM Auth.Roles          -- 7
+SELECT COUNT(*) FROM Auth.Permissions    -- 52
+SELECT COUNT(*) FROM Auth.Users          -- 1 (admin)
 ```
 
 ### Security Configured
 ```sql
-SELECT RoleName FROM Security.Roles ORDER BY RoleName
+SELECT RoleName FROM Auth.Roles ORDER BY RoleName
 -- Should return: ADMIN, BILLING, DOCTOR, NURSE, PATIENT, PHARMACIST, RECEPTIONIST
 
-SELECT COUNT(*) FROM Security.RolePermissions
+SELECT COUNT(*) FROM Auth.RolePermissions
 -- Should return: 210+ mappings
 ```
 
 ### Admin User Created
 ```sql
-SELECT UserName, Email, IsActive FROM Security.Users WHERE UserName = 'admin'
+SELECT UserName, Email, IsActive FROM Auth.Users WHERE UserName = 'admin'
 -- Should return: admin, admin@healthcareform.local, 1 (active)
 ```
 
@@ -477,20 +477,20 @@ UNION ALL SELECT 'Location.Provinces', COUNT(*) FROM Location.Provinces
 UNION ALL SELECT 'Location.Cities', COUNT(*) FROM Location.Cities
 UNION ALL SELECT 'Profile.Gender', COUNT(*) FROM Profile.Gender
 UNION ALL SELECT 'Profile.MaritalStatus', COUNT(*) FROM Profile.MaritalStatus
-UNION ALL SELECT 'Security.Roles', COUNT(*) FROM Security.Roles
-UNION ALL SELECT 'Security.Permissions', COUNT(*) FROM Security.Permissions
-UNION ALL SELECT 'Security.Users', COUNT(*) FROM Security.Users
+UNION ALL SELECT 'Auth.Roles', COUNT(*) FROM Auth.Roles
+UNION ALL SELECT 'Auth.Permissions', COUNT(*) FROM Auth.Permissions
+UNION ALL SELECT 'Auth.Users', COUNT(*) FROM Auth.Users
 ORDER BY [Table]
 PRINT ''
 
 -- 4. Verify security configuration
 PRINT '4. SECURITY ROLES CONFIGURED'
-SELECT '  - ' + RoleName as [Role] FROM Security.Roles ORDER BY RoleName
+SELECT '  - ' + RoleName as [Role] FROM Auth.Roles ORDER BY RoleName
 PRINT ''
 
 -- 5. Check admin user
 PRINT '5. ADMIN USER VERIFICATION'
-IF EXISTS (SELECT 1 FROM Security.Users WHERE UserName = 'admin' AND IsActive = 1)
+IF EXISTS (SELECT 1 FROM Auth.Users WHERE UserName = 'admin' AND IsActive = 1)
 	PRINT 'Admin user: ✓ Created and Active'
 ELSE
 	PRINT 'Admin user: ✗ Not found or inactive'
@@ -511,23 +511,23 @@ GO
 ## 📋 Next Steps After Deployment
 
 ### Immediate (Day 1)
-1. **Change Admin Password**
+1. **Verify Admin Bootstrap Credential**
    ```sql
-   -- Current credentials:
+   -- Bootstrap account:
    -- Username: admin
-   -- Password: HealthcareAdmin@2026!
-   -- Create new password and update in Security.Users table
+   -- Password hash is injected via ADMIN_PASSWORD_HASH at deployment
+   -- Rotate immediately after first login (update Auth.Users.PasswordHash)
    ```
 
 2. **Create Application Users**
    ```sql
    -- Example: Create a doctor user
-   INSERT INTO Security.Users (UserName, Email, PasswordHash, FirstName, LastName, IsActive, CreatedDate, CreatedBy)
+   INSERT INTO Auth.Users (UserName, Email, PasswordHash, FirstName, LastName, IsActive, CreatedDate, CreatedBy)
    VALUES ('dr.smith', 'dr.smith@healthcareform.local', '[bcrypt_hash]', 'Kevin', 'Smith', 1, GETDATE(), 'admin')
    
-   INSERT INTO Security.UserRoles (UserIdFK, RoleIdFK, CreatedDate, CreatedBy)
-   SELECT (SELECT UserID FROM Security.Users WHERE UserName = 'dr.smith'),
-          (SELECT RoleId FROM Security.Roles WHERE RoleName = 'DOCTOR'),
+   INSERT INTO Auth.UserRoles (UserIdFK, RoleIdFK, CreatedDate, CreatedBy)
+   SELECT (SELECT UserID FROM Auth.Users WHERE UserName = 'dr.smith'),
+          (SELECT RoleId FROM Auth.Roles WHERE RoleName = 'DOCTOR'),
           GETDATE(), 'admin'
    ```
 

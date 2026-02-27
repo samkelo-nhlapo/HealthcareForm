@@ -211,7 +211,7 @@ HealthcareForm/ (Root)
 **Total**: **500+ records** pre-loaded and ready to use
 
 ### Security Configuration
-- Admin user created (username: admin, password: HealthcareAdmin@2026!)
+- Admin bootstrap user created (username: admin, password hash supplied via deployment secret)
 - 7 roles with specific permissions
 - 52 granular permissions
 - Full RBAC implementation
@@ -238,9 +238,9 @@ HealthcareForm/ (Root)
 
 ## 🔐 Security Notes
 
-### Default Admin Account
+### Admin Bootstrap Account
 - **Username**: `admin`
-- **Password**: `HealthcareAdmin@2026!`
+- **Password**: Supplied via `ADMIN_PASSWORD_HASH` at deployment
 - **Status**: Active
 - **Action**: **MUST change immediately after first login**
 
@@ -433,9 +433,9 @@ After deployment, verify:
 - [ ] 20 countries in Location.Countries
 - [ ] 9 provinces in Location.Provinces
 - [ ] 38 cities in Location.Cities
-- [ ] 7 roles in Security.Roles
-- [ ] 52 permissions in Security.Permissions
-- [ ] 1 admin user in Security.Users
+- [ ] 7 roles in Auth.Roles
+- [ ] 52 permissions in Auth.Permissions
+- [ ] 1 admin user in Auth.Users
 - [ ] 500+ total records across all tables
 
 ✅ **Security Configured**
