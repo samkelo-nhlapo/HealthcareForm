@@ -1,9 +1,10 @@
 using HealthcareForm.Contracts.Auth;
+using HealthcareForm.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
+using System.Text;
 
 namespace HealthcareForm.Services;
 
@@ -95,7 +96,7 @@ public sealed class JwtTokenService : IJwtTokenService
     }
 
     /// <summary>
-    /// Validates all JWT settings at startup and returns the decoded key bytes.
+    /// Validates all JWT settings at startup and returns key bytes.
     /// Throwing here causes the application to refuse to start rather than
     /// silently issuing unsigned or misconfigured tokens at runtime.
     /// </summary>
@@ -115,23 +116,14 @@ public sealed class JwtTokenService : IJwtTokenService
             throw new InvalidOperationException(
                 "JWT TokenExpiryMinutes must be between 1 and 10 080 (one week).");
 
-        if (string.IsNullOrWhiteSpace(settings.Key) || settings.Key.StartsWith("__SET_"))
+        if (string.IsNullOrWhiteSpace(settings.Key)
+            || settings.Key.StartsWith("__SET_", StringComparison.Ordinal)
+            || settings.Key.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("JWT Key is not properly configured.");
 
-        try
-        {
-            byte[] bytes = Convert.FromBase64String(settings.Key);
+        if (settings.Key.Length < 32)
+            throw new InvalidOperationException("JWT Key must be at least 32 characters.");
 
-            // 32 bytes = 256 bits — minimum for HMAC-SHA256 to be meaningful.
-            if (bytes.Length < 32)
-                throw new InvalidOperationException(
-                    "JWT Key must be at least 256 bits (32 bytes).");
-
-            return bytes;
-        }
-        catch (FormatException)
-        {
-            throw new InvalidOperationException("JWT Key must be a valid Base64 string.");
-        }
+        return Encoding.UTF8.GetBytes(settings.Key);
     }
 }

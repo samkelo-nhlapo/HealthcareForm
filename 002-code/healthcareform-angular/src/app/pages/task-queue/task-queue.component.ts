@@ -36,6 +36,7 @@ export class TaskQueueComponent implements OnInit {
 
   isLoading = true;
   loadError = '';
+  lastRefreshedAt = '';
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
@@ -53,6 +54,10 @@ export class TaskQueueComponent implements OnInit {
 
   retryLoad(): void {
     this.loadSnapshot();
+  }
+
+  get hasSnapshotData(): boolean {
+    return this.rows.length > 0;
   }
 
   get filteredRows(): TaskQueueRow[] {
@@ -166,6 +171,7 @@ export class TaskQueueComponent implements OnInit {
     this.operationsApiService.getTaskQueueSnapshot().subscribe({
       next: (snapshot) => {
         this.applySnapshot(snapshot);
+        this.lastRefreshedAt = this.formatTimestamp(new Date());
         this.isLoading = false;
       },
       error: () => {
@@ -268,5 +274,13 @@ export class TaskQueueComponent implements OnInit {
 
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : fallback;
+  }
+
+  private formatTimestamp(date: Date): string {
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 }

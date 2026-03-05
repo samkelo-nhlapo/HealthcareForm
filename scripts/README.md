@@ -35,3 +35,25 @@ Do not leave placeholder values.
 - API DB health check: `http://127.0.0.1:5099/api/health/db`
 - Press `Ctrl+C` to stop. If the script started the backend process, it will stop it automatically.
 - To skip DB health enforcement (not recommended): `HF_API_REQUIRE_DB_HEALTH=0 ./scripts/dev-start.sh`
+
+## Stored Procedure Validation
+
+Validate backend-called stored procedures against definitions in `001-database/006-stored-procedures`:
+
+```bash
+./scripts/validate-stored-procedures.sh
+```
+
+## Release Readiness
+
+Run the local release gates in one command (stored procedures + backend release build/tests + frontend production build):
+
+```bash
+./scripts/release-readiness.sh
+```
+
+To skip `npm ci` when dependencies are already installed:
+
+```bash
+HF_SKIP_NPM_CI=1 ./scripts/release-readiness.sh
+```

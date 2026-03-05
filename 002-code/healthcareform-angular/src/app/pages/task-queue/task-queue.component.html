@@ -3,6 +3,10 @@
     <div>
       <h3>Team Task Queue</h3>
       <p>Cross-functional queue with SLA monitoring and escalation visibility.</p>
+      <small class="refresh-stamp" *ngIf="lastRefreshedAt">Last refreshed {{ lastRefreshedAt }}</small>
+    </div>
+    <div class="head-controls">
+      <button type="button" class="ghost" (click)="retryLoad()" [disabled]="isLoading">Refresh</button>
     </div>
   </header>
 
@@ -11,8 +15,11 @@
     <span>{{ loadError }}</span>
     <button type="button" (click)="retryLoad()">Retry</button>
   </div>
+  <div class="state empty" *ngIf="!isLoading && !loadError && !hasSnapshotData">
+    No queue tasks are currently available.
+  </div>
 
-  <section class="metrics">
+  <section class="metrics" *ngIf="!loadError">
     <article>
       <p class="label">Open Tasks</p>
       <p class="value">{{ openTasks }}</p>
@@ -31,7 +38,7 @@
     </article>
   </section>
 
-  <form [formGroup]="filters" class="filters">
+  <form [formGroup]="filters" class="filters" *ngIf="!loadError && hasSnapshotData">
     <label>
       Search
       <input type="text" formControlName="search" placeholder="Task, patient, ID, or queue ID" />
@@ -78,7 +85,7 @@
     </label>
   </form>
 
-  <div class="table-wrap">
+  <div class="table-wrap" *ngIf="!loadError && hasSnapshotData">
     <table>
       <thead>
         <tr>

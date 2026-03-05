@@ -3,6 +3,10 @@
     <div>
       <h3>Billing and Claims Workspace</h3>
       <p>Claims lifecycle tracking across coding, payer submission, and collections.</p>
+      <small class="refresh-stamp" *ngIf="lastRefreshedAt">Last refreshed {{ lastRefreshedAt }}</small>
+    </div>
+    <div class="head-controls">
+      <button type="button" class="ghost" (click)="retryLoad()" [disabled]="isLoading">Refresh</button>
     </div>
   </header>
 
@@ -11,8 +15,11 @@
     <span>{{ loadError }}</span>
     <button type="button" (click)="retryLoad()">Retry</button>
   </div>
+  <div class="state empty" *ngIf="!isLoading && !loadError && !hasSnapshotData">
+    No billing claims are currently available.
+  </div>
 
-  <section class="metrics">
+  <section class="metrics" *ngIf="!loadError">
     <article>
       <p class="label">Outstanding Balance</p>
       <p class="value">{{ outstandingBalance | currency:'ZAR':'symbol':'1.0-0' }}</p>
@@ -31,7 +38,7 @@
     </article>
   </section>
 
-  <form [formGroup]="filters" class="filters">
+  <form [formGroup]="filters" class="filters" *ngIf="!loadError && hasSnapshotData">
     <label>
       Search
       <input type="text" formControlName="search" placeholder="Claim ID, patient, payer, or ID" />
@@ -73,7 +80,7 @@
     </label>
   </form>
 
-  <section class="layout">
+  <section class="layout" *ngIf="!loadError && hasSnapshotData">
     <article class="sub-panel">
       <h4>Claim Pipeline</h4>
       <div class="table-wrap">

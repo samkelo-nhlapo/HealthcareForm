@@ -48,12 +48,13 @@ export class SchedulingComponent implements OnInit {
   selectedClinic: 'ALL' | Clinic = 'ALL';
   isLoading = true;
   loadError = '';
+  lastRefreshedAt = '';
 
   providers: ProviderLoad[] = [];
 
   resources: ResourceLoad[] = [];
 
-  blocks: TimeBlock[] = this.defaultBlocks();
+  blocks: TimeBlock[] = [];
 
   ngOnInit(): void {
     this.loadSnapshot();
@@ -70,6 +71,26 @@ export class SchedulingComponent implements OnInit {
 
   retryLoad(): void {
     this.loadSnapshot();
+  }
+
+  get hasSnapshotData(): boolean {
+    return this.providers.length > 0 || this.resources.length > 0;
+  }
+
+  get hasFilteredProviders(): boolean {
+    return this.filteredProviders.length > 0;
+  }
+
+  get hasFilteredResources(): boolean {
+    return this.filteredResources.length > 0;
+  }
+
+  get hasBlocks(): boolean {
+    return this.blocks.length > 0;
+  }
+
+  get isSnapshotEmpty(): boolean {
+    return !this.hasSnapshotData;
   }
 
   get filteredProviders(): ProviderLoad[] {
@@ -161,12 +182,13 @@ export class SchedulingComponent implements OnInit {
     this.operationsApiService.getSchedulingSnapshot().subscribe({
       next: (snapshot) => {
         this.applySnapshot(snapshot);
+        this.lastRefreshedAt = this.formatTimestamp(new Date());
         this.isLoading = false;
       },
       error: () => {
         this.providers = [];
         this.resources = [];
-        this.blocks = this.defaultBlocks();
+        this.blocks = [];
         this.loadError = 'Unable to load scheduling data. Check API connectivity and retry.';
         this.isLoading = false;
       }
@@ -182,9 +204,9 @@ export class SchedulingComponent implements OnInit {
       ? snapshot.Resources.map((resource) => this.mapResource(resource))
       : [];
 
-    this.blocks = Array.isArray(snapshot.Blocks) && snapshot.Blocks.length > 0
+    this.blocks = Array.isArray(snapshot.Blocks)
       ? snapshot.Blocks.map((block) => this.mapBlock(block))
-      : this.defaultBlocks();
+      : [];
   }
 
   private mapProvider(provider: SchedulingProviderLoadDto): ProviderLoad {
@@ -224,16 +246,6 @@ export class SchedulingComponent implements OnInit {
     };
   }
 
-  private defaultBlocks(): TimeBlock[] {
-    return [
-      { time: '08:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
-      { time: '10:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
-      { time: '12:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
-      { time: '14:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 },
-      { time: '16:00', general: 0, cardiology: 0, pediatrics: 0, oncology: 0 }
-    ];
-  }
-
   private normalizeClinic(value: string): Clinic {
     const normalized = (value ?? '').trim().toLowerCase();
 
@@ -259,7 +271,7 @@ export class SchedulingComponent implements OnInit {
 
   private coerceNumber(value: unknown, fallback = 0): number {
     const numeric = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(numeric) ? Math.round(numeric) : fallback;
+    return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric)) : fallback;
   }
 
   private readText(value: unknown, fallback: string): string {
@@ -269,5 +281,13 @@ export class SchedulingComponent implements OnInit {
 
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : fallback;
+  }
+
+  private formatTimestamp(date: Date): string {
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 }

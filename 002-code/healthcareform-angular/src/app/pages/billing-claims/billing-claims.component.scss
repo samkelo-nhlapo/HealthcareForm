@@ -10,6 +10,13 @@
   padding: 0.95rem 1rem;
 }
 
+.head {
+  align-items: end;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
 .head h3,
 h4 {
   font-family: 'Space Grotesk', 'Verdana', sans-serif;
@@ -19,6 +26,17 @@ h4 {
 .head p {
   color: #607687;
   margin: 0.35rem 0 0;
+}
+
+.head-controls {
+  align-items: end;
+  display: flex;
+}
+
+.refresh-stamp {
+  color: #607687;
+  display: block;
+  margin-top: 0.3rem;
 }
 
 .state {
@@ -101,6 +119,11 @@ button {
 button {
   background: #f5fbff;
   cursor: pointer;
+}
+
+.head-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .toggle {
@@ -279,5 +302,16 @@ a:hover {
 @media (max-width: 1080px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 840px) {
+  .head {
+    align-items: start;
+    display: grid;
+  }
+
+  .head-controls {
+    justify-content: start;
   }
 }

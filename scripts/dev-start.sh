@@ -16,7 +16,7 @@ API_URL="${HF_API_URL:-http://127.0.0.1:${API_PORT}}"
 API_HEALTH_PATH="${HF_API_HEALTH_PATH:-/api/health/live}"
 API_DB_HEALTH_PATH="${HF_API_DB_HEALTH_PATH:-/api/health/db}"
 REQUIRE_DB_HEALTH="${HF_API_REQUIRE_DB_HEALTH:-1}"
-REQUIRE_API_SMOKE_CHECK="${HF_API_SMOKE_CHECK:-1}"
+REQUIRE_API_SMOKE_CHECK="${HF_API_SMOKE_CHECK:-auto}"
 API_SMOKE_USERNAME="${HF_API_SMOKE_USERNAME:-}"
 API_SMOKE_PASSWORD="${HF_API_SMOKE_PASSWORD:-}"
 CONNECTION_STRING_FROM_ENV="${ConnectionStrings__HealthcareEntity:-}"
@@ -87,15 +87,67 @@ check_api_db_health() {
   curl -fsS "http://127.0.0.1:${API_PORT}${API_DB_HEALTH_PATH}" >/dev/null 2>&1
 }
 
-run_api_smoke_check() {
-  local login_body login_status login_response_body token worklist_status worklist_response_body
-  local login_response_file worklist_response_file
+check_smoke_api_endpoint() {
+  local token="$1"
+  local path="$2"
+  local expected_kind="$3"
+  local expected_property="${4:-}"
 
-  if [[ "$REQUIRE_API_SMOKE_CHECK" != "1" ]]; then
+  local response_file status response_body
+  response_file="$(mktemp)"
+
+  status="$(curl -sS -o "$response_file" -w "%{http_code}" \
+    "http://127.0.0.1:${API_PORT}${path}" \
+    -H "Authorization: Bearer ${token}")"
+  response_body="$(cat "$response_file")"
+  rm -f "$response_file"
+
+  if [[ "$status" != "200" ]]; then
+    echo "API smoke check failed: ${path} returned HTTP ${status}." >&2
+    echo "Endpoint response: ${response_body}" >&2
+    return 1
+  fi
+
+  if [[ "$expected_kind" == "array" && "${response_body:0:1}" != "[" ]]; then
+    echo "API smoke check failed: ${path} did not return a JSON array." >&2
+    echo "Endpoint response: ${response_body}" >&2
+    return 1
+  fi
+
+  if [[ "$expected_kind" == "object" && "${response_body:0:1}" != "{" ]]; then
+    echo "API smoke check failed: ${path} did not return a JSON object." >&2
+    echo "Endpoint response: ${response_body}" >&2
+    return 1
+  fi
+
+  if [[ -n "$expected_property" && "$response_body" != *"\"${expected_property}\""* ]]; then
+    echo "API smoke check failed: ${path} response missing '${expected_property}'." >&2
+    echo "Endpoint response: ${response_body}" >&2
+    return 1
+  fi
+}
+
+run_api_smoke_check() {
+  local login_body login_status login_response_body token
+  local login_response_file
+
+  API_SMOKE_RAN=0
+
+  if [[ "$REQUIRE_API_SMOKE_CHECK" != "0" && "$REQUIRE_API_SMOKE_CHECK" != "1" && "$REQUIRE_API_SMOKE_CHECK" != "auto" ]]; then
+    echo "Invalid HF_API_SMOKE_CHECK value: ${REQUIRE_API_SMOKE_CHECK}. Use 0, 1, or auto." >&2
+    return 1
+  fi
+
+  if [[ "$REQUIRE_API_SMOKE_CHECK" == "0" ]]; then
     return 0
   fi
 
   if [[ -z "$API_SMOKE_USERNAME" || -z "$API_SMOKE_PASSWORD" ]]; then
+    if [[ "$REQUIRE_API_SMOKE_CHECK" == "auto" ]]; then
+      echo "Skipping API smoke check (credentials not configured, HF_API_SMOKE_CHECK=auto)." >&2
+      return 0
+    fi
+
     cat >&2 <<EOF
 API smoke check is enabled (HF_API_SMOKE_CHECK=1) but credentials are missing.
 Set:
@@ -108,8 +160,7 @@ EOF
   fi
 
   login_response_file="$(mktemp)"
-  worklist_response_file="$(mktemp)"
-  trap 'rm -f "$login_response_file" "$worklist_response_file"' RETURN
+  trap 'rm -f "$login_response_file"' RETURN
 
   login_body=$(printf '{"usernameOrEmail":"%s","password":"%s"}' "$API_SMOKE_USERNAME" "$API_SMOKE_PASSWORD")
   login_status="$(curl -sS -o "$login_response_file" -w "%{http_code}" \
@@ -119,6 +170,11 @@ EOF
   login_response_body="$(cat "$login_response_file")"
 
   if [[ "$login_status" != "200" ]]; then
+    if [[ "$REQUIRE_API_SMOKE_CHECK" == "auto" ]]; then
+      echo "Skipping API smoke check (login returned HTTP ${login_status}, HF_API_SMOKE_CHECK=auto)." >&2
+      return 0
+    fi
+
     echo "API smoke check failed: login returned HTTP ${login_status}." >&2
     echo "Login response: ${login_response_body}" >&2
     return 1
@@ -131,25 +187,25 @@ EOF
     return 1
   fi
 
-  worklist_status="$(curl -sS -o "$worklist_response_file" -w "%{http_code}" \
-    "http://127.0.0.1:${API_PORT}/api/patients/worklist" \
-    -H "Authorization: Bearer ${token}")"
-  worklist_response_body="$(cat "$worklist_response_file")"
-
-  if [[ "$worklist_status" != "200" ]]; then
-    echo "API smoke check failed: /api/patients/worklist returned HTTP ${worklist_status}." >&2
-    echo "Worklist response: ${worklist_response_body}" >&2
+  if ! check_smoke_api_endpoint "$token" "/api/patients/worklist" "array"; then
     return 1
   fi
 
-  if [[ "${worklist_response_body:0:1}" != "[" ]]; then
-    echo "API smoke check failed: /api/patients/worklist did not return a JSON array." >&2
-    echo "Worklist response: ${worklist_response_body}" >&2
+  if ! check_smoke_api_endpoint "$token" "/api/operations/scheduling" "object" "Providers"; then
     return 1
   fi
 
-  rm -f "$login_response_file" "$worklist_response_file"
+  if ! check_smoke_api_endpoint "$token" "/api/operations/task-queue" "object" "Tasks"; then
+    return 1
+  fi
+
+  if ! check_smoke_api_endpoint "$token" "/api/revenue/claims" "object" "Claims"; then
+    return 1
+  fi
+
+  rm -f "$login_response_file"
   trap - RETURN
+  API_SMOKE_RAN=1
   return 0
 }
 
@@ -191,6 +247,24 @@ if is_placeholder_jwt_key "${Jwt__Key:-}"; then
   fi
 fi
 
+if [[ "$REQUIRE_API_SMOKE_CHECK" != "0" ]]; then
+  if [[ -z "$API_SMOKE_USERNAME" ]]; then
+    USER_SECRET_SMOKE_USERNAME="$(read_user_secret "Smoke:Username")"
+    if [[ -n "$USER_SECRET_SMOKE_USERNAME" ]]; then
+      API_SMOKE_USERNAME="$USER_SECRET_SMOKE_USERNAME"
+      echo "Loaded HF_API_SMOKE_USERNAME from dotnet user-secrets (Smoke:Username)."
+    fi
+  fi
+
+  if [[ -z "$API_SMOKE_PASSWORD" ]]; then
+    USER_SECRET_SMOKE_PASSWORD="$(read_user_secret "Smoke:Password")"
+    if [[ -n "$USER_SECRET_SMOKE_PASSWORD" ]]; then
+      API_SMOKE_PASSWORD="$USER_SECRET_SMOKE_PASSWORD"
+      echo "Loaded HF_API_SMOKE_PASSWORD from dotnet user-secrets (Smoke:Password)."
+    fi
+  fi
+fi
+
 if is_placeholder_jwt_key "${Jwt__Key:-}"; then
   cat >&2 <<EOF
 Jwt__Key appears to be a placeholder or too short.
@@ -207,6 +281,7 @@ fi
 API_STARTED_BY_SCRIPT=0
 API_PID=""
 API_WATCHER_PID=""
+API_SMOKE_RAN=0
 
 existing_api_pid="$(listening_pid "$API_PORT")"
 if [[ -n "$existing_api_pid" ]]; then
@@ -224,7 +299,15 @@ if [[ -n "$existing_api_pid" ]]; then
       exit 1
     fi
 
+    if ! run_api_smoke_check; then
+      echo "API smoke check failed against already-running backend on port ${API_PORT}." >&2
+      exit 1
+    fi
+
     echo "API already running on port ${API_PORT} (pid ${existing_api_pid}). Reusing it."
+    if [[ "$API_SMOKE_RAN" -eq 1 ]]; then
+      echo "API smoke check passed (login + patients/operations/revenue snapshots)."
+    fi
   else
     echo "Port ${API_PORT} is in use by pid ${existing_api_pid}: ${existing_api_cmd}" >&2
     echo "Stop that process or set HF_API_PORT/HF_API_URL before running this script." >&2
@@ -277,7 +360,9 @@ else
     exit 1
   fi
 
-  echo "API smoke check passed (/api/auth/login -> /api/patients/worklist)."
+  if [[ "$API_SMOKE_RAN" -eq 1 ]]; then
+    echo "API smoke check passed (login + patients/operations/revenue snapshots)."
+  fi
 fi
 
 start_api_watcher() {

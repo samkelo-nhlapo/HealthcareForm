@@ -4,9 +4,9 @@ This file tracks the active project-fix path across database, backend API, front
 
 ## Current Position
 
-- Current phase: **Phase 7 - Live Data Integration & Runtime Stability**
-- Previous phase completed: **Phase 6 - Hardening**
-- Current checkpoint: **Phase 7A - Core Runtime Baseline**
+- Current phase: **Phase 8 - Performance & Release Readiness (Completed)**
+- Previous phase completed: **Phase 7 - Live Data Integration & Runtime Stability**
+- Current checkpoint: **Phase 8 Complete**
 
 ## Phase Summary
 
@@ -16,9 +16,10 @@ This file tracks the active project-fix path across database, backend API, front
 4. Operations and revenue module setup: completed
 5. Admin and compliance module setup: completed
 6. Hardening (accessibility/perf/guards): completed
-7. Live data integration and runtime stability: in progress
+7. Live data integration and runtime stability: completed
+8. Performance and release readiness: completed
 
-## Phase 7A Checkpoint (Active)
+## Phase 7A Checkpoint (Completed)
 
 ### Objective
 
@@ -41,10 +42,10 @@ Deliver stable end-to-end runtime for core patient live-data flow with repeatabl
 - [x] Smoke test `/api/patients/worklist` on API host (`5099` and `8080` paths).
 - [x] Harden `scripts/dev-start.sh` startup diagnostics/logging for backend failures.
 - [x] Add backend JWT runtime env in `docker-compose.mssql.persistent.yml`.
-- [ ] Add automated script-level smoke check for login + worklist after startup.
-- [ ] Add CI validation for called-vs-defined SP diff.
+- [x] Add automated script-level smoke check for login + worklist after startup.
+- [x] Add CI validation for called-vs-defined SP diff.
 
-## Next Checkpoint (Planned): Phase 7B
+## Phase 7B Checkpoint (Completed)
 
 ### Objective
 
@@ -52,9 +53,33 @@ Replace remaining module placeholders with live backend snapshots and standardiz
 
 ### Candidate Tasks
 
-- [ ] Wire scheduling board to `/api/operations/scheduling`.
-- [ ] Wire operations queue to `/api/operations/task-queue`.
-- [ ] Wire revenue claims view to `/api/revenue/claims`.
-- [ ] Add consistent load/retry/empty/error states for all live snapshot pages.
-- [ ] Add integration smoke tests for operations and revenue endpoints.
+- [x] Wire scheduling board to `/api/operations/scheduling`.
+- [x] Wire operations queue to `/api/operations/task-queue`.
+- [x] Wire revenue claims view to `/api/revenue/claims`.
+- [x] Add consistent load/retry/empty/error states for all live snapshot pages.
+- [x] Add integration smoke tests for operations and revenue endpoints.
 
+## Phase 8A Checkpoint (Completed)
+
+### Objective
+
+Reduce frontend initial bundle pressure and prepare release-quality build/CI gates.
+
+### Candidate Tasks
+
+- [x] Convert route-level component imports to lazy loading.
+- [x] Re-run production build and verify initial bundle budget warning is cleared.
+- [x] Add frontend production build workflow gate in CI.
+
+## Phase 8B Checkpoint (Completed)
+
+### Objective
+
+Enforce backend/frontend build health and define a repeatable local release gate.
+
+### Candidate Tasks
+
+- [x] Restore backend release build baseline (missing JWT settings type/config binding).
+- [x] Add backend production build workflow gate in CI.
+- [x] Add single-command local release readiness gate script.
+- [x] Add backend automated tests (API/service level) to CI.

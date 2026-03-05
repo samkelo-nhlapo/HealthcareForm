@@ -3,17 +3,21 @@
     <div>
       <h3>Scheduling and Resource Control</h3>
       <p>Provider capacity, room/resource allocation, and shift utilization trend.</p>
+      <small class="refresh-stamp" *ngIf="lastRefreshedAt">Last refreshed {{ lastRefreshedAt }}</small>
     </div>
-    <label>
-      Clinic
-      <select (change)="setClinic($any($event.target).value)">
-        <option value="ALL">All Clinics</option>
-        <option value="General">General</option>
-        <option value="Cardiology">Cardiology</option>
-        <option value="Pediatrics">Pediatrics</option>
-        <option value="Oncology">Oncology</option>
-      </select>
-    </label>
+    <div class="head-controls">
+      <label>
+        Clinic
+        <select [value]="selectedClinic" (change)="setClinic($any($event.target).value)">
+          <option value="ALL">All Clinics</option>
+          <option value="General">General</option>
+          <option value="Cardiology">Cardiology</option>
+          <option value="Pediatrics">Pediatrics</option>
+          <option value="Oncology">Oncology</option>
+        </select>
+      </label>
+      <button type="button" class="ghost" (click)="retryLoad()" [disabled]="isLoading">Refresh</button>
+    </div>
   </header>
 
   <div class="state" *ngIf="isLoading">Loading scheduling snapshot...</div>
@@ -21,8 +25,11 @@
     <span>{{ loadError }}</span>
     <button type="button" (click)="retryLoad()">Retry</button>
   </div>
+  <div class="state empty" *ngIf="!isLoading && !loadError && isSnapshotEmpty">
+    No scheduling provider/resource rows are currently available.
+  </div>
 
-  <section class="metrics">
+  <section class="metrics" *ngIf="!loadError">
     <article>
       <p class="label">Booked Slots</p>
       <p class="value">{{ totalBookings }}</p>
@@ -41,9 +48,10 @@
     </article>
   </section>
 
-  <section class="layout">
+  <section class="layout" *ngIf="!loadError">
     <article class="sub-panel">
       <h4>Provider Capacity</h4>
+      <p class="empty-note" *ngIf="!hasFilteredProviders">No provider rows for the selected clinic.</p>
       <div class="provider" *ngFor="let provider of filteredProviders">
         <div class="provider-row">
           <strong>{{ provider.provider }}</strong>
@@ -66,6 +74,7 @@
 
     <article class="sub-panel">
       <h4>Resource Status</h4>
+      <p class="empty-note" *ngIf="!hasFilteredResources">No resource rows for the selected clinic.</p>
       <div class="resource" *ngFor="let resource of filteredResources">
         <div class="provider-row">
           <strong>{{ resource.resource }}</strong>
@@ -89,9 +98,10 @@
     </article>
   </section>
 
-  <section class="sub-panel">
+  <section class="sub-panel" *ngIf="!loadError">
     <h4>Shift Utilization Trend</h4>
-    <div class="trend-grid">
+    <p class="empty-note" *ngIf="!hasBlocks">No shift blocks returned by the scheduling snapshot.</p>
+    <div class="trend-grid" *ngIf="hasBlocks">
       <article *ngFor="let block of blocks">
         <h5>{{ block.time }}</h5>
         <p>General {{ block.general }}%</p>
