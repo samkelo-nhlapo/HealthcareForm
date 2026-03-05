@@ -3,8 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_PROJECT="$ROOT_DIR/002-code/HealthcareForm/HealthcareForm.csproj"
+API_PROJECT_DIR="$(dirname "$API_PROJECT")"
 FRONTEND_DIR="$ROOT_DIR/002-code/healthcareform-angular"
 ENV_FILE="${HF_ENV_FILE:-$ROOT_DIR/.env.dev}"
+RUNTIME_DIR="${HF_RUNTIME_DIR:-$ROOT_DIR/.dev-runtime}"
+API_LOG_FILE="${HF_API_LOG_FILE:-$RUNTIME_DIR/api.log}"
+API_OUTPUT_PATH="${HF_API_OUTPUT_PATH:-$API_PROJECT_DIR/bin/dev-start/}"
 
 API_PORT="${HF_API_PORT:-5099}"
 UI_PORT="${HF_UI_PORT:-4200}"
@@ -12,6 +16,9 @@ API_URL="${HF_API_URL:-http://127.0.0.1:${API_PORT}}"
 API_HEALTH_PATH="${HF_API_HEALTH_PATH:-/api/health/live}"
 API_DB_HEALTH_PATH="${HF_API_DB_HEALTH_PATH:-/api/health/db}"
 REQUIRE_DB_HEALTH="${HF_API_REQUIRE_DB_HEALTH:-1}"
+REQUIRE_API_SMOKE_CHECK="${HF_API_SMOKE_CHECK:-1}"
+API_SMOKE_USERNAME="${HF_API_SMOKE_USERNAME:-}"
+API_SMOKE_PASSWORD="${HF_API_SMOKE_PASSWORD:-}"
 CONNECTION_STRING_FROM_ENV="${ConnectionStrings__HealthcareEntity:-}"
 JWT_KEY_FROM_ENV="${Jwt__Key:-}"
 
@@ -43,6 +50,8 @@ is_placeholder_connection_string() {
      || "$value" == "YOUR_CONNECTION_STRING" \
      || "$value" == "__SET_CONNECTIONSTRINGS__HEALTHCAREENTITY_ENV_VAR__" \
      || "$value" == REPLACE_WITH_* \
+     || "$value" == *"REPLACE_WITH_"* \
+     || "$value" == *"__SET_CONNECTIONSTRINGS__"* \
      || "$value" == *"<password>"* \
      || "$value" != *"="* \
      || "$value" != *";"* ]]
@@ -78,10 +87,78 @@ check_api_db_health() {
   curl -fsS "http://127.0.0.1:${API_PORT}${API_DB_HEALTH_PATH}" >/dev/null 2>&1
 }
 
+run_api_smoke_check() {
+  local login_body login_status login_response_body token worklist_status worklist_response_body
+  local login_response_file worklist_response_file
+
+  if [[ "$REQUIRE_API_SMOKE_CHECK" != "1" ]]; then
+    return 0
+  fi
+
+  if [[ -z "$API_SMOKE_USERNAME" || -z "$API_SMOKE_PASSWORD" ]]; then
+    cat >&2 <<EOF
+API smoke check is enabled (HF_API_SMOKE_CHECK=1) but credentials are missing.
+Set:
+  HF_API_SMOKE_USERNAME=<username-or-email>
+  HF_API_SMOKE_PASSWORD=<password>
+Or disable this check:
+  HF_API_SMOKE_CHECK=0
+EOF
+    return 1
+  fi
+
+  login_response_file="$(mktemp)"
+  worklist_response_file="$(mktemp)"
+  trap 'rm -f "$login_response_file" "$worklist_response_file"' RETURN
+
+  login_body=$(printf '{"usernameOrEmail":"%s","password":"%s"}' "$API_SMOKE_USERNAME" "$API_SMOKE_PASSWORD")
+  login_status="$(curl -sS -o "$login_response_file" -w "%{http_code}" \
+    -X POST "http://127.0.0.1:${API_PORT}/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "$login_body")"
+  login_response_body="$(cat "$login_response_file")"
+
+  if [[ "$login_status" != "200" ]]; then
+    echo "API smoke check failed: login returned HTTP ${login_status}." >&2
+    echo "Login response: ${login_response_body}" >&2
+    return 1
+  fi
+
+  token="$(printf '%s' "$login_response_body" | sed -n 's/.*"AccessToken":"\([^"]*\)".*/\1/p')"
+  if [[ -z "$token" ]]; then
+    echo "API smoke check failed: login succeeded but no AccessToken was returned." >&2
+    echo "Login response: ${login_response_body}" >&2
+    return 1
+  fi
+
+  worklist_status="$(curl -sS -o "$worklist_response_file" -w "%{http_code}" \
+    "http://127.0.0.1:${API_PORT}/api/patients/worklist" \
+    -H "Authorization: Bearer ${token}")"
+  worklist_response_body="$(cat "$worklist_response_file")"
+
+  if [[ "$worklist_status" != "200" ]]; then
+    echo "API smoke check failed: /api/patients/worklist returned HTTP ${worklist_status}." >&2
+    echo "Worklist response: ${worklist_response_body}" >&2
+    return 1
+  fi
+
+  if [[ "${worklist_response_body:0:1}" != "[" ]]; then
+    echo "API smoke check failed: /api/patients/worklist did not return a JSON array." >&2
+    echo "Worklist response: ${worklist_response_body}" >&2
+    return 1
+  fi
+
+  rm -f "$login_response_file" "$worklist_response_file"
+  trap - RETURN
+  return 0
+}
+
 require_command dotnet
 require_command npm
 require_command lsof
 require_command curl
+
+mkdir -p "$RUNTIME_DIR"
 
 if is_placeholder_connection_string "${ConnectionStrings__HealthcareEntity:-}"; then
   USER_SECRET_CONNECTION_STRING="$(read_user_secret "ConnectionStrings:HealthcareEntity")"
@@ -129,6 +206,7 @@ fi
 
 API_STARTED_BY_SCRIPT=0
 API_PID=""
+API_WATCHER_PID=""
 
 existing_api_pid="$(listening_pid "$API_PORT")"
 if [[ -n "$existing_api_pid" ]]; then
@@ -154,7 +232,10 @@ if [[ -n "$existing_api_pid" ]]; then
   fi
 else
   echo "Starting backend API on ${API_URL}..."
-  dotnet run --project "$API_PROJECT" --urls "$API_URL" &
+  : > "$API_LOG_FILE"
+  dotnet run --project "$API_PROJECT" --urls "$API_URL" \
+    -p:BaseOutputPath="$API_OUTPUT_PATH" \
+    >> "$API_LOG_FILE" 2>&1 &
   API_PID=$!
   API_STARTED_BY_SCRIPT=1
 
@@ -171,6 +252,8 @@ else
 
   if ! check_api_health; then
     echo "API did not start on ${API_URL}. Check startup output above." >&2
+    echo "Startup log: ${API_LOG_FILE}" >&2
+    tail -n 60 "$API_LOG_FILE" >&2 || true
     kill "$API_PID" >/dev/null 2>&1 || true
     wait "$API_PID" >/dev/null 2>&1 || true
     exit 1
@@ -179,13 +262,51 @@ else
   if [[ "$REQUIRE_DB_HEALTH" == "1" ]] && ! check_api_db_health; then
     echo "API started but DB health check failed at ${API_DB_HEALTH_PATH}." >&2
     echo "Fix connection string/database and rerun the script." >&2
+    echo "Startup log: ${API_LOG_FILE}" >&2
+    tail -n 60 "$API_LOG_FILE" >&2 || true
     kill "$API_PID" >/dev/null 2>&1 || true
     wait "$API_PID" >/dev/null 2>&1 || true
     exit 1
   fi
+
+  if ! run_api_smoke_check; then
+    echo "API smoke check failed. Startup log: ${API_LOG_FILE}" >&2
+    tail -n 60 "$API_LOG_FILE" >&2 || true
+    kill "$API_PID" >/dev/null 2>&1 || true
+    wait "$API_PID" >/dev/null 2>&1 || true
+    exit 1
+  fi
+
+  echo "API smoke check passed (/api/auth/login -> /api/patients/worklist)."
 fi
 
+start_api_watcher() {
+  if [[ "$API_STARTED_BY_SCRIPT" -ne 1 || -z "$API_PID" ]]; then
+    return
+  fi
+
+  (
+    while true; do
+      sleep 2
+      if ! kill -0 "$API_PID" >/dev/null 2>&1; then
+        echo
+        echo "Backend API exited unexpectedly (pid ${API_PID})." >&2
+        echo "Backend log: ${API_LOG_FILE}" >&2
+        tail -n 60 "$API_LOG_FILE" >&2 || true
+        break
+      fi
+    done
+  ) &
+
+  API_WATCHER_PID=$!
+}
+
 cleanup() {
+  if [[ -n "$API_WATCHER_PID" ]] && kill -0 "$API_WATCHER_PID" >/dev/null 2>&1; then
+    kill "$API_WATCHER_PID" >/dev/null 2>&1 || true
+    wait "$API_WATCHER_PID" >/dev/null 2>&1 || true
+  fi
+
   if [[ "$API_STARTED_BY_SCRIPT" -eq 1 && -n "$API_PID" ]] && kill -0 "$API_PID" >/dev/null 2>&1; then
     echo
     echo "Stopping backend API (pid ${API_PID})..."
@@ -214,5 +335,6 @@ if [[ -n "$existing_ui_pid" ]]; then
 fi
 
 echo "Starting Angular frontend on http://localhost:${UI_PORT}/ ..."
+start_api_watcher
 cd "$FRONTEND_DIR"
 npm start

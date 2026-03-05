@@ -27,6 +27,18 @@ GO
 :r 006-stored-procedures/Profile.spDeletePatient.sql
 :r 006-stored-procedures/[Profile].[spRestorePatient].sql
 :r 006-stored-procedures/[Profile].[spListPatients].sql
+:r 006-stored-procedures/[Profile].[spGetPatientWorklistSourceRows].sql
+:r 006-stored-procedures/[Profile].[spGetTaskQueueSourceRows].sql
+:r 006-stored-procedures/[Profile].[spGetSchedulingProviders].sql
+:r 006-stored-procedures/[Profile].[spGetSchedulingAppointments].sql
+:r 006-stored-procedures/[Profile].[spGetRevenueClaimsSourceRows].sql
+:r 006-stored-procedures/[Auth].[spGetUserByPrincipal].sql
+:r 006-stored-procedures/[Auth].[spGetUserActiveRoles].sql
+:r 006-stored-procedures/[Auth].[spRegisterFailedLoginAttempt].sql
+:r 006-stored-procedures/[Auth].[spRegisterSuccessfulLogin].sql
+:r 006-stored-procedures/[Auth].[spGetAdminAccessControlSnapshot].sql
+:r 006-stored-procedures/[Auth].[spGetAdminAuditEventSourceRows].sql
+:r 006-stored-procedures/[Auth].[spGetAdminDataGovernanceSourceRows].sql
 
 :r 006-stored-procedures/[Profile].[spGetClientClinicCategories].sql
 :r 006-stored-procedures/[Profile].[spAddClient].sql

@@ -91,52 +91,10 @@ public sealed class PatientService : IPatientService
         try
         {
             await using var connection = new SqlConnection(GetConnectionString());
-            await using var command = new SqlCommand(
-                @"
-WITH LatestAppointment AS
-(
-    SELECT
-        A.PatientIdFK,
-        A.Status,
-        A.AppointmentDateTime,
-        HP.Specialization,
-        ROW_NUMBER() OVER
-        (
-            PARTITION BY A.PatientIdFK
-            ORDER BY A.AppointmentDateTime DESC, A.UpdatedDate DESC, A.CreatedDate DESC
-        ) AS RowNum
-    FROM Profile.Appointments A
-    LEFT JOIN Profile.HealthcareProviders HP
-        ON HP.ProviderId = A.ProviderIdFK
-),
-HistoryAgg AS
-(
-    SELECT
-        MH.PatientIdFK,
-        SUM(CASE WHEN MH.IsActive = 1 THEN 1 ELSE 0 END) AS ActiveConditions,
-        SUM(CASE WHEN MH.IsActive = 1 AND UPPER(MH.Status) = 'CHRONIC' THEN 1 ELSE 0 END) AS ChronicConditions
-    FROM Profile.MedicalHistory MH
-    GROUP BY MH.PatientIdFK
-)
-SELECT TOP (@MaxRows)
-    P.ID_Number AS IdNumber,
-    P.FirstName,
-    P.LastName,
-    P.DateOfBirth,
-    P.UpdatedDate,
-    LA.Status AS AppointmentStatus,
-    LA.Specialization,
-    ISNULL(HA.ActiveConditions, 0) AS ActiveConditions,
-    ISNULL(HA.ChronicConditions, 0) AS ChronicConditions
-FROM Profile.Patient P
-LEFT JOIN LatestAppointment LA
-    ON LA.PatientIdFK = P.PatientId
-   AND LA.RowNum = 1
-LEFT JOIN HistoryAgg HA
-    ON HA.PatientIdFK = P.PatientId
-WHERE ISNULL(P.IsDeleted, 0) = 0
-ORDER BY COALESCE(LA.AppointmentDateTime, P.UpdatedDate) DESC, P.UpdatedDate DESC;",
-                connection);
+            await using var command = new SqlCommand("Profile.spGetPatientWorklistSourceRows", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
 
             command.Parameters.Add(new SqlParameter("@MaxRows", SqlDbType.Int) { Value = MaxWorklistRows });
 

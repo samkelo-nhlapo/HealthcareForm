@@ -11,6 +11,7 @@ HealthcareForm is a healthcare management monorepo with:
 - `002-code/HealthcareForm/` backend API
 - `002-code/healthcareform-angular/` frontend app
 - `scripts/dev-start.sh` local backend+frontend launcher
+- `PROJECT_PHASE_TRACKER.md` active phase/checkpoint tracker for ongoing fixes
 
 ## Tech Stack
 

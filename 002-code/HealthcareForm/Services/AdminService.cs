@@ -1,4 +1,5 @@
 using HealthcareForm.Contracts.Admin;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace HealthcareForm.Services;
@@ -41,16 +42,7 @@ public sealed class AdminService : IAdminService
             await using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync(cancellationToken);
 
-            var roleColumns = await GetRoleColumnsAsync(connection, cancellationToken);
-            var users = await GetAccessUsersAsync(connection, cancellationToken);
-            var permissions = await GetPermissionMatrixAsync(connection, cancellationToken);
-
-            return new AdminAccessControlSnapshotDto
-            {
-                RoleColumns = roleColumns,
-                Users = users,
-                Permissions = permissions
-            };
+            return await GetAccessControlSnapshotFromProcedureAsync(connection, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -64,6 +56,156 @@ public sealed class AdminService : IAdminService
         }
     }
 
+    private async Task<AdminAccessControlSnapshotDto> GetAccessControlSnapshotFromProcedureAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var roleColumns = new List<string>();
+        var usersById = new Dictionary<Guid, AccessUserAccumulator>();
+        var permissionsByKey = new Dictionary<string, PermissionAccumulator>(StringComparer.OrdinalIgnoreCase);
+
+        await using var command = new SqlCommand("Auth.spGetAdminAccessControlSnapshot", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var roleNameOrdinal = reader.GetOrdinal("RoleName");
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var roleName = GetString(reader, roleNameOrdinal).Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(roleName))
+            {
+                roleColumns.Add(roleName);
+            }
+        }
+
+        if (roleColumns.Count == 0)
+        {
+            roleColumns.AddRange(DefaultRoleColumns);
+        }
+
+        if (await reader.NextResultAsync(cancellationToken))
+        {
+            var userIdOrdinal = reader.GetOrdinal("UserId");
+            var usernameOrdinal = reader.GetOrdinal("Username");
+            var emailOrdinal = reader.GetOrdinal("Email");
+            var firstNameOrdinal = reader.GetOrdinal("FirstName");
+            var lastNameOrdinal = reader.GetOrdinal("LastName");
+            var isActiveOrdinal = reader.GetOrdinal("IsActive");
+            var accountLockedUntilOrdinal = reader.GetOrdinal("AccountLockedUntil");
+            var failedLoginAttemptsOrdinal = reader.GetOrdinal("FailedLoginAttempts");
+            var lastLoginDateOrdinal = reader.GetOrdinal("LastLoginDate");
+            var mustChangePasswordOrdinal = reader.GetOrdinal("MustChangePasswordOnLogin");
+            var accessRoleNameOrdinal = reader.GetOrdinal("RoleName");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var userId = reader.GetGuid(userIdOrdinal);
+                if (!usersById.TryGetValue(userId, out var user))
+                {
+                    user = new AccessUserAccumulator
+                    {
+                        Username = GetString(reader, usernameOrdinal),
+                        FullName = BuildFullName(
+                            GetString(reader, firstNameOrdinal),
+                            GetString(reader, lastNameOrdinal)),
+                        Email = GetString(reader, emailOrdinal),
+                        IsActive = GetBoolean(reader, isActiveOrdinal),
+                        AccountLockedUntil = GetNullableDateTime(reader, accountLockedUntilOrdinal),
+                        FailedLoginAttempts = GetInt32(reader, failedLoginAttemptsOrdinal),
+                        MustChangePasswordOnLogin = GetBoolean(reader, mustChangePasswordOrdinal),
+                        LastLoginDate = GetNullableDateTime(reader, lastLoginDateOrdinal)
+                    };
+
+                    usersById[userId] = user;
+                }
+
+                var roleName = GetString(reader, accessRoleNameOrdinal).Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(roleName) && !roleName.Equals("PATIENT", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Roles.Add(roleName);
+                }
+            }
+        }
+
+        if (await reader.NextResultAsync(cancellationToken))
+        {
+            var permissionNameOrdinal = reader.GetOrdinal("PermissionName");
+            var moduleOrdinal = reader.GetOrdinal("Module");
+            var actionOrdinal = reader.GetOrdinal("ActionType");
+            var permissionRoleNameOrdinal = reader.GetOrdinal("RoleName");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var permissionName = GetString(reader, permissionNameOrdinal);
+                var module = GetString(reader, moduleOrdinal).ToUpperInvariant();
+                var action = GetString(reader, actionOrdinal).ToUpperInvariant();
+                var key = $"{permissionName}|{module}|{action}";
+
+                if (!permissionsByKey.TryGetValue(key, out var permission))
+                {
+                    permission = new PermissionAccumulator
+                    {
+                        PermissionName = permissionName,
+                        Module = module,
+                        Action = action
+                    };
+
+                    permissionsByKey[key] = permission;
+                }
+
+                var roleName = GetString(reader, permissionRoleNameOrdinal).Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(roleName) && !roleName.Equals("PATIENT", StringComparison.OrdinalIgnoreCase))
+                {
+                    permission.Roles.Add(roleName);
+                }
+            }
+        }
+
+        return new AdminAccessControlSnapshotDto
+        {
+            RoleColumns = roleColumns
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(GetRoleSortOrder)
+                .ThenBy(item => item, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            Users = usersById.Values
+                .Select(user => new AdminAccessUserDto
+                {
+                    Username = user.Username,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    Roles = user.Roles
+                        .OrderBy(GetRoleSortOrder)
+                        .ThenBy(item => item, StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
+                    Status = ResolveUserStatus(user.IsActive, user.AccountLockedUntil, user.FailedLoginAttempts),
+                    Mfa = user.MustChangePasswordOnLogin ? "Pending" : "Enrolled",
+                    LastLogin = user.LastLoginDate.HasValue
+                        ? user.LastLoginDate.Value.ToString("yyyy-MM-dd HH:mm")
+                        : "Never"
+                })
+                .OrderBy(user => user.Username, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            Permissions = permissionsByKey.Values
+                .Select(permission => new AdminPermissionMatrixRowDto
+                {
+                    PermissionName = permission.PermissionName,
+                    Module = permission.Module,
+                    Action = permission.Action,
+                    Roles = permission.Roles
+                        .OrderBy(GetRoleSortOrder)
+                        .ThenBy(item => item, StringComparer.OrdinalIgnoreCase)
+                        .ToList()
+                })
+                .OrderBy(item => item.Module, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.PermissionName, StringComparer.OrdinalIgnoreCase)
+                .ToList()
+        };
+    }
+
     public async Task<AdminAuditLogSnapshotDto> GetAuditLogAsync(
         AdminAuditLogQueryDto query,
         CancellationToken cancellationToken = default)
@@ -75,11 +217,7 @@ public sealed class AdminService : IAdminService
             await using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync(cancellationToken);
 
-            var principalRoleMap = await GetPrincipalRoleMapAsync(connection, cancellationToken);
-
-            var events = new List<AdminAuditEventDto>(capacity: MaxAuditEvents);
-            events.AddRange(await GetUserActivityEventsAsync(connection, cancellationToken));
-            events.AddRange(await GetTableAuditEventsAsync(connection, principalRoleMap, cancellationToken));
+            var events = await GetAuditEventSourceRowsAsync(connection, cancellationToken);
 
             var orderedEvents = events
                 .OrderByDescending(item => item.OccurredAtUtc)
@@ -129,6 +267,56 @@ public sealed class AdminService : IAdminService
         }
     }
 
+    private async Task<IReadOnlyList<AdminAuditEventDto>> GetAuditEventSourceRowsAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var events = new List<AdminAuditEventDto>(capacity: MaxAuditEvents * 2);
+
+        await using var command = new SqlCommand("Auth.spGetAdminAuditEventSourceRows", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        command.Parameters.Add(new SqlParameter("@MaxRows", MaxAuditEvents));
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var occurredAtOrdinal = reader.GetOrdinal("OccurredAtUtc");
+        var actorOrdinal = reader.GetOrdinal("Actor");
+        var actorRoleOrdinal = reader.GetOrdinal("ActorRole");
+        var activityTypeOrdinal = reader.GetOrdinal("ActivityType");
+        var resourceOrdinal = reader.GetOrdinal("Resource");
+        var eventNameOrdinal = reader.GetOrdinal("EventName");
+        var statusOrdinal = reader.GetOrdinal("Status");
+        var ipAddressOrdinal = reader.GetOrdinal("IpAddress");
+        var correlationIdOrdinal = reader.GetOrdinal("CorrelationId");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var activityType = GetString(reader, activityTypeOrdinal);
+            var resource = GetString(reader, resourceOrdinal, "Auth.AuditLog");
+            var eventName = GetString(reader, eventNameOrdinal, activityType);
+            var actorRole = NormalizeRole(GetString(reader, actorRoleOrdinal), "ANONYMOUS");
+            var category = CategorizeAuditEvent(activityType, resource, eventName);
+
+            events.Add(new AdminAuditEventDto
+            {
+                OccurredAtUtc = ToUtc(GetDateTime(reader, occurredAtOrdinal, DateTime.UtcNow)),
+                Actor = GetString(reader, actorOrdinal, "unknown"),
+                ActorRole = actorRole,
+                Category = category,
+                EventName = eventName,
+                Resource = resource,
+                Outcome = NormalizeOutcome(GetString(reader, statusOrdinal)),
+                IpAddress = GetString(reader, ipAddressOrdinal, "N/A"),
+                CorrelationId = GetString(reader, correlationIdOrdinal),
+                Privileged = IsPrivileged(actorRole, category, resource, eventName)
+            });
+        }
+
+        return events;
+    }
+
     public async Task<AdminDataGovernanceSnapshotDto> GetDataGovernanceAsync(CancellationToken cancellationToken = default)
     {
         var configurationItems = BuildConfigurationItems();
@@ -138,14 +326,13 @@ public sealed class AdminService : IAdminService
             await using var connection = new SqlConnection(GetConnectionString());
             await connection.OpenAsync(cancellationToken);
 
-            var templateItems = await GetTemplateGovernanceItemsAsync(connection, cancellationToken);
-            var lookupItems = await GetLookupHealthItemsAsync(connection, cancellationToken);
+            var source = await GetDataGovernanceSourceRowsFromProcedureAsync(connection, cancellationToken);
 
             return new AdminDataGovernanceSnapshotDto
             {
                 ConfigurationItems = configurationItems,
-                TemplateItems = templateItems,
-                LookupItems = lookupItems
+                TemplateItems = source.TemplateItems,
+                LookupItems = source.LookupItems
             };
         }
         catch (Exception ex)
@@ -158,6 +345,88 @@ public sealed class AdminService : IAdminService
                 LookupItems = []
             };
         }
+    }
+
+    private async Task<GovernanceSourceSnapshot> GetDataGovernanceSourceRowsFromProcedureAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var templateItems = new List<AdminTemplateGovernanceItemDto>();
+        var lookupItems = new List<AdminLookupHealthItemDto>();
+
+        await using var command = new SqlCommand("Auth.spGetAdminDataGovernanceSourceRows", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var templateNameOrdinal = reader.GetOrdinal("FormName");
+        var versionOrdinal = reader.GetOrdinal("FormVersion");
+        var isActiveOrdinal = reader.GetOrdinal("IsActive");
+        var ownerOrdinal = reader.GetOrdinal("Owner");
+        var templateUpdatedDateOrdinal = reader.GetOrdinal("TemplateUpdatedDate");
+        var lastApprovedDateOrdinal = reader.GetOrdinal("LastApprovedDate");
+        var hasDraftOrdinal = reader.GetOrdinal("HasDraft");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var isActive = GetBoolean(reader, isActiveOrdinal);
+            var hasDraft = GetInt32(reader, hasDraftOrdinal) > 0;
+            var status = !isActive
+                ? "Retired"
+                : hasDraft
+                    ? "Draft"
+                    : "Published";
+
+            var templateUpdated = GetNullableDateTime(reader, templateUpdatedDateOrdinal) ?? DateTime.UtcNow;
+            var lastApproved = GetNullableDateTime(reader, lastApprovedDateOrdinal) ?? templateUpdated;
+            var nextReview = lastApproved.AddDays(30);
+
+            templateItems.Add(new AdminTemplateGovernanceItemDto
+            {
+                TemplateName = GetString(reader, templateNameOrdinal),
+                Version = GetString(reader, versionOrdinal),
+                Status = status,
+                Owner = GetString(reader, ownerOrdinal, "Operations"),
+                LastApproved = lastApproved.ToString("yyyy-MM-dd"),
+                NextReview = nextReview.ToString("yyyy-MM-dd")
+            });
+        }
+
+        if (await reader.NextResultAsync(cancellationToken))
+        {
+            var lookupNameOrdinal = reader.GetOrdinal("LookupName");
+            var recordsOrdinal = reader.GetOrdinal("Records");
+            var lastSyncOrdinal = reader.GetOrdinal("LastSync");
+            var sourceOrdinal = reader.GetOrdinal("Source");
+            var refreshCadenceOrdinal = reader.GetOrdinal("RefreshCadence");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var records = GetInt32(reader, recordsOrdinal);
+                var lastSync = GetNullableDateTime(reader, lastSyncOrdinal);
+                var refreshCadence = GetString(reader, refreshCadenceOrdinal);
+
+                lookupItems.Add(new AdminLookupHealthItemDto
+                {
+                    Name = GetString(reader, lookupNameOrdinal),
+                    Records = records,
+                    Source = GetString(reader, sourceOrdinal),
+                    RefreshCadence = refreshCadence,
+                    LastSync = lastSync.HasValue
+                        ? lastSync.Value.ToString("yyyy-MM-dd HH:mm")
+                        : "N/A",
+                    State = ResolveLookupHealthState(records, lastSync, refreshCadence)
+                });
+            }
+        }
+
+        return new GovernanceSourceSnapshot
+        {
+            TemplateItems = templateItems,
+            LookupItems = lookupItems
+        };
     }
 
     private async Task<IReadOnlyList<string>> GetRoleColumnsAsync(SqlConnection connection, CancellationToken cancellationToken)
@@ -629,134 +898,6 @@ ORDER BY AL.ModifiedTime DESC;",
         };
     }
 
-    private async Task<IReadOnlyList<AdminTemplateGovernanceItemDto>> GetTemplateGovernanceItemsAsync(
-        SqlConnection connection,
-        CancellationToken cancellationToken)
-    {
-        var items = new List<AdminTemplateGovernanceItemDto>();
-
-        await using var command = new SqlCommand(
-            @"
-SELECT TOP (50)
-    FT.FormName,
-    FT.FormVersion,
-    FT.IsActive,
-    COALESCE(NULLIF(FT.UpdatedBy, ''), NULLIF(FT.CreatedBy, ''), 'Operations') AS Owner,
-    COALESCE(FT.UpdatedDate, FT.CreatedDate, GETDATE()) AS TemplateUpdatedDate,
-    MAX(
-        CASE
-            WHEN UPPER(FS.Status) IN ('APPROVED', 'SIGNED')
-                THEN COALESCE(FS.ReviewDate, FS.SignatureDate, FS.CompletionDate, FS.SubmissionDate)
-            ELSE NULL
-        END
-    ) AS LastApprovedDate,
-    MAX(CASE WHEN UPPER(FS.Status) = 'DRAFT' THEN 1 ELSE 0 END) AS HasDraft
-FROM Contacts.FormTemplates FT
-LEFT JOIN Contacts.FormSubmissions FS
-    ON FS.FormTemplateIdFK = FT.FormTemplateId
-GROUP BY
-    FT.FormName,
-    FT.FormVersion,
-    FT.IsActive,
-    FT.UpdatedBy,
-    FT.CreatedBy,
-    FT.UpdatedDate,
-    FT.CreatedDate
-ORDER BY COALESCE(FT.UpdatedDate, FT.CreatedDate, GETDATE()) DESC;",
-            connection);
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        var templateNameOrdinal = reader.GetOrdinal("FormName");
-        var versionOrdinal = reader.GetOrdinal("FormVersion");
-        var isActiveOrdinal = reader.GetOrdinal("IsActive");
-        var ownerOrdinal = reader.GetOrdinal("Owner");
-        var templateUpdatedDateOrdinal = reader.GetOrdinal("TemplateUpdatedDate");
-        var lastApprovedDateOrdinal = reader.GetOrdinal("LastApprovedDate");
-        var hasDraftOrdinal = reader.GetOrdinal("HasDraft");
-
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var isActive = GetBoolean(reader, isActiveOrdinal);
-            var hasDraft = GetInt32(reader, hasDraftOrdinal) > 0;
-            var status = !isActive
-                ? "Retired"
-                : hasDraft
-                    ? "Draft"
-                    : "Published";
-
-            var templateUpdated = GetNullableDateTime(reader, templateUpdatedDateOrdinal) ?? DateTime.UtcNow;
-            var lastApproved = GetNullableDateTime(reader, lastApprovedDateOrdinal) ?? templateUpdated;
-            var nextReview = lastApproved.AddDays(30);
-
-            items.Add(new AdminTemplateGovernanceItemDto
-            {
-                TemplateName = GetString(reader, templateNameOrdinal),
-                Version = GetString(reader, versionOrdinal),
-                Status = status,
-                Owner = GetString(reader, ownerOrdinal, "Operations"),
-                LastApproved = lastApproved.ToString("yyyy-MM-dd"),
-                NextReview = nextReview.ToString("yyyy-MM-dd")
-            });
-        }
-
-        return items;
-    }
-
-    private async Task<IReadOnlyList<AdminLookupHealthItemDto>> GetLookupHealthItemsAsync(
-        SqlConnection connection,
-        CancellationToken cancellationToken)
-    {
-        var items = new List<AdminLookupHealthItemDto>();
-
-        await using var command = new SqlCommand(
-            @"
-SELECT 'Gender' AS LookupName, COUNT(1) AS Records, MAX(UpdateDate) AS LastSync, 'api/lookups/genders' AS Source, 'Weekly' AS RefreshCadence
-FROM Profile.Gender
-WHERE IsActive = 1
-UNION ALL
-SELECT 'Marital Status' AS LookupName, COUNT(1) AS Records, MAX(UpdateDate) AS LastSync, 'api/lookups/marital-statuses' AS Source, 'Weekly' AS RefreshCadence
-FROM Profile.MaritalStatus
-WHERE IsActive = 1
-UNION ALL
-SELECT 'Provinces' AS LookupName, COUNT(1) AS Records, MAX(UpdateDate) AS LastSync, 'api/lookups/provinces' AS Source, 'Daily' AS RefreshCadence
-FROM Location.Provinces
-WHERE IsActive = 1
-UNION ALL
-SELECT 'Cities' AS LookupName, COUNT(1) AS Records, MAX(UpdateDate) AS LastSync, 'api/lookups/cities' AS Source, 'Daily' AS RefreshCadence
-FROM Location.Cities
-WHERE IsActive = 1;",
-            connection);
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        var lookupNameOrdinal = reader.GetOrdinal("LookupName");
-        var recordsOrdinal = reader.GetOrdinal("Records");
-        var lastSyncOrdinal = reader.GetOrdinal("LastSync");
-        var sourceOrdinal = reader.GetOrdinal("Source");
-        var refreshCadenceOrdinal = reader.GetOrdinal("RefreshCadence");
-
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var records = GetInt32(reader, recordsOrdinal);
-            var lastSync = GetNullableDateTime(reader, lastSyncOrdinal);
-            var refreshCadence = GetString(reader, refreshCadenceOrdinal);
-
-            items.Add(new AdminLookupHealthItemDto
-            {
-                Name = GetString(reader, lookupNameOrdinal),
-                Records = records,
-                Source = GetString(reader, sourceOrdinal),
-                RefreshCadence = refreshCadence,
-                LastSync = lastSync.HasValue
-                    ? lastSync.Value.ToString("yyyy-MM-dd HH:mm")
-                    : "N/A",
-                State = ResolveLookupHealthState(records, lastSync, refreshCadence)
-            });
-        }
-
-        return items;
-    }
 
     private static string ResolveUserStatus(bool isActive, DateTime? accountLockedUntil, int failedLoginAttempts)
     {
@@ -1065,6 +1206,16 @@ WHERE IsActive = 1;",
         return Convert.ToDateTime(reader.GetValue(ordinal));
     }
 
+    private static DateTime GetDateTime(SqlDataReader reader, int ordinal, DateTime fallback)
+    {
+        if (reader.IsDBNull(ordinal))
+        {
+            return fallback;
+        }
+
+        return Convert.ToDateTime(reader.GetValue(ordinal));
+    }
+
     private static DateTime ToUtc(DateTime value)
     {
         return value.Kind switch
@@ -1107,5 +1258,11 @@ WHERE IsActive = 1;",
         public string Module { get; init; } = string.Empty;
         public string Action { get; init; } = string.Empty;
         public HashSet<string> Roles { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed class GovernanceSourceSnapshot
+    {
+        public IReadOnlyList<AdminTemplateGovernanceItemDto> TemplateItems { get; init; } = [];
+        public IReadOnlyList<AdminLookupHealthItemDto> LookupItems { get; init; } = [];
     }
 }

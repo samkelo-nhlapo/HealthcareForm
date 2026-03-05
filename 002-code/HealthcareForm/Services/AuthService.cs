@@ -107,22 +107,10 @@ public sealed class AuthService : IAuthService
 
     private async Task<UserRecord?> GetUserAsync(SqlConnection connection, string usernameOrEmail, CancellationToken cancellationToken)
     {
-        await using var command = new SqlCommand(
-            @"
-SELECT TOP (1)
-    U.UserId,
-    U.Username,
-    U.Email,
-    U.PasswordHash,
-    U.FirstName,
-    U.LastName,
-    U.IsActive,
-    U.IsSuperAdmin,
-    U.AccountLockedUntil,
-    U.FailedLoginAttempts
-FROM Auth.Users U
-WHERE U.Username = @Principal OR U.Email = @Principal;",
-            connection);
+        await using var command = new SqlCommand("Auth.spGetUserByPrincipal", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
 
         command.Parameters.Add(new SqlParameter("@Principal", SqlDbType.VarChar, 250) { Value = usernameOrEmail });
 
@@ -153,16 +141,10 @@ WHERE U.Username = @Principal OR U.Email = @Principal;",
     {
         var roles = new List<string>();
 
-        await using var command = new SqlCommand(
-            @"
-SELECT R.RoleName
-FROM Auth.UserRoles UR
-INNER JOIN Auth.Roles R ON R.RoleId = UR.RoleIdFK
-WHERE UR.UserIdFK = @UserId
-  AND UR.IsActive = 1
-  AND R.IsActive = 1
-  AND (UR.ExpiryDate IS NULL OR UR.ExpiryDate > GETDATE());",
-            connection);
+        await using var command = new SqlCommand("Auth.spGetUserActiveRoles", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
 
         command.Parameters.Add(new SqlParameter("@UserId", SqlDbType.UniqueIdentifier) { Value = userId });
 
@@ -180,40 +162,31 @@ WHERE UR.UserIdFK = @UserId
         var newFailedCount = userRecord.FailedLoginAttempts + 1;
         var lockUntil = newFailedCount >= MaxFailedAttempts ? DateTime.UtcNow.Add(LockoutWindow) : (DateTime?)null;
 
-        await using var command = new SqlCommand(
-            @"
-UPDATE Auth.Users
-SET FailedLoginAttempts = @FailedAttempts,
-    AccountLockedUntil = @AccountLockedUntil,
-    UpdatedDate = GETDATE(),
-    UpdatedBy = 'API'
-WHERE UserId = @UserId;",
-            connection);
+        await using var command = new SqlCommand("Auth.spRegisterFailedLoginAttempt", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
 
         command.Parameters.Add(new SqlParameter("@FailedAttempts", SqlDbType.Int) { Value = newFailedCount });
-        command.Parameters.Add(new SqlParameter("@AccountLockedUntil", SqlDbType.DateTime)
+        command.Parameters.Add(new SqlParameter("@AccountLockedUntilUtc", SqlDbType.DateTime)
         {
             Value = lockUntil.HasValue ? lockUntil.Value : DBNull.Value
         });
         command.Parameters.Add(new SqlParameter("@UserId", SqlDbType.UniqueIdentifier) { Value = userRecord.UserId });
+        command.Parameters.Add(new SqlParameter("@UpdatedBy", SqlDbType.VarChar, 250) { Value = "API" });
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private async Task ResetFailedAttemptsAndUpdateLastLoginAsync(SqlConnection connection, Guid userId, CancellationToken cancellationToken)
     {
-        await using var command = new SqlCommand(
-            @"
-UPDATE Auth.Users
-SET FailedLoginAttempts = 0,
-    AccountLockedUntil = NULL,
-    LastLoginDate = GETDATE(),
-    UpdatedDate = GETDATE(),
-    UpdatedBy = 'API'
-WHERE UserId = @UserId;",
-            connection);
+        await using var command = new SqlCommand("Auth.spRegisterSuccessfulLogin", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
 
         command.Parameters.Add(new SqlParameter("@UserId", SqlDbType.UniqueIdentifier) { Value = userId });
+        command.Parameters.Add(new SqlParameter("@UpdatedBy", SqlDbType.VarChar, 250) { Value = "API" });
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
