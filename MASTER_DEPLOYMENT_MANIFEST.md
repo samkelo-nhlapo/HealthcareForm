@@ -24,11 +24,11 @@ Three new files have been created in the root `HealthcareForm` folder to enable 
 
 **Key sections**:
 - Phase 1: Database & Filegroup Creation
-- Phase 2: Schema Creation (5 schemas)
-- Phase 3: Table Creation (34 tables)
-- Phase 4: Function Creation (3 functions)
-- Phase 5: Stored Procedure Creation (10+ procedures)
-- Phase 6: Data Initialization (15 insert scripts, 500+ records)
+- Phase 2: Schema Creation (6 schemas)
+- Phase 3: Table Creation (45 tables)
+- Phase 4: Trigger/Function Creation (12 objects)
+- Phase 5: Stored Procedure Creation (42 procedures)
+- Phase 6: Data Initialization (20 insert scripts, 500+ records)
 - Phase 7: Verification & Reporting
 
 **How to use**:
@@ -117,91 +117,23 @@ These files are executed BY the master deployment script:
 ```
 002. Schema/
 └── 001. Schema's Script.sql
-    - Creates 8 schemas: Location, Profile, Contacts, 
-                         HealthcareServices, Forms, Billing, Auth, Security
+    - Creates 6 schemas: Location, Profile, Contacts, Auth, Exceptions, Lookup
 ```
 
-### Tables (34 total)
-```
-003. Tables/
-├── Location/
-│   ├── [Location].[Countries].sql
-│   ├── [Location].[Provinces].sql
-│   ├── [Location].[Cities].sql
-│   └── [Location].[Address].sql
-│
-├── Profile/
-│   ├── [Profile].[Gender].sql
-│   ├── [Profile].[MaritalStatus].sql
-│   ├── [Profile].[Patient].sql
-│   ├── [Profile].[Allergies].sql
-│   ├── [Profile].[Medications].sql
-│   ├── [Profile].[PatientAllergies].sql
-│   ├── [Profile].[PatientMedications].sql
-│   ├── [Profile].[MedicalHistory].sql
-│   ├── [Profile].[Vaccinations].sql
-│   ├── [Profile].[LabResults].sql
-│   └── [Profile].[EmergencyContacts].sql
-│
-├── Contacts/
-│   ├── [Contacts].[Phones].sql
-│   ├── [Contacts].[Emails].sql
-│   ├── [Contacts].[PatientPhones].sql
-│   └── [Contacts].[PatientEmails].sql
-│
-├── HealthcareServices/
-│   ├── [HealthcareServices].[HealthcareProviders].sql
-│   ├── [HealthcareServices].[Appointments].sql
-│   ├── [HealthcareServices].[ConsultationNotes].sql
-│   ├── [HealthcareServices].[Referrals].sql
-│   ├── [HealthcareServices].[InsuranceProviders].sql
-│   └── [HealthcareServices].[PatientInsurance].sql
-│
-├── Forms/
-│   ├── [Forms].[FormTemplates].sql
-│   ├── [Forms].[FormSubmissions].sql
-│   ├── [Forms].[FormFieldValues].sql
-│   └── [Forms].[FormAttachments].sql
-│
-├── Billing/
-│   ├── [Billing].[BillingCodes].sql
-│   └── [Billing].[Invoices].sql
-│
-├── Auth/
-│   ├── [Auth].[AuditLog].sql
-│   └── Auth.DB_Errors.sql
-│
-└── Security/
-    ├── [Security].[Roles].sql
-    ├── [Security].[Permissions].sql
-    ├── [Security].[RolePermissions].sql
-    ├── [Security].[Users].sql
-    ├── [Security].[UserRoles].sql
-    └── [Security].[UserActivityAudit].sql
-```
+### Tables (45 total)
+The authoritative list lives in `001-database/003-tables/` (45 scripts), organized under:
+- Location
+- Profile
+- Contacts
+- Auth
+- Exceptions
+- Lookup
 
-### Functions
-```
-007. Triggers & Functions/
-├── Capitalize first letter.sql          (CapitalizeFirstLetter function)
-├── Format Phone Contact.sql             (FormatPhoneNumber function)
-└── ValidateEmail.sql                    (ValidateEmail function)
-```
+### Triggers & Functions (12 objects)
+Full list in `001-database/007-triggers-functions/`.
 
-### Stored Procedures
-```
-006. Stored Procedures/
-├── [Profile].[spAddPatient].sql         (spAddPatient_v2 - main registration)
-├── [Profile].[spGetPatient].sql
-├── [Profile].[spUpdatePatient].sql
-├── Profile.spDeletePatient.sql
-├── Profile.spGetGender.sql
-├── [Profile].[spGetMaritalStatus].sql
-├── [Location].[spGetCountries].sql
-├── Location.spGetProvinces.sql
-├── Location.spGetCities.sql
-└── [Auth].[spDB_Errors].sql
-```
+### Stored Procedures (42 total)
+Full list in `001-database/006-stored-procedures/`.
 
 ### Insert Scripts (Data Initialization)
 ```
@@ -237,11 +169,11 @@ These files are executed BY the master deployment script:
 | Component | Count | Status |
 |-----------|-------|--------|
 | **Database** | 1 | ✅ Created with filegroups |
-| **Schemas** | 8 | ✅ All created |
-| **Tables** | 34 | ✅ All created with indexes |
-| **Functions** | 3 | ✅ All utility functions |
-| **Stored Procedures** | 10+ | ✅ All created |
-| **Insert Scripts** | 15 | ✅ All executed sequentially |
+| **Schemas** | 6 | ✅ All created |
+| **Tables** | 45 | ✅ All created with indexes |
+| **Triggers/Functions** | 12 | ✅ All created |
+| **Stored Procedures** | 42 | ✅ All created |
+| **Insert Scripts** | 20 | ✅ All executed sequentially |
 | **Total Records** | 500+ | ✅ All loaded |
 
 ### Data Initialized
@@ -370,10 +302,10 @@ These files are executed BY the master deployment script:
 | Preparation | 5 min | Verify prerequisites |
 | Database & Filegroups | 1-2 min | Quick operation |
 | Schemas | 1 min | Quick operation |
-| Tables (34) | 3-5 min | Largest phase |
-| Functions | 1 min | Quick operation |
+| Tables (45) | 3-5 min | Largest phase |
+| Triggers/Functions | 1 min | Quick operation |
 | Procedures | 2 min | Quick operation |
-| Data (15 scripts) | 5-8 min | 500+ records |
+| Data (20 scripts) | 5-8 min | 500+ records |
 | Verification | 1 min | Automatic |
 | **TOTAL** | **15-20 min** | Typical deployment |
 
@@ -388,11 +320,11 @@ These files are executed BY the master deployment script:
 - Total: 2.1+ MB of deployment package
 
 ### Database Delivered
-- 34 production-ready tables
-- 8 logical schemas
+- 45 production-ready tables
+- 6 logical schemas
 - 45+ optimized indexes
-- 3 utility functions
-- 10+ stored procedures
+- 12 trigger/function objects
+- 42 stored procedures
 - 500+ pre-loaded records
 - Complete RBAC (7 roles, 52 permissions)
 - Sample test patient for UAT
@@ -417,7 +349,7 @@ These files are executed BY the master deployment script:
 - ✅ Comprehensive error handling
 
 ### Completeness
-- ✅ All 34 tables created
+- ✅ All 45 tables created
 - ✅ All relationships established
 - ✅ All indexes created
 - ✅ All functions deployed
@@ -444,11 +376,11 @@ These files are executed BY the master deployment script:
 3. MASTER_DEPLOYMENT_QUICK_REFERENCE.txt (Quick reference)
 
 ✅ **Complete Database**:
-- 34 tables
-- 8 schemas
+- 45 tables
+- 6 schemas
 - 45+ indexes
-- 3 functions
-- 10+ procedures
+- 12 trigger/function objects
+- 42 procedures
 - 500+ pre-loaded records
 
 ✅ **Complete Documentation**:

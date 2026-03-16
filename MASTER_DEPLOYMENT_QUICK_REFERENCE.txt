@@ -21,10 +21,10 @@ STEP 2: VERIFY FOLDER STRUCTURE ☐
 ──────────────────────────────────
 ☐ /001. Database & FileGroups/001. Healthcare form.sql
 ☐ /002. Schema/001. Schema's Script.sql
-☐ /003. Tables/ (34 table scripts)
-☐ /005. Table Inserts/ (15 insert scripts)
-☐ /006. Stored Procedures/ (10+ procedure scripts)
-☐ /007. Triggers & Functions/ (3 function scripts)
+☐ /003. Tables/ (45 table scripts)
+☐ /005. Table Inserts/ (20 insert scripts)
+☐ /006. Stored Procedures/ (42 procedure scripts)
+☐ /007. Triggers & Functions/ (12 trigger/function scripts)
 ☐ COMPLETE_MASTER_DEPLOYMENT.sql (in root)
 
 STEP 3: PREPARE DEPLOYMENT ☐
@@ -63,39 +63,31 @@ DEPLOYMENT PHASES CHECKLIST
   ├─ Location schema created
   ├─ Profile schema created
   ├─ Contacts schema created
-  ├─ HealthcareServices schema created
-  ├─ Forms schema created
-  ├─ Billing schema created
   ├─ Auth schema created
-  ├─ Security schema created
+  ├─ Exceptions schema created
+  ├─ Lookup schema created
   └─ Status: ✓ Complete
 
-☐ PHASE 3: TABLE CREATION - 34 TABLES (3-5 min)
+☐ PHASE 3: TABLE CREATION - 45 TABLES (3-5 min)
   ├─ Location tables (4): Countries, Provinces, Cities, Address
-  ├─ Profile tables (11): Patient, Gender, MaritalStatus, Allergies, Medications, etc.
-  ├─ Contacts tables (4): Phones, Emails, PatientPhones, PatientEmails
-  ├─ HealthcareServices tables (6): Providers, Appointments, ConsultationNotes, etc.
-  ├─ Forms tables (4): FormTemplates, FormSubmissions, FormFieldValues, FormAttachments
-  ├─ Billing tables (2): BillingCodes, Invoices
-  ├─ Auth tables (2): AuditLog, DB_Errors
-  ├─ Security tables (5): Roles, Permissions, RolePermissions, Users, UserRoles
+  ├─ Profile tables: Patient, clinical records, billing, operations
+  ├─ Contacts tables: Phones, Emails, PatientPhones, PatientEmails, forms
+  ├─ Auth tables: Users, Roles, Permissions, RolePermissions, AuditLog, UserActivityAudit
+  ├─ Exceptions tables: Errors
+  ├─ Lookup tables: Reference data
   └─ Status: ✓ Complete
 
-☐ PHASE 4: FUNCTIONS & UTILITIES (1 min)
-  ├─ CapitalizeFirstLetter() function created
-  ├─ FormatPhoneNumber() function created
-  ├─ ValidateEmail() function created
+☐ PHASE 4: TRIGGERS & FUNCTIONS (1 min)
+  ├─ Functions: CapitalizeFirstLetter, CapitalizeFirstLetterBody, FormatPhoneNumber
+  ├─ Triggers: contact normalization + patient audit triggers (see folder)
   └─ Status: ✓ Complete
 
 ☐ PHASE 5: STORED PROCEDURES (2 min)
-  ├─ spAddPatient_v2 (main patient registration)
-  ├─ spGetPatient, spUpdatePatient, spDeletePatient
-  ├─ spGetGender, spGetMaritalStatus
-  ├─ spGetCountries, spGetProvinces, spGetCities
-  ├─ spDB_Errors (error logging)
+  ├─ 42 stored procedures total (see 006-stored-procedures/)
+  ├─ Includes patient CRUD, lookups, operations, revenue, admin snapshots
   └─ Status: ✓ Complete
 
-☐ PHASE 6: DATA INITIALIZATION - 15 SCRIPTS (5-8 min)
+☐ PHASE 6: DATA INITIALIZATION - 20 SCRIPTS (5-8 min)
   ├─ Countries lookup (20 records)
   ├─ Provinces lookup (9 records)
   ├─ Cities lookup (38 records)
@@ -110,6 +102,7 @@ DEPLOYMENT PHASES CHECKLIST
   ├─ Insurance Providers (8 records)
   ├─ Allergies & Medications (30 records)
   ├─ Sample Patient Data (1+ records)
+  ├─ Additional inserts (see 005-table-inserts/)
   └─ Status: ✓ Complete
 
 ☐ PHASE 7: VERIFICATION & REPORTING (1 min)
@@ -139,7 +132,7 @@ Profile Schema:
   Vaccinations:               1+ ☐
   LabResults:                 1+ ☐
 
-Security Schema:
+Auth Schema:
   Roles:                         7 ☐
   Permissions:                  52 ☐
   RolePermissions:            210+ ☐
@@ -167,7 +160,7 @@ WHERE name = 'HealthcareForm'
 SELECT COUNT(*) as [Total_Tables] 
 FROM information_schema.tables 
 WHERE TABLE_CATALOG = 'HealthcareForm' AND TABLE_TYPE = 'BASE TABLE'
--- Expected: 34
+-- Expected: 45
 
 -- 3. Check location lookups
 SELECT COUNT(*) FROM Location.Countries        -- Expected: 20 ☐
@@ -188,12 +181,16 @@ SELECT UserName, Email, IsActive FROM Auth.Users WHERE UserName = 'admin'
 -- Expected: admin, admin@healthcareform.local, 1 ☐
 
 -- 7. Check stored procedures
-SELECT COUNT(*) FROM sys.objects WHERE type = 'P'
--- Expected: 10+ ☐
+SELECT COUNT(*) FROM sys.objects WHERE type = 'P' AND is_ms_shipped = 0
+-- Expected: 42+ ☐
 
 -- 8. Check functions
-SELECT COUNT(*) FROM sys.objects WHERE type = 'FN'
--- Expected: 3+ ☐
+SELECT COUNT(*) FROM sys.objects WHERE type = 'FN' AND is_ms_shipped = 0
+-- Expected: 3 ☐
+
+-- 9. Check triggers
+SELECT COUNT(*) FROM sys.objects WHERE type = 'TR' AND is_ms_shipped = 0
+-- Expected: 9 ☐
 
 
 SECURITY CONFIGURATION VERIFICATION

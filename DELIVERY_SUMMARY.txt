@@ -22,11 +22,11 @@ ROOT LEVEL: /home/samkelo/HealthcareForm/
    
    Phases:
    ├─ Phase 1: Database & Filegroup Creation
-   ├─ Phase 2: Schema Creation (8 schemas)
-   ├─ Phase 3: Table Creation (34 tables)
-   ├─ Phase 4: Function Creation (3 functions)
-   ├─ Phase 5: Stored Procedure Creation (10+)
-   ├─ Phase 6: Data Initialization (15 scripts, 500+ records)
+   ├─ Phase 2: Schema Creation (6 schemas)
+   ├─ Phase 3: Table Creation (45 tables)
+   ├─ Phase 4: Trigger/Function Creation (12 objects)
+   ├─ Phase 5: Stored Procedure Creation (42)
+   ├─ Phase 6: Data Initialization (20 scripts, 500+ records)
    └─ Phase 7: Verification & Reporting
 
 
@@ -97,7 +97,7 @@ These files are executed by the master deployment script:
 002. Schema/
   └─ 001. Schema's Script.sql
 
-003. Tables/ (34 files)
+003. Tables/ (45 files)
   ├─ Location: Countries, Provinces, Cities, Address
   ├─ Profile: Gender, MaritalStatus, Patient, Allergies, Medications, etc.
   ├─ Contacts: Phones, Emails, PatientPhones, PatientEmails
@@ -107,7 +107,7 @@ These files are executed by the master deployment script:
   ├─ Auth: AuditLog, DB_Errors
   └─ Security: Roles, Permissions, RolePermissions, Users, UserRoles, Audit
 
-005. Table Inserts/ (15+ files)
+005. Table Inserts/ (20 files)
   ├─ 005. Insert Countries.sql (20 records)
   ├─ 006. Insert Provinces.sql (9 records)
   ├─ 007. Insert Cities.sql (38 records)
@@ -124,7 +124,7 @@ These files are executed by the master deployment script:
   ├─ 016. Insert AdminUser.sql (1 admin user)
   └─ [Documentation files and references]
 
-006. Stored Procedures/ (10+ files)
+006. Stored Procedures/ (42 files)
   ├─ [Profile].[spAddPatient].sql
   ├─ [Profile].[spGetPatient].sql
   ├─ [Profile].[spUpdatePatient].sql
@@ -136,7 +136,7 @@ These files are executed by the master deployment script:
   ├─ Location.spGetCities.sql
   └─ [Auth].[spDB_Errors].sql
 
-007. Triggers & Functions/ (3 files)
+007. Triggers & Functions/ (12 files - see folder for full list)
   ├─ Capitalize first letter.sql
   ├─ Format Phone Contact.sql
   └─ ValidateEmail.sql
@@ -148,11 +148,11 @@ These files are executed by the master deployment script:
 DATABASE STRUCTURE:
 ├─ Database: HealthcareForm
 ├─ Filegroups: PRIMARY (500MB) + PatientDataGroup (1GB)
-├─ Schemas: 8 (Location, Profile, Contacts, HealthcareServices, Forms, Billing, Auth, Security)
-├─ Tables: 34 (all normalized to 3NF)
+├─ Schemas: 6 (Location, Profile, Contacts, Auth, Exceptions, Lookup)
+├─ Tables: 45 (all normalized to 3NF)
 ├─ Indexes: 45+ (on FK and frequently queried columns)
-├─ Functions: 3 utility functions for data validation
-└─ Procedures: 10+ for common operations
+├─ Triggers/Functions: 12 objects for data validation and automation
+└─ Procedures: 42 for common operations
 
 SECURITY:
 ├─ Roles: 7 (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT, BILLING, PHARMACIST)
@@ -183,9 +183,9 @@ Preparation (before executing script):
 Master Script Execution (fully automated):
   - Phase 1: Database & Filegroups: 1-2 min
   - Phase 2: Schemas: 1 min
-  - Phase 3: Tables (34): 3-5 min
-  - Phase 4: Functions (3): 1 min
-  - Phase 5: Procedures (10+): 2 min
+  - Phase 3: Tables (45): 3-5 min
+  - Phase 4: Triggers/Functions (12): 1 min
+  - Phase 5: Procedures (42): 2 min
   - Phase 6: Data Initialization: 5-8 min
   - Phase 7: Verification: 1 min
   Subtotal: 15-20 minutes
@@ -289,11 +289,11 @@ TOTAL PACKAGE SIZE: 2.1+ MB (includes 65+ files)
    - Handles all dependencies automatically
 
 ✅ COMPLETENESS
-   - 34 production-ready tables
-   - 8 logical schemas
+   - 45 production-ready tables
+   - 6 logical schemas
    - 45+ optimized indexes
-   - 3 utility functions
-   - 10+ stored procedures
+   - 12 trigger/function objects
+   - 42 stored procedures
    - 500+ pre-loaded records
    - Complete security configuration
 
@@ -511,8 +511,8 @@ See full troubleshooting section in deployment guide.
 ================================================================================
 
 After deployment, you should see:
-✅ 34 tables created
-✅ 8 schemas created
+✅ 45 tables created
+✅ 6 schemas created
 ✅ 500+ records loaded
 ✅ 7 security roles configured
 ✅ Admin user created
@@ -564,7 +564,7 @@ Delivered:
   ✅ 5 new master deployment files (115 KB)
   ✅ 1 fully automated orchestration script
   ✅ 3 comprehensive guides and checklists
-  ✅ Complete healthcare database (34 tables, 8 schemas)
+  ✅ Complete healthcare database (45 tables, 6 schemas)
   ✅ Security fully configured (7 roles, 52 permissions)
   ✅ 500+ pre-loaded records
   ✅ Sample test patient for UAT

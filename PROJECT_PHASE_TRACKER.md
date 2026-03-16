@@ -4,9 +4,9 @@ This file tracks the active project-fix path across database, backend API, front
 
 ## Current Position
 
-- Current phase: **Phase 8 - Performance & Release Readiness (Completed)**
-- Previous phase completed: **Phase 7 - Live Data Integration & Runtime Stability**
-- Current checkpoint: **Phase 8 Complete**
+- Current phase: **Phase 9 - Post-Completion Improvements (Completed)**
+- Previous phase completed: **Phase 8 - Performance & Release Readiness**
+- Current checkpoint: **Phase 9 Complete**
 
 ## Phase Summary
 
@@ -18,6 +18,7 @@ This file tracks the active project-fix path across database, backend API, front
 6. Hardening (accessibility/perf/guards): completed
 7. Live data integration and runtime stability: completed
 8. Performance and release readiness: completed
+9. Post-completion improvements (docs alignment + integration tests): in progress
 
 ## Phase 7A Checkpoint (Completed)
 
@@ -83,3 +84,57 @@ Enforce backend/frontend build health and define a repeatable local release gate
 - [x] Add backend production build workflow gate in CI.
 - [x] Add single-command local release readiness gate script.
 - [x] Add backend automated tests (API/service level) to CI.
+
+## Phase 9A Checkpoint (Completed)
+
+### Objective
+
+Isolate legacy migration documentation so current backend docs are not confusing or duplicated.
+
+### Exit Criteria
+
+- Legacy migration docs moved into `002-code/HealthcareForm/legacy-migration/`.
+- A clear README exists in the legacy folder describing scope and purpose.
+- Plan and process log updated.
+
+### Tasks
+
+- [x] Move migration package docs into `002-code/HealthcareForm/legacy-migration/`.
+- [x] Add `README.md` in legacy migration folder.
+- [x] Capture work in `PHASED_IMPLEMENTATION_PLAN.md` and `PROCESS_LOG.md`.
+
+## Phase 9B Checkpoint (Completed)
+
+### Objective
+
+Align database deployment documentation with the current schema, table, procedure, and trigger/function scripts.
+
+### Exit Criteria
+
+- Schema count and names match `001-database/002-schema/001_schema_script.sql`.
+- Table, procedure, trigger/function, and insert-script counts match the current folders.
+- Master deployment docs reference the source-of-truth scripts.
+
+### Tasks
+
+- [x] Update counts and schema names across deployment docs.
+- [x] Add source-of-truth references in key documentation.
+- [x] Align master deployment guide, manifest, and quick reference with current script inventory.
+
+## Phase 9C Checkpoint (Completed)
+
+### Objective
+
+Add stored-procedure integration tests for API endpoints with safe skipping when DB config is missing.
+
+### Exit Criteria
+
+- Tests cover patients, lookups, operations, revenue, and admin endpoints.
+- Tests skip cleanly when no DB connection string is configured.
+- Test auth bypasses policies without touching production code paths.
+
+### Tasks
+
+- [x] Add WebApplicationFactory-based integration test harness.
+- [x] Add test auth handler and DB-guarded test helpers.
+- [x] Add endpoint coverage for stored-procedure-backed APIs.

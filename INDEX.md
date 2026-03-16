@@ -9,12 +9,12 @@
 
 ## 🎯 Executive Summary
 
-A **complete, production-ready** master deployment package that automates the creation of a comprehensive healthcare management database. Execute a single script to deploy a fully functional 34-table database with complete security configuration, reference data, and sample test patient.
+A **complete, production-ready** master deployment package that automates the creation of a comprehensive healthcare management database. Execute a single script to deploy a fully functional 45-table database with complete security configuration, reference data, and sample test patient.
 
 **Key Stats**:
 - ✅ **1 Master Script** to execute entire deployment
-- ✅ **34 Production Tables** pre-configured with indexes
-- ✅ **8 Logical Schemas** for organizational clarity
+- ✅ **45 Production Tables** pre-configured with indexes
+- ✅ **6 Schemas** for organizational clarity
 - ✅ **500+ Records** of reference and test data
 - ✅ **7 Security Roles** with 52 permissions fully configured
 - ✅ **15-20 Minutes** from zero to production-ready database
@@ -29,7 +29,7 @@ A **complete, production-ready** master deployment package that automates the cr
 #### 1. **COMPLETE_MASTER_DEPLOYMENT.sql** (16 KB)
 **The Main Orchestration Script**
 - Executes all database creation in correct dependency order
-- Deploys all 34 tables, functions, procedures, and data
+- Deploys all 45 tables, triggers/functions, procedures, and data
 - Provides real-time progress tracking
 - Includes automatic verification with record counts
 - **Execution Time**: 15-20 minutes
@@ -38,11 +38,11 @@ A **complete, production-ready** master deployment package that automates the cr
 **What it does**:
 ```
 Phase 1: Database & Filegroup Creation
-Phase 2: Schema Creation (8 schemas)
-Phase 3: Table Creation (34 tables)
-Phase 4: Function Creation (3 functions)
-Phase 5: Stored Procedure Creation (10+ procedures)
-Phase 6: Data Initialization (15 insert scripts, 500+ records)
+Phase 2: Schema Creation (6 schemas)
+Phase 3: Table Creation (45 tables)
+Phase 4: Trigger/Function Creation (12 objects)
+Phase 5: Stored Procedure Creation (42 procedures)
+Phase 6: Data Initialization (20 insert scripts, 500+ records)
 Phase 7: Verification & Reporting
 ```
 
@@ -96,10 +96,10 @@ HealthcareForm/ (Root)
 ├── 002. Schema/
 │   └── 001. Schema's Script.sql               (Executed by master script)
 │
-├── 003. Tables/ (34 table scripts)
+├── 003. Tables/ (45 table scripts)
 │   └── [All tables executed by master script]
 │
-├── 005. Table Inserts/ (15 insert scripts)
+├── 005. Table Inserts/ (20 insert scripts)
 │   ├── 005. Insert Countries.sql
 │   ├── 006. Insert Provinces.sql
 │   ├── 007. Insert Cities.sql
@@ -116,10 +116,10 @@ HealthcareForm/ (Root)
 │   ├── 016. Insert AdminUser.sql
 │   └── [Documentation and references]
 │
-├── 006. Stored Procedures/ (10+ procedure scripts)
+├── 006. Stored Procedures/ (42 procedure scripts)
 │   └── [All procedures executed by master script]
 │
-├── 007. Triggers & Functions/ (3 function scripts)
+├── 007. Triggers & Functions/ (12 trigger/function scripts)
 │   └── [All functions executed by master script]
 │
 └── 008. Proc stat/ (Statistics and profiles)
@@ -183,13 +183,20 @@ HealthcareForm/ (Root)
 
 ## ✅ What Gets Deployed
 
+**Source of truth:** schema and object counts are derived from
+`001-database/002-schema/001_schema_script.sql`,
+`001-database/003-tables/`,
+`001-database/006-stored-procedures/`,
+`001-database/007-triggers-functions/`, and
+`001-database/005-table-inserts/`.
+
 ### Database Structure
 - **1 Database**: HealthcareForm
-- **8 Schemas**: Location, Profile, Contacts, HealthcareServices, Forms, Billing, Auth, Security
-- **34 Tables**: All normalized to 3NF
+- **6 Schemas**: Location, Profile, Contacts, Auth, Exceptions, Lookup
+- **45 Tables**: All normalized to 3NF
 - **45+ Indexes**: On foreign keys and frequently queried columns
-- **3 Functions**: Data quality and validation
-- **10+ Stored Procedures**: Common operations
+- **12 Triggers/Functions**: Data quality, validation, and audit helpers
+- **42 Stored Procedures**: Common operations and snapshots
 - **2 Filegroups**: PRIMARY (500MB) + PatientDataGroup (1GB)
 
 ### Data Initialization
@@ -226,10 +233,10 @@ HealthcareForm/ (Root)
 |-------|------|--------------|
 | Preparation | 5 min | Verify prerequisites |
 | Phase 1: Database | 1-2 min | Create database and filegroups |
-| Phase 2: Schemas | 1 min | Create 8 schemas |
-| Phase 3: Tables | 3-5 min | Create 34 tables with indexes |
-| Phase 4: Functions | 1 min | Create 3 utility functions |
-| Phase 5: Procedures | 2 min | Create 10+ stored procedures |
+| Phase 2: Schemas | 1 min | Create 6 schemas |
+| Phase 3: Tables | 3-5 min | Create 45 tables with indexes |
+| Phase 4: Triggers/Functions | 1 min | Create 12 trigger/function objects |
+| Phase 5: Procedures | 2 min | Create 42 stored procedures |
 | Phase 6: Data | 5-8 min | Load 500+ records into tables |
 | Phase 7: Verification | 1 min | Validate installation |
 | **TOTAL** | **15-20 min** | **Database Ready!** |
@@ -348,7 +355,7 @@ HealthcareForm/ (Root)
 - ✅ Rollback instructions provided
 
 ### Completeness
-- ✅ All 34 tables created
+- ✅ All 45 tables created
 - ✅ All relationships established
 - ✅ All indexes created
 - ✅ All functions deployed
@@ -415,18 +422,18 @@ After deployment, verify:
 - [ ] Database is online and accessible
 
 ✅ **Schemas Created**
-- [ ] 8 schemas visible in Object Explorer
+- [ ] 6 schemas visible in Object Explorer
 - [ ] Location, Profile, Contacts schemas present
-- [ ] HealthcareServices, Forms, Billing, Auth, Security schemas present
+- [ ] Auth, Exceptions, Lookup schemas present
 
 ✅ **Tables Created**
-- [ ] 34 tables total in database
+- [ ] 45 tables total in database
 - [ ] All foreign key relationships established
 - [ ] All indexes created (45+)
 
 ✅ **Functions & Procedures**
-- [ ] 3 utility functions visible
-- [ ] 10+ stored procedures created
+- [ ] 12 trigger/function objects visible
+- [ ] 42 stored procedures created
 - [ ] All compile without errors
 
 ✅ **Data Loaded**
@@ -484,10 +491,10 @@ After deployment, verify:
 | **Total Package Size** | 2.1+ MB |
 | **New Master Files** | 4 (80 KB) |
 | **SQL Source Files** | 60+ (2 MB) |
-| **Tables Deployed** | 34 |
-| **Schemas Created** | 8 |
-| **Functions Created** | 3 |
-| **Procedures Created** | 10+ |
+| **Tables Deployed** | 45 |
+| **Schemas Created** | 6 |
+| **Triggers/Functions Created** | 12 |
+| **Procedures Created** | 42 |
 | **Records Loaded** | 500+ |
 | **Security Roles** | 7 |
 | **Permissions** | 52 |
@@ -531,7 +538,7 @@ After deployment, verify:
 
 ### Immediate
 ✅ Complete master deployment script  
-✅ Production-ready database (34 tables, 8 schemas)  
+✅ Production-ready database (45 tables, 6 schemas)  
 ✅ Security pre-configured (7 roles, 52 permissions)  
 ✅ 500+ reference records loaded  
 ✅ Sample test patient for UAT  

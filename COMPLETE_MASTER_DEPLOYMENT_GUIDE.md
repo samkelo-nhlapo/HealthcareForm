@@ -11,7 +11,7 @@
 The **COMPLETE_MASTER_DEPLOYMENT.sql** script is a comprehensive, end-to-end database deployment orchestration tool that:
 
 - Deploys the entire healthcare database from scratch
-- Creates database, filegroups, schemas, all 34 tables, functions, stored procedures, and initializes all data
+- Creates database, filegroups, schemas, all 45 tables, triggers/functions, stored procedures, and initializes all data
 - Handles all dependencies in the correct execution order
 - Provides real-time progress tracking and completion reporting
 - Validates installation with record counts and schema verification
@@ -29,59 +29,39 @@ The **COMPLETE_MASTER_DEPLOYMENT.sql** script is a comprehensive, end-to-end dat
   - Each with 100 MB auto-growth
 
 ### Phase 2: Schemas (1 file)
-Creates 5 logical database schemas:
+Creates 6 physical database schemas:
 - **Location** - Geographic data (countries, provinces, cities, addresses)
-- **Profile** - Patient demographics and medical data
-- **Contacts** - Phone numbers, emails, emergency contacts
-- **HealthcareServices** - Providers, appointments, consultations
-- **Forms** - Form templates and submissions
-- **Billing** - Billing codes and invoices
-- **Auth** - Audit logs and error tracking
-- **Security** - Users, roles, permissions, audit trails
+- **Profile** - Patient demographics, clinical records, billing, operations
+- **Contacts** - Phones, emails, emergency contacts, forms
+- **Auth** - Users, roles, permissions, audit logs
 - **Exceptions** - Error handling
+- **Lookup** - Reference data
 
-### Phase 3: Tables (34 tables)
+Note: Domain areas like billing, forms, and healthcare services are represented as tables under the
+physical schemas above.
 
-**Location Schema** (4 tables)
-- Countries, Provinces, Cities, Address
+### Phase 3: Tables (45 tables)
+The authoritative table list lives in `001-database/003-tables/` (45 scripts). Core domains include:
+- Patient demographics and clinical records (Profile)
+- Contacts, forms, and attachments (Contacts)
+- Geography/address data (Location)
+- Auth, roles, permissions, audit logs (Auth)
+- Error tracking (Exceptions)
+- Reference lookups (Lookup)
 
-**Profile Schema** (11 tables)
-- Gender, MaritalStatus, Patient, Allergies, Medications
-- PatientAllergies, PatientMedications, MedicalHistory
-- Vaccinations, LabResults, EmergencyContacts
+### Phase 4: Triggers/Functions (12 objects)
+- `dbo.CapitalizeFirstLetter`, `dbo.CapitalizeFirstLetterBody`
+- `Contacts.FormatPhoneNumber`
+- Contact validation and enforcement triggers
+Full list in `001-database/007-triggers-functions/`.
 
-**Contacts Schema** (4 tables)
-- Phones, Emails, PatientPhones, PatientEmails
+### Phase 5: Stored Procedures (42 procedures)
+- Patient CRUD and lookups
+- Operations and scheduling snapshots
+- Revenue claims and admin dashboards
+Full list in `001-database/006-stored-procedures/`.
 
-**HealthcareServices Schema** (6 tables)
-- HealthcareProviders, Appointments, ConsultationNotes, Referrals
-- InsuranceProviders, PatientInsurance
-
-**Forms Schema** (4 tables)
-- FormTemplates, FormSubmissions, FormFieldValues, FormAttachments
-
-**Billing Schema** (2 tables)
-- BillingCodes, Invoices
-
-**Auth Schema** (2 tables)
-- AuditLog, DB_Errors
-
-**Security Schema** (5 tables)
-- Roles, Permissions, RolePermissions, Users, UserRoles, UserActivityAudit
-
-### Phase 4: Functions (3 utility functions)
-- `CapitalizeFirstLetter()` - Data quality
-- `FormatPhoneNumber()` - Phone validation
-- `ValidateEmail()` - Email validation
-
-### Phase 5: Stored Procedures (10+ procedures)
-- `spAddPatient_v2` - Comprehensive patient registration
-- `spGetPatient`, `spUpdatePatient`, `spDeletePatient` - Patient management
-- `spGetGender`, `spGetMaritalStatus` - Lookup retrieval
-- `spGetCountries`, `spGetProvinces`, `spGetCities` - Location management
-- `spDB_Errors` - Error logging
-
-### Phase 6: Data Initialization (15 insert scripts)
+### Phase 6: Data Initialization (20 insert scripts)
 
 | # | Script | Records | Purpose |
 |---|--------|---------|---------|
@@ -99,7 +79,9 @@ Creates 5 logical database schemas:
 | 12 | Insurance Providers | 8 | SA insurance companies |
 | 13 | Allergies/Medications | 30 | Medical reference |
 | 14 | Sample Patient | 1+ | Test data for UAT |
-| 15 | (Complete) | (Complete) | All setup finished |
+| 15 | Additional inserts | (varies) | See full list in 005-table-inserts |
+
+Full list: `001-database/005-table-inserts/` (20 scripts total).
 
 **Total Records Inserted**: 500+
 
@@ -128,16 +110,16 @@ Creates 5 logical database schemas:
 │   └── 001. Schema's Script.sql
 │
 ├── 003. Tables/
-│   └── [34 table scripts]
+│   └── [45 table scripts]
 │
 ├── 005. Table Inserts/
-│   └── [15 insert scripts]
+│   └── [20 insert scripts]
 │
 ├── 006. Stored Procedures/
-│   └── [10+ stored procedure scripts]
+│   └── [42 stored procedure scripts]
 │
 └── 007. Triggers & Functions/
-    └── [3 function scripts]
+    └── [12 trigger/function scripts]
 ```
 
 #### Step 2: Update File Paths (IMPORTANT!)
@@ -207,22 +189,22 @@ Schemas created successfully
 ```
 
 **What happens**:
-- Creates Location, Profile, Contacts, HealthcareServices, Forms, Billing, Auth, Security schemas
+- Creates Location, Profile, Contacts, Auth, Exceptions, Lookup schemas
 - Establishes logical separation of concerns
 
 ### Phase 3: Table Creation (3-5 min)
 ```
-[PHASE 3] TABLE CREATION (34 TABLES)
+[PHASE 3] TABLE CREATION (45 TABLES)
 ────────────────────────────────────
-[1/34] Creating Location.Countries table...
-[2/34] Creating Location.Provinces table...
+[1/45] Creating Location.Countries table...
+[2/45] Creating Location.Provinces table...
 ...
-[34/34] Creating Security tables...
-All 34 tables created successfully
+[45/45] Creating Lookup tables...
+All 45 tables created successfully
 ```
 
 **What happens**:
-- Creates all 34 normalized tables
+- Creates all 45 normalized tables
 - Establishes primary keys (GUID-based)
 - Creates foreign key relationships
 - Adds unique constraints
@@ -231,17 +213,18 @@ All 34 tables created successfully
 
 **Dependencies**: All foreign key relationships honored
 
-### Phase 4: Functions Creation (1 min)
+### Phase 4: Triggers/Functions Creation (1 min)
 ```
-[PHASE 4] FUNCTIONS & UTILITY CREATION
+[PHASE 4] TRIGGERS & FUNCTIONS CREATION
 ──────────────────────────────────────
-[1/3] Creating CapitalizeFirstLetter function...
-[2/3] Creating FormatPhoneNumber function...
-[3/3] Creating ValidateEmail function...
-All utility functions created successfully
+[1/12] Creating CapitalizeFirstLetter function...
+[2/12] Creating CapitalizeFirstLetterBody function...
+...
+[12/12] Trigger/function deployment complete
+All trigger/function objects created successfully
 ```
 
-**Functions Created**:
+**Core objects**:
 - `CapitalizeFirstLetter()` - Ensures proper name formatting
 - `FormatPhoneNumber()` - Validates and formats phone numbers
 - `ValidateEmail()` - Email validation for database-level enforcement
@@ -250,10 +233,10 @@ All utility functions created successfully
 ```
 [PHASE 5] STORED PROCEDURES CREATION
 ────────────────────────────────────
-[1/14] Creating spAddPatient_v2...
-[2/14] Creating spGetPatient...
+[1/42] Creating spAddPatient_v2...
+[2/42] Creating spGetPatient...
 ...
-[10/14] Creating spDB_Errors...
+[10/42] Creating spDB_Errors...
 Core stored procedures created successfully
 ```
 
@@ -266,12 +249,12 @@ Core stored procedures created successfully
 
 ### Phase 6: Data Initialization (5-8 min)
 ```
-[PHASE 6] DATA INITIALIZATION - 15 INSERT SCRIPTS
+[PHASE 6] DATA INITIALIZATION - 20 INSERT SCRIPTS
 ──────────────────────────────────────────────────
-[1/15] Inserting Countries lookup data...
-[2/15] Inserting Provinces lookup data...
+[1/20] Inserting Countries lookup data...
+[2/20] Inserting Provinces lookup data...
 ...
-[15/15] Initialization complete
+[20/20] Initialization complete
 All lookup tables and reference data populated successfully
 ```
 
@@ -322,8 +305,8 @@ Start Time: 2026-02-14 10:30:45.123
 
 [PHASE 1] DATABASE & FIREGROUP CREATION
 [PHASE 2] SCHEMA CREATION
-[PHASE 3] TABLE CREATION (34 TABLES)
-[PHASE 4] FUNCTIONS & UTILITY CREATION
+[PHASE 3] TABLE CREATION (45 TABLES)
+[PHASE 4] TRIGGERS & FUNCTIONS CREATION
 [PHASE 5] STORED PROCEDURES CREATION
 [PHASE 6] DATA INITIALIZATION
 [PHASE 7] VERIFICATION & REPORTING
@@ -353,17 +336,17 @@ SELECT database_id, name FROM sys.databases WHERE name = 'HealthcareForm'
 -- Should return: HealthcareForm with valid database_id
 ```
 
-### Schemas Created (8)
+### Schemas Created (6)
 ```sql
 SELECT COUNT(*) FROM sys.schemas
--- Should return: 8+ (including dbo, guest, and your 8 custom schemas)
+-- Should return: 6+ (including dbo, guest, and your 6 custom schemas)
 ```
 
-### Tables Created (34)
+### Tables Created (45)
 ```sql
 SELECT COUNT(*) FROM information_schema.tables 
 WHERE TABLE_CATALOG = 'HealthcareForm' AND TABLE_TYPE = 'BASE TABLE'
--- Should return: 34
+-- Should return: 45
 ```
 
 ### Lookup Data Populated
@@ -633,10 +616,10 @@ GO
 |-----------|------|-------|
 | Database & Filegroup Creation | 1-2 min | Depends on disk speed |
 | Schema Creation | 1 min | Quick operation |
-| Table Creation (34 tables) | 3-5 min | Includes all indexes |
-| Function Creation | 1 min | Quick operation |
-| Stored Procedure Creation | 2 min | 10+ procedures |
-| Data Initialization (15 scripts) | 5-8 min | 500+ records inserted |
+| Table Creation (45 tables) | 3-5 min | Includes all indexes |
+| Trigger/Function Creation | 1 min | Quick operation |
+| Stored Procedure Creation | 2 min | 42 procedures |
+| Data Initialization (20 scripts) | 5-8 min | 500+ records inserted |
 | Verification & Reporting | 1 min | Query results |
 | **TOTAL** | **15-20 min** | Typical deployment time |
 
@@ -646,11 +629,11 @@ GO
 
 **Complete Database Deployment Package**:
 - ✅ 1 master deployment orchestration script
-- ✅ 34 production-ready tables
-- ✅ 5 logical schemas
-- ✅ 3 utility functions
-- ✅ 10+ stored procedures
-- ✅ 15 data initialization scripts
+- ✅ 45 production-ready tables
+- ✅ 6 logical schemas
+- ✅ 12 trigger/function objects
+- ✅ 42 stored procedures
+- ✅ 20 data initialization scripts
 - ✅ 500+ pre-loaded reference records
 - ✅ Complete RBAC configuration (7 roles, 52 permissions)
 - ✅ Sample test patient for UAT

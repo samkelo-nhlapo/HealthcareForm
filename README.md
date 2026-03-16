@@ -65,6 +65,16 @@ cd 002-code/healthcareform-angular
 npm start
 ```
 
+## Integration Tests (DB-backed)
+
+The stored-procedure integration tests require a live SQL Server connection. Provide a connection
+string via `HF_TEST_DB_CONNECTION` (or `ConnectionStrings__HealthcareEntity`) when running tests:
+
+```bash
+HF_TEST_DB_CONNECTION="Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=YOUR_REAL_PASSWORD;TrustServerCertificate=true" \
+dotnet test 002-code/HealthcareForm/HealthcareForm.sln
+```
+
 ## API Quick Checks
 
 - Live: `http://127.0.0.1:5099/api/health/live`

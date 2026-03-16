@@ -1,6 +1,9 @@
 # Entity Relationship Diagram & Table Structure Guide
 
-## Complete Database Schema (34 Tables)
+## Core Database Schema (34 Tables)
+
+Note: This ERD covers the core patient-centric schema. For the complete list of tables,
+see `001-database/003-tables/`.
 
 ### PATIENT HUB - Central Patient Record
 ```
@@ -383,7 +386,7 @@ All tables are in **3NF (Third Normal Form)**:
 | Services | 4 | 14 | DateTime, Provider, Notes, Status, Audit |
 | Insurance | 4 | 11 | Code, Amount, Status, Dates, Audit |
 | Security | 6 | 12 | User, Role, Permission, Activity, Audit |
-| **TOTAL** | **34** | **12.4** | **~420 columns** |
+| **TOTAL (core subset)** | **34** | **12.4** | **~420 columns** |
 
 ---
 

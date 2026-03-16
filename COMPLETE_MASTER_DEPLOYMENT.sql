@@ -18,10 +18,10 @@ GO
 --	PHASES:
 --	  Phase 1: Database & Filegroups (1 step)
 --	  Phase 2: Schemas (1 step)
---	  Phase 3: Tables (34 tables)
---	  Phase 4: Functions & Utilities (3 functions)
---	  Phase 5: Stored Procedures (14 procedures)
---	  Phase 6: Data Initialization (15+ insert scripts)
+--	  Phase 3: Tables (45 tables)
+--	  Phase 4: Triggers & Functions (12 objects)
+--	  Phase 5: Stored Procedures (42 procedures)
+--	  Phase 6: Data Initialization (20 insert scripts)
 --	  Phase 7: Verification & Reporting
 --
 --================================================================================================
@@ -87,24 +87,16 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Contacts')
 	CREATE SCHEMA Contacts
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'HealthcareServices')
-	CREATE SCHEMA HealthcareServices
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Forms')
-	CREATE SCHEMA Forms
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Billing')
-	CREATE SCHEMA Billing
-GO
-
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Auth')
 	CREATE SCHEMA Auth
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Security')
-	CREATE SCHEMA Security
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Exceptions')
+	CREATE SCHEMA Exceptions
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Lookup')
+	CREATE SCHEMA Lookup
 GO
 
 PRINT 'Schemas created successfully'
@@ -113,42 +105,36 @@ GO
 
 
 -- ================================================================================================
--- PHASE 3: TABLE CREATION (34 TABLES)
+-- PHASE 3: TABLE CREATION (45 TABLES)
 -- ================================================================================================
 -- NOTE: Individual table creation scripts must be executed separately from 003. Tables folder
 -- This master script provides the framework and verification
 -- 
 -- Tables to create (all located in 003. Tables folder):
 -- Location Schema: Countries, Provinces, Cities, Address
--- Profile Schema: Gender, MaritalStatus, Patient, Allergies, Medications, PatientAllergies, 
---                 PatientMedications, MedicalHistory, Vaccinations, LabResults, EmergencyContacts
--- Contacts Schema: Phones, Emails, PatientPhones, PatientEmails
--- HealthcareServices Schema: HealthcareProviders, Appointments, ConsultationNotes, Referrals, 
---                             InsuranceProviders, PatientInsurance
--- Forms Schema: FormTemplates, FormSubmissions, FormFieldValues, FormAttachments
--- Billing Schema: BillingCodes, Invoices
--- Auth & Security: AuditLog, DB_Errors, Roles, Permissions, RolePermissions, Users, UserRoles, UserActivityAudit
+-- Profile Schema: Patient demographics, clinical records, billing, operations
+-- Contacts Schema: Phones, Emails, PatientPhones, PatientEmails, forms
+-- Auth Schema: Users, Roles, Permissions, RolePermissions, AuditLog, UserActivityAudit, DB_Errors
+-- Exceptions Schema: Errors
+-- Lookup Schema: Reference tables (allergies, medications, etc.)
 --
 -- IMPORTANT: Execute all .sql files from 003. Tables folder before proceeding to Phase 4
 -- ================================================================================================
 
 PRINT ''
-PRINT '[PHASE 3] TABLE CREATION (34 TABLES)'
+PRINT '[PHASE 3] TABLE CREATION (45 TABLES)'
 PRINT '------------------------------------------------------------------------'
 PRINT 'Please execute all SQL files from the 003-tables folder:'
 PRINT '  - Location: Countries, Provinces, Cities, Address'
-PRINT '  - Profile: Gender, MaritalStatus, Patient, Allergies, Medications, PatientAllergies,'
-PRINT '             PatientMedications, MedicalHistory, Vaccinations, LabResults, EmergencyContacts'
-PRINT '  - Contacts: Phones, Emails, PatientPhones, PatientEmails'
-PRINT '  - HealthcareServices: HealthcareProviders, Appointments, ConsultationNotes, Referrals,'
-PRINT '                        InsuranceProviders, PatientInsurance'
-PRINT '  - Forms: FormTemplates, FormSubmissions, FormFieldValues, FormAttachments'
-PRINT '  - Billing: BillingCodes, Invoices'
-PRINT '  - Auth & Security: AuditLog, DB_Errors, Roles, Permissions, RolePermissions, Users, UserRoles'
+PRINT '  - Profile: Patient, appointments, consultations, billing, insurance'
+PRINT '  - Contacts: Phones, Emails, PatientPhones, PatientEmails, forms'
+PRINT '  - Auth: Users, Roles, Permissions, RolePermissions, AuditLog, UserActivityAudit'
+PRINT '  - Exceptions: Errors'
+PRINT '  - Lookup: Reference tables'
 PRINT ''
 PRINT 'Location: ~/HealthcareForm/003-tables/'
 PRINT 'Waiting for manual table creation...'
-PRINT 'All 34 tables should be created (verify in SQL Server Management Studio)'
+PRINT 'All 45 tables should be created (verify in SQL Server Management Studio)'
 PRINT ''
 
 -- ================================================================================================
@@ -158,13 +144,10 @@ PRINT ''
 -- ================================================================================================
 
 PRINT ''
-PRINT '[PHASE 4] FUNCTIONS & UTILITY CREATION'
+PRINT '[PHASE 4] TRIGGERS & FUNCTIONS CREATION'
 PRINT '------------------------------------------------------------------------'
 PRINT 'Location: ~/HealthcareForm/007-triggers-functions/'
-PRINT 'Please execute these function scripts:'
-PRINT '  1. capitalize-first-letter.sql'
-PRINT '  2. format-phone-contact.sql'
-PRINT '  3. validate-email.sql (if available)'
+PRINT 'Please execute all trigger/function scripts (see folder for full list).'
 PRINT ''
 
 -- ================================================================================================
@@ -177,17 +160,7 @@ PRINT ''
 PRINT '[PHASE 5] STORED PROCEDURES CREATION'
 PRINT '------------------------------------------------------------------------'
 PRINT 'Location: ~/HealthcareForm/006-stored-procedures/'
-PRINT 'Please execute stored procedure scripts:'
-PRINT '  1. profile-add-patient.sql'
-PRINT '  2. profile-get-patient.sql'
-PRINT '  3. profile-update-patient.sql'
-PRINT '  4. profile-delete-patient.sql'
-PRINT '  5. profile-get-gender.sql'
-PRINT '  6. profile-get-marital-status.sql'
-PRINT '  7. location-get-countries.sql'
-PRINT '  8. location-get-provinces.sql'
-PRINT '  9. location-get-cities.sql'
-PRINT '  10. auth-get-errors.sql'
+PRINT 'Please execute all stored procedure scripts (see folder for full list).'
 PRINT ''
 
 -- ================================================================================================
@@ -197,25 +170,10 @@ PRINT ''
 -- ================================================================================================
 
 PRINT ''
-PRINT '[PHASE 6] DATA INITIALIZATION - 15 INSERT SCRIPTS'
+PRINT '[PHASE 6] DATA INITIALIZATION - 20 INSERT SCRIPTS'
 PRINT '------------------------------------------------------------------------'
 PRINT 'Location: ~/HealthcareForm/005-table-inserts/'
-PRINT 'Please execute insert scripts in this order:'
-PRINT '  1. insert-countries.sql'
-PRINT '  2. insert-provinces.sql'
-PRINT '  3. insert-cities.sql'
-PRINT '  4. insert-gender.sql'
-PRINT '  5. insert-marital-status.sql'
-PRINT '  6. insert-roles.sql'
-PRINT '  7. insert-permissions.sql'
-PRINT '  8. insert-role-permissions.sql'
-PRINT '  9. insert-admin-user.sql'
-PRINT '  10. insert-billing-codes.sql'
-PRINT '  11. insert-healthcare-providers.sql'
-PRINT '  12. insert-insurance-providers.sql'
-PRINT '  13. insert-allergies-medications.sql'
-PRINT '  14. insert-sample-test-data.sql'
-PRINT '  15. (Additional configuration scripts)'
+PRINT 'Please execute insert scripts in the order listed in 005-table-inserts/000. MASTER_DEPLOYMENT_SCRIPT.sql'
 PRINT ''
 PRINT 'All lookup tables and reference data will be populated'
 PRINT ''
@@ -258,9 +216,9 @@ BEGIN
 	UNION ALL
 	SELECT 'Profile.Gender', CASE WHEN EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Profile' AND table_name = 'Gender') THEN 'EXISTS' ELSE 'MISSING' END
 	UNION ALL
-	SELECT 'Security.Roles', CASE WHEN EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Security' AND table_name = 'Roles') THEN 'EXISTS' ELSE 'MISSING' END
+	SELECT 'Auth.Roles', CASE WHEN EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Auth' AND table_name = 'Roles') THEN 'EXISTS' ELSE 'MISSING' END
 	UNION ALL
-	SELECT 'Security.Users', CASE WHEN EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Security' AND table_name = 'Users') THEN 'EXISTS' ELSE 'MISSING' END
+	SELECT 'Auth.Users', CASE WHEN EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Auth' AND table_name = 'Users') THEN 'EXISTS' ELSE 'MISSING' END
 	ORDER BY [Table Name]
 	GO
 	
@@ -284,15 +242,15 @@ BEGIN
 	ELSE
 		PRINT '  Profile.Patient - TABLE NOT YET CREATED'
 		
-	IF EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Security' AND table_name = 'Roles')
-		SELECT 'Security.Roles' AS [Table], COUNT(*) AS [Records] FROM Security.Roles
+	IF EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Auth' AND table_name = 'Roles')
+		SELECT 'Auth.Roles' AS [Table], COUNT(*) AS [Records] FROM Auth.Roles
 	ELSE
-		PRINT '  Security.Roles - TABLE NOT YET CREATED'
+		PRINT '  Auth.Roles - TABLE NOT YET CREATED'
 		
-	IF EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Security' AND table_name = 'Users')
-		SELECT 'Security.Users' AS [Table], COUNT(*) AS [Records] FROM Security.Users
+	IF EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'Auth' AND table_name = 'Users')
+		SELECT 'Auth.Users' AS [Table], COUNT(*) AS [Records] FROM Auth.Users
 	ELSE
-		PRINT '  Security.Users - TABLE NOT YET CREATED'
+		PRINT '  Auth.Users - TABLE NOT YET CREATED'
 	GO
 END
 ELSE
@@ -316,8 +274,8 @@ PRINT '2. SCHEMA CREATION:'
 PRINT '   Re-run this master script (schemas are created in Phase 2)'
 PRINT ''
 PRINT '3. TABLE CREATION:'
-PRINT '   Execute all .sql files from: 003-tables/ (34 files)'
-PRINT '   Recommended order: Location → Profile → Contacts → HealthcareServices → Forms → Billing → Auth'
+PRINT '   Execute all .sql files from: 003-tables/ (45 files)'
+PRINT '   Recommended order: Location → Profile → Contacts → Auth → Exceptions → Lookup'
 PRINT ''
 PRINT '4. FUNCTION CREATION:'
 PRINT '   Execute function scripts from: 007-triggers-functions/'

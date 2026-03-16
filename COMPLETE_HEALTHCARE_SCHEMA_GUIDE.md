@@ -1,20 +1,22 @@
 # Complete Healthcare Database Schema - Implementation Guide
 
 ## Overview
-This document describes all 24 new tables created to make the Healthcare Form database production-ready.
+This document describes the core patient-centric tables and workflows for the Healthcare Form database.
+For the full, authoritative list of tables and deployment order, see `001-database/003-tables/`
+and `001-database/000_MODULAR_MASTER_DEPLOYMENT.sql`.
 
 ## Database Schema Summary
 
-### Total Tables: 34 (10 existing + 24 new)
+### Total Tables: 45 (see table scripts for the full list)
 
-**Existing Tables (10):**
+**Foundational Tables (subset):**
 - Profile.Patient, Gender, MaritalStatus
 - Contacts: Phones, Emails, EmergencyContacts, PatientPhones, PatientEmails
 - Location: Countries, Provinces, Cities, Address
 - Auth: AuditLog, DB_Errors
 - Exceptions: Errors
 
-**New Tables (24):**
+**Key Domain Tables (24):**
 
 ### 1. MEDICAL/HEALTH RECORDS (5 tables)
 ```
@@ -62,9 +64,11 @@ Auth.UserActivityAudit       - Login/logout and activity tracking
 
 ---
 
-## Deployment Order (CRITICAL)
+## Deployment Order (Core Subset)
 
-Follow this exact sequence to avoid foreign key constraint violations:
+Follow this sequence to avoid foreign key constraint violations for the core tables.
+For the complete deployment order (all tables and dependencies), use the master scripts in
+`001-database/000_MODULAR_MASTER_DEPLOYMENT.sql` and `001-database/003-tables/000. MASTER_DEPLOYMENT_SCRIPT.sql`.
 
 ### Phase 1: Core Infrastructure (If not already done)
 ```
