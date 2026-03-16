@@ -10,3 +10,5 @@
 - Integration tests use `HF_TEST_DB_CONNECTION` or `ConnectionStrings__HealthcareEntity` to enable DB-backed runs.
 - Ran `dotnet test` with `HF_TEST_DB_CONNECTION`; all tests passed (11 total).
 - Started Phase 10 (operational readiness & maintenance planning).
+- Added `DEVELOPING.md` and documented DB-backed test expectations.
+- Updated `.gitignore` to keep `.vscode/settings.json` tracked.

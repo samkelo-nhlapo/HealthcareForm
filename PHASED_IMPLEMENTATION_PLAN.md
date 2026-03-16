@@ -65,7 +65,7 @@ Exit criteria:
 - Tests are skipped cleanly when the DB is not configured.
 - Stored procedure validation and test expectations are documented.
 
-## Phase 4: Operational Readiness & Maintenance (In Progress)
+## Phase 4: Operational Readiness & Maintenance (Completed)
 Purpose: Establish ongoing maintenance conventions and operational clarity.
 
 Planned steps:

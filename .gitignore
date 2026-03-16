@@ -21,6 +21,7 @@
 # IDE/editor
 .vs/
 .vscode/
+!.vscode/settings.json
 .idea/
 
 # Logs and temp files

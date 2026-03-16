@@ -157,3 +157,21 @@ Define operational and contributor guidance for ongoing maintenance.
 - [ ] Decide on tracked editor settings policy (`.vscode/settings.json`).
 - [ ] Create `DEVELOPING.md` (or `CONTRIBUTING.md`) with local workflows.
 - [ ] Document DB-backed test expectations for CI.
+
+## Phase 10A Checkpoint (Completed)
+
+### Objective
+
+Define operational and contributor guidance for ongoing maintenance.
+
+### Exit Criteria
+
+- Contributor/developer guide exists.
+- CI guidance documents DB-backed integration test expectations.
+- Local editor/config artifacts are either documented or untracked.
+
+### Tasks
+
+- [x] Decide on tracked editor settings policy (`.vscode/settings.json`).
+- [x] Create `DEVELOPING.md` with local workflows.
+- [x] Document DB-backed test expectations for CI.
