@@ -9,3 +9,4 @@
 - Completed Phase 3 stored-procedure integration tests (API harness, test auth, DB-guarded checks).
 - Integration tests use `HF_TEST_DB_CONNECTION` or `ConnectionStrings__HealthcareEntity` to enable DB-backed runs.
 - Ran `dotnet test` with `HF_TEST_DB_CONNECTION`; all tests passed (11 total).
+- Started Phase 10 (operational readiness & maintenance planning).

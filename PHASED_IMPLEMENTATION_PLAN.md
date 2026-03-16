@@ -64,3 +64,16 @@ Exit criteria:
 - Tests execute successfully when a DB connection string is provided.
 - Tests are skipped cleanly when the DB is not configured.
 - Stored procedure validation and test expectations are documented.
+
+## Phase 4: Operational Readiness & Maintenance (In Progress)
+Purpose: Establish ongoing maintenance conventions and operational clarity.
+
+Planned steps:
+- Decide whether to keep or drop tracked editor settings (`.vscode/settings.json`).
+- Add a short `CONTRIBUTING.md` or `DEVELOPING.md` with local workflows and test matrix.
+- Document how/when DB-backed integration tests should run in CI.
+
+Exit criteria:
+- Repo has a clear contributor/developer guide.
+- CI/test guidance includes the DB-backed tests.
+- Local editor/config artifacts are either documented or untracked.

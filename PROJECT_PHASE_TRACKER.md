@@ -4,9 +4,9 @@ This file tracks the active project-fix path across database, backend API, front
 
 ## Current Position
 
-- Current phase: **Phase 9 - Post-Completion Improvements (Completed)**
+- Current phase: **Phase 10 - Operational Readiness & Maintenance (In Progress)**
 - Previous phase completed: **Phase 8 - Performance & Release Readiness**
-- Current checkpoint: **Phase 9 Complete**
+- Current checkpoint: **Phase 10A - Planning**
 
 ## Phase Summary
 
@@ -18,7 +18,8 @@ This file tracks the active project-fix path across database, backend API, front
 6. Hardening (accessibility/perf/guards): completed
 7. Live data integration and runtime stability: completed
 8. Performance and release readiness: completed
-9. Post-completion improvements (docs alignment + integration tests): in progress
+9. Post-completion improvements (docs alignment + integration tests): completed
+10. Operational readiness and maintenance: in progress
 
 ## Phase 7A Checkpoint (Completed)
 
@@ -138,3 +139,21 @@ Add stored-procedure integration tests for API endpoints with safe skipping when
 - [x] Add WebApplicationFactory-based integration test harness.
 - [x] Add test auth handler and DB-guarded test helpers.
 - [x] Add endpoint coverage for stored-procedure-backed APIs.
+
+## Phase 10A Checkpoint (In Progress)
+
+### Objective
+
+Define operational and contributor guidance for ongoing maintenance.
+
+### Exit Criteria
+
+- Contributor/developer guide exists.
+- CI guidance documents DB-backed integration test expectations.
+- Local editor/config artifacts are either documented or untracked.
+
+### Tasks
+
+- [ ] Decide on tracked editor settings policy (`.vscode/settings.json`).
+- [ ] Create `DEVELOPING.md` (or `CONTRIBUTING.md`) with local workflows.
+- [ ] Document DB-backed test expectations for CI.
