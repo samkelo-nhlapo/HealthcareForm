@@ -42,3 +42,5 @@ Thumbs.db
 001-database/.tools/
 001-database/.docker-volumes/
 001-database/docker-volumes/
+.continue/
+schema-HealthcareForm.jpeg
