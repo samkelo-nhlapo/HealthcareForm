@@ -480,7 +480,7 @@ public sealed class AdminService : IAdminService
         command.Parameters.Add(new SqlParameter("@MaxRows", query.MaxRows));
         command.Parameters.Add(new SqlParameter("@SinceDate", SqlDbType.DateTime)
         {
-            Value = (object?)query.SinceUtc ?? DBNull.Value
+            Value = query.SinceUtc ?? DBNull.Value
         });
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -532,7 +532,7 @@ public sealed class AdminService : IAdminService
         return new DbErrorQueryNormalized
         {
             MaxRows = maxRows,
-            SinceUtc = query.SinceUtc.HasValue ? ToUtc(query.SinceUtc.Value) : null
+            SinceUtc = query.SinceUtc
         };
     }
 
