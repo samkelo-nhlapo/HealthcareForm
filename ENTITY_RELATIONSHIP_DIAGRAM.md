@@ -1,6 +1,6 @@
 # Entity Relationship Diagram & Table Structure Guide
 
-## Core Database Schema (34 Tables)
+## Core Database Schema (45 Tables)
 
 Note: This ERD covers the core patient-centric schema. For the complete list of tables,
 see `001-database/003-tables/`.

@@ -20,6 +20,8 @@ public sealed class StoredProcedureApiTests
         await AssertJsonArrayAsync("/api/lookups/countries");
         await AssertJsonArrayAsync("/api/lookups/provinces");
         await AssertJsonArrayAsync("/api/lookups/cities");
+        await AssertJsonArrayAsync("/api/lookups/allergies");
+        await AssertJsonArrayAsync("/api/lookups/medications");
     }
 
     [Fact]
@@ -56,6 +58,42 @@ public sealed class StoredProcedureApiTests
     public async Task AdminDataGovernance_ReturnsObject()
     {
         await AssertJsonObjectAsync("/api/admin/data-governance");
+    }
+
+    [Fact]
+    public async Task AdminDbErrors_ReturnsObject()
+    {
+        await AssertJsonObjectAsync("/api/admin/db-errors");
+    }
+
+    [Fact]
+    public async Task ClientsDirectory_ReturnsExpectedPayloads()
+    {
+        await AssertJsonArrayAsync("/api/clients/clinic-categories");
+        await AssertJsonObjectAsync("/api/clients");
+        await AssertJsonObjectAsync("/api/clients/departments");
+        await AssertJsonObjectAsync("/api/clients/staff");
+    }
+
+    [Fact]
+    public async Task PatientClinicalHistory_ReturnsArrays()
+    {
+        const string idNumber = "0000000000000";
+
+        await AssertJsonArrayAsync($"/api/patients/{idNumber}/allergies");
+        await AssertJsonArrayAsync($"/api/patients/{idNumber}/medications");
+        await AssertJsonArrayAsync($"/api/patients/{idNumber}/vaccinations");
+        await AssertJsonArrayAsync($"/api/patients/{idNumber}/consultation-notes");
+        await AssertJsonArrayAsync($"/api/patients/{idNumber}/referrals");
+    }
+
+    [Fact]
+    public async Task FormSubmissions_ReturnArrays()
+    {
+        const string submissionId = "11111111-1111-1111-1111-111111111111";
+
+        await AssertJsonArrayAsync($"/api/forms/submissions/{submissionId}/fields");
+        await AssertJsonArrayAsync($"/api/forms/submissions/{submissionId}/attachments");
     }
 
     private static async Task AssertJsonArrayAsync(string path)

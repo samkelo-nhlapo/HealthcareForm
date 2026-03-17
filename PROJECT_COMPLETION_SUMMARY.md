@@ -142,7 +142,7 @@
 
 ### 2. **COMPLETE_HEALTHCARE_SCHEMA_GUIDE.md** (500+ lines)
 - Overview of core tables with references to the full list in `001-database/003-tables/`
-- Complete deployment order (42 steps)
+- Complete deployment order (47 steps)
 - Common queries with examples
 - Initial data setup scripts
 - Performance optimization tips
@@ -270,7 +270,7 @@
 7. Insert default roles
 8. Insert default permissions
 9. Create initial admin user
-10-42. Create stored procedures and triggers
+10-50. Create stored procedures and triggers
 
 ### Post-Deployment
 - [ ] Run validation queries

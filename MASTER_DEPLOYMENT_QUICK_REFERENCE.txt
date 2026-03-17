@@ -23,7 +23,7 @@ STEP 2: VERIFY FOLDER STRUCTURE ☐
 ☐ /002. Schema/001. Schema's Script.sql
 ☐ /003. Tables/ (45 table scripts)
 ☐ /005. Table Inserts/ (20 insert scripts)
-☐ /006. Stored Procedures/ (42 procedure scripts)
+☐ /006. Stored Procedures/ (50 procedure scripts)
 ☐ /007. Triggers & Functions/ (12 trigger/function scripts)
 ☐ COMPLETE_MASTER_DEPLOYMENT.sql (in root)
 
@@ -83,7 +83,7 @@ DEPLOYMENT PHASES CHECKLIST
   └─ Status: ✓ Complete
 
 ☐ PHASE 5: STORED PROCEDURES (2 min)
-  ├─ 42 stored procedures total (see 006-stored-procedures/)
+  ├─ 50 stored procedures total (see 006-stored-procedures/)
   ├─ Includes patient CRUD, lookups, operations, revenue, admin snapshots
   └─ Status: ✓ Complete
 
@@ -182,7 +182,7 @@ SELECT UserName, Email, IsActive FROM Auth.Users WHERE UserName = 'admin'
 
 -- 7. Check stored procedures
 SELECT COUNT(*) FROM sys.objects WHERE type = 'P' AND is_ms_shipped = 0
--- Expected: 42+ ☐
+-- Expected: 50+ ☐
 
 -- 8. Check functions
 SELECT COUNT(*) FROM sys.objects WHERE type = 'FN' AND is_ms_shipped = 0

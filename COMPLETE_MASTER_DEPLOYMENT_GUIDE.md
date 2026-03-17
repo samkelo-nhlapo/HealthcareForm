@@ -55,7 +55,7 @@ The authoritative table list lives in `001-database/003-tables/` (45 scripts). C
 - Contact validation and enforcement triggers
 Full list in `001-database/007-triggers-functions/`.
 
-### Phase 5: Stored Procedures (42 procedures)
+### Phase 5: Stored Procedures (50 procedures)
 - Patient CRUD and lookups
 - Operations and scheduling snapshots
 - Revenue claims and admin dashboards
@@ -116,7 +116,7 @@ Full list: `001-database/005-table-inserts/` (20 scripts total).
 │   └── [20 insert scripts]
 │
 ├── 006. Stored Procedures/
-│   └── [42 stored procedure scripts]
+│   └── [50 stored procedure scripts]
 │
 └── 007. Triggers & Functions/
     └── [12 trigger/function scripts]
@@ -233,10 +233,10 @@ All trigger/function objects created successfully
 ```
 [PHASE 5] STORED PROCEDURES CREATION
 ────────────────────────────────────
-[1/42] Creating spAddPatient_v2...
-[2/42] Creating spGetPatient...
+[1/50] Creating spAddPatient_v2...
+[2/50] Creating spGetPatient...
 ...
-[10/42] Creating spDB_Errors...
+[10/50] Creating spDB_Errors...
 Core stored procedures created successfully
 ```
 
@@ -618,7 +618,7 @@ GO
 | Schema Creation | 1 min | Quick operation |
 | Table Creation (45 tables) | 3-5 min | Includes all indexes |
 | Trigger/Function Creation | 1 min | Quick operation |
-| Stored Procedure Creation | 2 min | 42 procedures |
+| Stored Procedure Creation | 2 min | 50 procedures |
 | Data Initialization (20 scripts) | 5-8 min | 500+ records inserted |
 | Verification & Reporting | 1 min | Query results |
 | **TOTAL** | **15-20 min** | Typical deployment time |
@@ -632,7 +632,7 @@ GO
 - ✅ 45 production-ready tables
 - ✅ 6 logical schemas
 - ✅ 12 trigger/function objects
-- ✅ 42 stored procedures
+- ✅ 50 stored procedures
 - ✅ 20 data initialization scripts
 - ✅ 500+ pre-loaded reference records
 - ✅ Complete RBAC configuration (7 roles, 52 permissions)

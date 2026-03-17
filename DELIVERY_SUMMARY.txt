@@ -25,7 +25,7 @@ ROOT LEVEL: /home/samkelo/HealthcareForm/
    ├─ Phase 2: Schema Creation (6 schemas)
    ├─ Phase 3: Table Creation (45 tables)
    ├─ Phase 4: Trigger/Function Creation (12 objects)
-   ├─ Phase 5: Stored Procedure Creation (42)
+   ├─ Phase 5: Stored Procedure Creation (50)
    ├─ Phase 6: Data Initialization (20 scripts, 500+ records)
    └─ Phase 7: Verification & Reporting
 
@@ -124,7 +124,7 @@ These files are executed by the master deployment script:
   ├─ 016. Insert AdminUser.sql (1 admin user)
   └─ [Documentation files and references]
 
-006. Stored Procedures/ (42 files)
+006. Stored Procedures/ (50 files)
   ├─ [Profile].[spAddPatient].sql
   ├─ [Profile].[spGetPatient].sql
   ├─ [Profile].[spUpdatePatient].sql
@@ -152,7 +152,7 @@ DATABASE STRUCTURE:
 ├─ Tables: 45 (all normalized to 3NF)
 ├─ Indexes: 45+ (on FK and frequently queried columns)
 ├─ Triggers/Functions: 12 objects for data validation and automation
-└─ Procedures: 42 for common operations
+└─ Procedures: 50 for common operations
 
 SECURITY:
 ├─ Roles: 7 (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT, BILLING, PHARMACIST)
@@ -185,7 +185,7 @@ Master Script Execution (fully automated):
   - Phase 2: Schemas: 1 min
   - Phase 3: Tables (45): 3-5 min
   - Phase 4: Triggers/Functions (12): 1 min
-  - Phase 5: Procedures (42): 2 min
+  - Phase 5: Procedures (50): 2 min
   - Phase 6: Data Initialization: 5-8 min
   - Phase 7: Verification: 1 min
   Subtotal: 15-20 minutes
@@ -293,7 +293,7 @@ TOTAL PACKAGE SIZE: 2.1+ MB (includes 65+ files)
    - 6 logical schemas
    - 45+ optimized indexes
    - 12 trigger/function objects
-   - 42 stored procedures
+   - 50 stored procedures
    - 500+ pre-loaded records
    - Complete security configuration
 

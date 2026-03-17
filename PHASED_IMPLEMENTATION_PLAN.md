@@ -77,3 +77,47 @@ Exit criteria:
 - Repo has a clear contributor/developer guide.
 - CI/test guidance includes the DB-backed tests.
 - Local editor/config artifacts are either documented or untracked.
+
+## Phase 5: Schema Utilization Matrix (Completed)
+Purpose: Document which tables and schemas are exercised by the API and highlight gaps.
+
+Planned steps:
+- Scan API services for stored procedure usage.
+- Map stored procedures to their referenced tables.
+- Capture tables not referenced by API procedures in a single matrix document.
+
+Exit criteria:
+- `TABLE_USAGE_MATRIX.md` captures endpoint to procedure to table mappings.
+- Tables not referenced by API procedures are listed for future integration.
+- `PROJECT_PHASE_TRACKER.md` and `PROCESS_LOG.md` reflect completion.
+
+## Phase 12: Unused Schema Activation (Completed)
+Purpose: Integrate high-value but currently unused tables into the API and surface them to the product.
+
+Planned steps:
+- Confirm scope of unused tables and assign each to a feature slice.
+- Implement stored procedures and API endpoints for the selected slice.
+- Add integration tests for the new endpoints.
+- Update `TABLE_USAGE_MATRIX.md` to reflect new coverage.
+
+Candidate slices:
+- Clinical history: `Profile.Allergies`, `Profile.Medications`, `Profile.Vaccinations`, `Profile.ConsultationNotes`, `Profile.Referrals`, `Lookup.Allergies`, `Lookup.Medications`.
+- Client/clinic admin: `Profile.ClientClinicCategories`, `Profile.ClientDepartments`, `Profile.ClientStaff`, `Profile.StaffDesignations`.
+- Dynamic forms: `Contacts.FormAttachments`, `Contacts.FormFieldValues`.
+
+Current slice status:
+- Client/clinic admin slice integrated with read-only API endpoints for clinic categories, clients, departments, and staff.
+- Clinical history + reference lookups slice integrated with read-only API endpoints for patient allergies, medications, vaccinations, consultation notes, referrals, and lookup lists.
+- Dynamic forms slice integrated with read-only API endpoints for form field values and attachments.
+- Admin diagnostics slice integrated with read-only API endpoint for database error reporting.
+
+Next slice recommendation (2026-03-17):
+- None. All currently unused tables are now integrated.
+
+Minimal checklist for the next slice:
+- Start a new phase if additional expansion work is required.
+
+Exit criteria:
+- At least one slice is fully integrated (procedure + API + tests).
+- `TABLE_USAGE_MATRIX.md` updated with new coverage.
+- `PROJECT_PHASE_TRACKER.md` and `PROCESS_LOG.md` updated with progress.

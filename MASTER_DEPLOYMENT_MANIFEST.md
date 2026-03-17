@@ -27,7 +27,7 @@ Three new files have been created in the root `HealthcareForm` folder to enable 
 - Phase 2: Schema Creation (6 schemas)
 - Phase 3: Table Creation (45 tables)
 - Phase 4: Trigger/Function Creation (12 objects)
-- Phase 5: Stored Procedure Creation (42 procedures)
+- Phase 5: Stored Procedure Creation (50 procedures)
 - Phase 6: Data Initialization (20 insert scripts, 500+ records)
 - Phase 7: Verification & Reporting
 
@@ -132,7 +132,7 @@ The authoritative list lives in `001-database/003-tables/` (45 scripts), organiz
 ### Triggers & Functions (12 objects)
 Full list in `001-database/007-triggers-functions/`.
 
-### Stored Procedures (42 total)
+### Stored Procedures (50 total)
 Full list in `001-database/006-stored-procedures/`.
 
 ### Insert Scripts (Data Initialization)
@@ -172,7 +172,7 @@ Full list in `001-database/006-stored-procedures/`.
 | **Schemas** | 6 | ✅ All created |
 | **Tables** | 45 | ✅ All created with indexes |
 | **Triggers/Functions** | 12 | ✅ All created |
-| **Stored Procedures** | 42 | ✅ All created |
+| **Stored Procedures** | 50 | ✅ All created |
 | **Insert Scripts** | 20 | ✅ All executed sequentially |
 | **Total Records** | 500+ | ✅ All loaded |
 
@@ -324,7 +324,7 @@ Full list in `001-database/006-stored-procedures/`.
 - 6 logical schemas
 - 45+ optimized indexes
 - 12 trigger/function objects
-- 42 stored procedures
+- 50 stored procedures
 - 500+ pre-loaded records
 - Complete RBAC (7 roles, 52 permissions)
 - Sample test patient for UAT
@@ -380,7 +380,7 @@ Full list in `001-database/006-stored-procedures/`.
 - 6 schemas
 - 45+ indexes
 - 12 trigger/function objects
-- 42 procedures
+- 50 procedures
 - 500+ pre-loaded records
 
 ✅ **Complete Documentation**:

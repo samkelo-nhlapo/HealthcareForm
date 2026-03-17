@@ -159,10 +159,10 @@ foreach ($file in $tableFiles) {
 After completing all phases, you should have:
 
 - ✅ Database created: `HealthcareForm`
-- ✅ Schemas created: 8 total (Location, Profile, Contacts, HealthcareServices, Forms, Billing, Auth, Security)
-- ✅ Tables created: 34 total
-- ✅ Functions created: 3 total
-- ✅ Stored procedures created: 10+ total
+- ✅ Schemas created: 6 total (Location, Profile, Contacts, Auth, Exceptions, Lookup)
+- ✅ Tables created: 45 total
+- ✅ Triggers/functions created: 12 total (3 functions + 9 triggers)
+- ✅ Stored procedures created: 50 total
 - ✅ Records inserted: 500+ total
 - ✅ Security roles: 7 configured
 - ✅ Permissions: 52 configured

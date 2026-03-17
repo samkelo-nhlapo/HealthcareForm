@@ -4,9 +4,9 @@ This file tracks the active project-fix path across database, backend API, front
 
 ## Current Position
 
-- Current phase: **Phase 10 - Operational Readiness & Maintenance (In Progress)**
-- Previous phase completed: **Phase 8 - Performance & Release Readiness**
-- Current checkpoint: **Phase 10A - Planning**
+- Current phase: **Phase 12 - Unused Schema Activation (Completed)**
+- Previous phase completed: **Phase 11 - Schema Utilization Audit**
+- Current checkpoint: **Phase 12E - Admin Diagnostics (Completed)**
 
 ## Phase Summary
 
@@ -19,7 +19,9 @@ This file tracks the active project-fix path across database, backend API, front
 7. Live data integration and runtime stability: completed
 8. Performance and release readiness: completed
 9. Post-completion improvements (docs alignment + integration tests): completed
-10. Operational readiness and maintenance: in progress
+10. Operational readiness and maintenance: completed
+11. Schema utilization audit: completed
+12. Unused schema activation: completed
 
 ## Phase 7A Checkpoint (Completed)
 
@@ -140,24 +142,6 @@ Add stored-procedure integration tests for API endpoints with safe skipping when
 - [x] Add test auth handler and DB-guarded test helpers.
 - [x] Add endpoint coverage for stored-procedure-backed APIs.
 
-## Phase 10A Checkpoint (In Progress)
-
-### Objective
-
-Define operational and contributor guidance for ongoing maintenance.
-
-### Exit Criteria
-
-- Contributor/developer guide exists.
-- CI guidance documents DB-backed integration test expectations.
-- Local editor/config artifacts are either documented or untracked.
-
-### Tasks
-
-- [ ] Decide on tracked editor settings policy (`.vscode/settings.json`).
-- [ ] Create `DEVELOPING.md` (or `CONTRIBUTING.md`) with local workflows.
-- [ ] Document DB-backed test expectations for CI.
-
 ## Phase 10A Checkpoint (Completed)
 
 ### Objective
@@ -175,3 +159,114 @@ Define operational and contributor guidance for ongoing maintenance.
 - [x] Decide on tracked editor settings policy (`.vscode/settings.json`).
 - [x] Create `DEVELOPING.md` with local workflows.
 - [x] Document DB-backed test expectations for CI.
+
+## Phase 11A Checkpoint (Completed)
+
+### Objective
+
+Audit schema utilization by mapping API endpoints to stored procedures and tables.
+
+### Exit Criteria
+
+- API endpoints and stored procedures are mapped in a single reference document.
+- Tables not referenced by API stored procedures are listed for follow-up.
+- Tracking artifacts updated to capture completion.
+
+### Tasks
+
+- [x] Enumerate API stored procedure usage from backend services.
+- [x] Map stored procedures to referenced tables.
+- [x] Publish `TABLE_USAGE_MATRIX.md` with coverage summary and gaps.
+
+## Phase 12A Checkpoint (Completed)
+
+### Objective
+
+Select and plan the first unused schema slice to integrate.
+
+### Exit Criteria
+
+- One slice chosen and scoped.
+- Implementation tasks listed (procedures, API endpoints, tests).
+
+### Tasks
+
+- [x] Confirm scope of unused tables and group into slices.
+- [x] Choose the first slice to implement.
+
+## Phase 12B Checkpoint (Completed)
+
+### Objective
+
+Activate the client/clinic admin slice using existing stored procedures.
+
+### Exit Criteria
+
+- API exposes client clinic categories, client directory, departments, and staff lists.
+- Stored-procedure integration tests cover the new endpoints.
+- `TABLE_USAGE_MATRIX.md` updated to reflect new coverage.
+
+### Tasks
+
+- [x] Add client admin contracts, service, and API controller.
+- [x] Register new service and add integration tests.
+- [x] Update table usage matrix counts and gaps.
+
+## Phase 12C Checkpoint (Completed)
+
+### Objective
+
+Activate clinical history tables and lookup reference data via stored procedures and API endpoints.
+
+### Exit Criteria
+
+- API exposes patient allergies, medications, vaccinations, consultation notes, and referrals.
+- Lookup endpoints include allergies and medications reference data.
+- Stored-procedure integration tests cover the new endpoints.
+- `TABLE_USAGE_MATRIX.md` updated to reflect new coverage and remaining gaps.
+
+### Tasks
+
+- [x] Add lookup stored procedures for allergies and medications.
+- [x] Add clinical history stored procedures for patient allergies, medications, vaccinations, consultation notes, and referrals.
+- [x] Add API contracts, service methods, and endpoints for the new procedures.
+- [x] Add integration test coverage for the new endpoints.
+- [x] Update table usage matrix counts and remaining gaps.
+
+## Phase 12D Checkpoint (Completed)
+
+### Objective
+
+Activate dynamic form data access for submissions by exposing field values and attachments.
+
+### Exit Criteria
+
+- API exposes form field values and attachments for a submission.
+- Stored-procedure integration tests cover the new endpoints.
+- `TABLE_USAGE_MATRIX.md` updated to reflect new coverage and remaining gaps.
+
+### Tasks
+
+- [x] Add stored procedures for form field values and attachments.
+- [x] Add API contracts, service methods, and endpoints for the form data endpoints.
+- [x] Add integration test coverage for the new endpoints.
+- [x] Update table usage matrix counts and remaining gaps.
+
+## Phase 12E Checkpoint (Completed)
+
+### Objective
+
+Expose database error diagnostics to the admin API surface.
+
+### Exit Criteria
+
+- API exposes DB error rows for admin review.
+- Stored-procedure integration tests cover the new endpoint.
+- `TABLE_USAGE_MATRIX.md` updated to reflect full schema coverage.
+
+### Tasks
+
+- [x] Add stored procedure for DB error reporting.
+- [x] Add admin contracts, service method, and endpoint for DB errors.
+- [x] Add integration test coverage for the admin DB errors endpoint.
+- [x] Update table usage matrix counts and remaining gaps.

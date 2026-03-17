@@ -11,8 +11,8 @@
 
 ### 2. **COMPLETE_HEALTHCARE_SCHEMA_GUIDE.md**
    - Detailed implementation guide
-   - 42-step deployment order
-   - All 34 tables overview
+   - 47-step deployment order
+   - All 45 tables overview
    - Common queries with examples
    - Initial data setup
    - Backup strategy
@@ -48,7 +48,7 @@
 
 ## 🗂️ Table Organization by Schema
 
-### Auth Schema (6 Tables) - Security
+### Auth Schema (8 Tables) - Security
 ```
 Auth.Users                 - User accounts and authentication
 Auth.Roles                 - Role definitions
@@ -60,9 +60,14 @@ Auth.AuditLog              - Data modification audit
 Auth.DB_Errors             - Error logging
 ```
 
-### Profile Schema (15 Tables) - Patient & Medical
+### Profile Schema (21 Tables) - Patient & Medical
 ```
 Profile.Patient            - Core patient record ⭐
+Profile.Clients            - Client organizations/clinics
+Profile.ClientDepartments  - Client department catalog
+Profile.ClientClinicCategories - Clinic category classification
+Profile.ClientStaff        - Staff roster by client
+Profile.StaffDesignations  - Staff designation lookup
 Profile.Gender             - Gender lookup
 Profile.MaritalStatus      - Marital status lookup
 Profile.MedicalHistory     - Chronic conditions
@@ -80,7 +85,7 @@ Profile.BillingCodes       - Medical billing codes
 Profile.Invoices           - Patient billing
 ```
 
-### Contacts Schema (7 Tables) - Communication & Forms
+### Contacts Schema (9 Tables) - Communication & Forms
 ```
 Contacts.Phones            - Phone numbers
 Contacts.Emails            - Email addresses
@@ -106,6 +111,12 @@ Location.Address           - Full addresses
 Exceptions.Errors          - System exceptions
 ```
 
+### Lookup Schema (2 Tables) - Reference Data
+```
+Lookup.Allergies           - Allergy reference list
+Lookup.Medications         - Medication reference list
+```
+
 ---
 
 ## 🔑 Critical Tables (Start With These)
@@ -125,8 +136,8 @@ Exceptions.Errors          - System exceptions
 ### Total Objects
 | Type | Count |
 |------|-------|
-| Tables | 34 |
-| Schemas | 5 |
+| Tables | 45 |
+| Schemas | 6 |
 | Functions | 3+ |
 | Indexes | 45+ |
 | Foreign Keys | 40+ |
@@ -138,8 +149,8 @@ Exceptions.Errors          - System exceptions
 | Forms & Submissions | 4 | Dynamic form handling |
 | Healthcare Services | 4 | Appointments, consultations, referrals |
 | Insurance & Billing | 4 | Insurance and payment tracking |
-| Security & Access | 6 | User management and audit trails |
-| Core Infrastructure | 11 | Patient, contacts, location, system tables |
+| Security & Access | 8 | User management and audit trails |
+| Core Infrastructure | 20 | Patient, contacts, location, core reference tables |
 
 ---
 
@@ -150,7 +161,7 @@ Exceptions.Errors          - System exceptions
 2. **COMPLETE_HEALTHCARE_SCHEMA_GUIDE.md** - Detailed guide
 
 ### Deploy
-Follow the 42-step deployment order in **COMPLETE_HEALTHCARE_SCHEMA_GUIDE.md**
+Follow the 47-step deployment order in **COMPLETE_HEALTHCARE_SCHEMA_GUIDE.md**
 
 ### Verify
 Run validation queries in **DEPLOYMENT_GUIDE.sql**

@@ -63,6 +63,61 @@ public sealed class PatientsController : ControllerBase
         return Ok(result.Patient);
     }
 
+    [HttpGet("{idNumber}/allergies")]
+    public async Task<ActionResult<IReadOnlyList<PatientAllergyDto>>> GetPatientAllergies(string idNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return BadRequest(new { Message = "Please provide an ID number." });
+        }
+
+        return Ok(await _patientService.GetPatientAllergiesAsync(idNumber, cancellationToken));
+    }
+
+    [HttpGet("{idNumber}/medications")]
+    public async Task<ActionResult<IReadOnlyList<PatientMedicationDto>>> GetPatientMedications(string idNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return BadRequest(new { Message = "Please provide an ID number." });
+        }
+
+        return Ok(await _patientService.GetPatientMedicationsAsync(idNumber, cancellationToken));
+    }
+
+    [HttpGet("{idNumber}/vaccinations")]
+    public async Task<ActionResult<IReadOnlyList<PatientVaccinationDto>>> GetPatientVaccinations(string idNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return BadRequest(new { Message = "Please provide an ID number." });
+        }
+
+        return Ok(await _patientService.GetPatientVaccinationsAsync(idNumber, cancellationToken));
+    }
+
+    [HttpGet("{idNumber}/consultation-notes")]
+    public async Task<ActionResult<IReadOnlyList<PatientConsultationNoteDto>>> GetPatientConsultationNotes(string idNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return BadRequest(new { Message = "Please provide an ID number." });
+        }
+
+        return Ok(await _patientService.GetPatientConsultationNotesAsync(idNumber, cancellationToken));
+    }
+
+    [HttpGet("{idNumber}/referrals")]
+    public async Task<ActionResult<IReadOnlyList<PatientReferralDto>>> GetPatientReferrals(string idNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idNumber))
+        {
+            return BadRequest(new { Message = "Please provide an ID number." });
+        }
+
+        return Ok(await _patientService.GetPatientReferralsAsync(idNumber, cancellationToken));
+    }
+
     [HttpDelete("{idNumber}")]
     [Authorize(Policy = AuthorizationPolicies.PatientsDelete)]
     public async Task<ActionResult<PatientCommandResult>> DeletePatient(string idNumber, CancellationToken cancellationToken)

@@ -41,7 +41,7 @@ Phase 1: Database & Filegroup Creation
 Phase 2: Schema Creation (6 schemas)
 Phase 3: Table Creation (45 tables)
 Phase 4: Trigger/Function Creation (12 objects)
-Phase 5: Stored Procedure Creation (42 procedures)
+Phase 5: Stored Procedure Creation (50 procedures)
 Phase 6: Data Initialization (20 insert scripts, 500+ records)
 Phase 7: Verification & Reporting
 ```
@@ -116,7 +116,7 @@ HealthcareForm/ (Root)
 │   ├── 016. Insert AdminUser.sql
 │   └── [Documentation and references]
 │
-├── 006. Stored Procedures/ (42 procedure scripts)
+├── 006. Stored Procedures/ (50 procedure scripts)
 │   └── [All procedures executed by master script]
 │
 ├── 007. Triggers & Functions/ (12 trigger/function scripts)
@@ -196,7 +196,7 @@ HealthcareForm/ (Root)
 - **45 Tables**: All normalized to 3NF
 - **45+ Indexes**: On foreign keys and frequently queried columns
 - **12 Triggers/Functions**: Data quality, validation, and audit helpers
-- **42 Stored Procedures**: Common operations and snapshots
+- **50 Stored Procedures**: Common operations and snapshots
 - **2 Filegroups**: PRIMARY (500MB) + PatientDataGroup (1GB)
 
 ### Data Initialization
@@ -236,7 +236,7 @@ HealthcareForm/ (Root)
 | Phase 2: Schemas | 1 min | Create 6 schemas |
 | Phase 3: Tables | 3-5 min | Create 45 tables with indexes |
 | Phase 4: Triggers/Functions | 1 min | Create 12 trigger/function objects |
-| Phase 5: Procedures | 2 min | Create 42 stored procedures |
+| Phase 5: Procedures | 2 min | Create 50 stored procedures |
 | Phase 6: Data | 5-8 min | Load 500+ records into tables |
 | Phase 7: Verification | 1 min | Validate installation |
 | **TOTAL** | **15-20 min** | **Database Ready!** |
@@ -433,7 +433,7 @@ After deployment, verify:
 
 ✅ **Functions & Procedures**
 - [ ] 12 trigger/function objects visible
-- [ ] 42 stored procedures created
+- [ ] 50 stored procedures created
 - [ ] All compile without errors
 
 ✅ **Data Loaded**
@@ -494,7 +494,7 @@ After deployment, verify:
 | **Tables Deployed** | 45 |
 | **Schemas Created** | 6 |
 | **Triggers/Functions Created** | 12 |
-| **Procedures Created** | 42 |
+| **Procedures Created** | 50 |
 | **Records Loaded** | 500+ |
 | **Security Roles** | 7 |
 | **Permissions** | 52 |

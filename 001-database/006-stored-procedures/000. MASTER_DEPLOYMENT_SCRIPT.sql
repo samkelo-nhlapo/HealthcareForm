@@ -20,9 +20,16 @@ GO
 
 :r 006-stored-procedures/Profile.spGetGender.sql
 :r 006-stored-procedures/[Profile].[spGetMaritalStatus].sql
+:r 006-stored-procedures/[Lookup].[spGetAllergies].sql
+:r 006-stored-procedures/[Lookup].[spGetMedications].sql
 
 :r 006-stored-procedures/[Profile].[spAddPatient].sql
 :r 006-stored-procedures/[Profile].[spGetPatient].sql
+:r 006-stored-procedures/[Profile].[spGetPatientAllergies].sql
+:r 006-stored-procedures/[Profile].[spGetPatientMedications].sql
+:r 006-stored-procedures/[Profile].[spGetPatientVaccinations].sql
+:r 006-stored-procedures/[Profile].[spGetPatientConsultationNotes].sql
+:r 006-stored-procedures/[Profile].[spGetPatientReferrals].sql
 :r 006-stored-procedures/[Profile].[spUpdatePatient].sql
 :r 006-stored-procedures/Profile.spDeletePatient.sql
 :r 006-stored-procedures/[Profile].[spRestorePatient].sql
@@ -39,6 +46,7 @@ GO
 :r 006-stored-procedures/[Auth].[spGetAdminAccessControlSnapshot].sql
 :r 006-stored-procedures/[Auth].[spGetAdminAuditEventSourceRows].sql
 :r 006-stored-procedures/[Auth].[spGetAdminDataGovernanceSourceRows].sql
+:r 006-stored-procedures/[Auth].[spGetAdminDbErrorsSourceRows].sql
 
 :r 006-stored-procedures/[Profile].[spGetClientClinicCategories].sql
 :r 006-stored-procedures/[Profile].[spAddClient].sql
@@ -58,6 +66,9 @@ GO
 :r 006-stored-procedures/[Profile].[spListClientStaff].sql
 :r 006-stored-procedures/[Profile].[spUpdateClientStaff].sql
 :r 006-stored-procedures/[Profile].[spDeleteClientStaff].sql
+
+:r 006-stored-procedures/[Contacts].[spGetFormFieldValues].sql
+:r 006-stored-procedures/[Contacts].[spGetFormAttachments].sql
 
 PRINT '================================================================================================';
 PRINT 'Stored procedure deployment complete: ' + CONVERT(VARCHAR(25), GETDATE(), 121);

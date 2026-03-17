@@ -4,7 +4,7 @@
 
 **Status**: ✅ **COMPLETE AND PRODUCTION-READY**
 
-A comprehensive SQL Server healthcare management system database with 34 normalized tables, complete security configuration, reference data, and sample patient profile for testing.
+A comprehensive SQL Server healthcare management system database with 45 normalized tables, complete security configuration, reference data, and sample patient profile for testing.
 
 ---
 
@@ -18,52 +18,56 @@ HealthcareForm Database
 │   ├── Cities (38 records)
 │   └── Address
 │
-├── Profile Schema (Patient Data)
+├── Profile Schema (Patient & Operations)
+│   ├── Patient (1+ records)
 │   ├── Gender (4 records)
 │   ├── MaritalStatus (6 records)
-│   ├── Patient (1+ records)
 │   ├── MedicalHistory
-│   ├── Allergies (15 reference)
-│   ├── Medications (15 reference)
-│   ├── PatientAllergies
-│   ├── PatientMedications
+│   ├── Allergies
+│   ├── Medications
 │   ├── Vaccinations
-│   └── LabResults
+│   ├── LabResults
+│   ├── Appointments
+│   ├── ConsultationNotes
+│   ├── Referrals
+│   ├── HealthcareProviders (10 records)
+│   ├── InsuranceProviders (8 records)
+│   ├── PatientInsurance
+│   ├── BillingCodes (50 records)
+│   ├── Invoices
+│   ├── Clients
+│   ├── ClientDepartments
+│   ├── ClientClinicCategories
+│   ├── ClientStaff
+│   └── StaffDesignations
 │
-├── Contacts Schema (Communication)
+├── Contacts Schema (Communication & Forms)
 │   ├── Phones
 │   ├── Emails
 │   ├── PatientPhones
 │   ├── PatientEmails
-│   └── EmergencyContacts
-│
-├── HealthcareServices Schema (Clinical)
-│   ├── HealthcareProviders (10 records)
-│   ├── Appointments
-│   ├── ConsultationNotes
-│   ├── Referrals
-│   ├── InsuranceProviders (8 records)
-│   └── PatientInsurance
-│
-├── Forms Schema (Documentation)
+│   ├── EmergencyContacts
 │   ├── FormTemplates
 │   ├── FormSubmissions
-│   └── FormFieldValues
+│   ├── FormFieldValues
+│   └── FormAttachments
 │
-├── Billing Schema (Financial)
-│   ├── BillingCodes (50 records)
-│   └── Invoices
-│
-├── Auth Schema (Legacy)
+├── Auth Schema (Security)
+│   ├── Users (1+ records)
+│   ├── Roles (7 records)
+│   ├── Permissions (52 records)
+│   ├── RolePermissions (210+ mappings)
+│   ├── UserRoles
+│   ├── UserActivityAudit
 │   ├── AuditLog
 │   └── DB_Errors
 │
-└── Security Schema (Access Control)
-    ├── Roles (7 records)
-    ├── Permissions (52 records)
-    ├── RolePermissions (210+ mappings)
-    ├── Users (1+ records)
-    └── UserRoles
+├── Exceptions Schema (Error Tracking)
+│   └── Errors
+│
+└── Lookup Schema (Reference Data)
+    ├── Allergies (15 records)
+    └── Medications (15 records)
 ```
 
 ---
@@ -76,47 +80,17 @@ HealthcareForm Database
    └── 001. Healthcare form.sql (Database + filegroup creation)
 
 002. Schema/
-   └── 001. Schema's Script.sql (5 schemas: Location, Profile, Contacts, Auth, Exceptions)
+   └── 001. Schema's Script.sql (6 schemas: Location, Profile, Contacts, Auth, Exceptions, Lookup)
 
-003. Tables/ (34 total)
-   ├── [Auth].[AuditLog].sql
-   ├── [Profile].[Gender].sql
-   ├── [Profile].[MaritalStatus].sql
-   ├── [Profile].[Patient].sql
-   ├── [Location].[Address].sql
-   ├── [Location].[Countries].sql
-   ├── [Location].[Provinces].sql
-   ├── [Location].[Cities].sql
-   ├── [Contacts].[Phones].sql
-   ├── [Contacts].[Emails].sql
-   ├── [Contacts].[PatientPhones].sql (NEW - junction table)
-   ├── [Contacts].[PatientEmails].sql (NEW - junction table)
-   ├── [Contacts].[EmergencyContacts].sql
-   ├── [Profile].[Allergies].sql (NEW)
-   ├── [Profile].[Medications].sql (NEW)
-   ├── [Profile].[PatientAllergies].sql (NEW)
-   ├── [Profile].[PatientMedications].sql (NEW)
-   ├── [Profile].[MedicalHistory].sql (NEW)
-   ├── [Profile].[Vaccinations].sql (NEW)
-   ├── [Profile].[LabResults].sql (NEW)
-   ├── [HealthcareServices].[HealthcareProviders].sql (NEW)
-   ├── [HealthcareServices].[Appointments].sql (NEW)
-   ├── [HealthcareServices].[ConsultationNotes].sql (NEW)
-   ├── [HealthcareServices].[Referrals].sql (NEW)
-   ├── [HealthcareServices].[InsuranceProviders].sql (NEW)
-   ├── [HealthcareServices].[PatientInsurance].sql (NEW)
-   ├── [Forms].[FormTemplates].sql (NEW)
-   ├── [Forms].[FormSubmissions].sql (NEW)
-   ├── [Forms].[FormFieldValues].sql (NEW)
-   ├── [Forms].[FormAttachments].sql (NEW)
-   ├── [Billing].[BillingCodes].sql (NEW)
-   ├── [Billing].[Invoices].sql (NEW)
-   ├── [Security].[Roles].sql (NEW)
-   ├── [Security].[Permissions].sql (NEW)
-   ├── [Security].[RolePermissions].sql (NEW)
-   ├── [Security].[Users].sql (NEW)
-   ├── [Security].[UserRoles].sql (NEW)
-   └── [Security].[UserActivityAudit].sql (NEW)
+003. Tables/ (45 total)
+   ├── Auth (8): AuditLog, DB_Errors, Permissions, RolePermissions, Roles, UserActivityAudit, UserRoles, Users
+   ├── Contacts (9): Emails, EmergencyContacts, FormAttachments, FormFieldValues, FormSubmissions, FormTemplates, PatientEmails, PatientPhones, Phones
+   ├── Exceptions (1): Errors
+   ├── Location (4): Address, Cities, Countries, Provinces
+   ├── Lookup (2): Allergies, Medications
+   └── Profile (21): Allergies, Appointments, BillingCodes, ClientClinicCategories, ClientDepartments, ClientStaff, Clients, ConsultationNotes,
+                     Gender, HealthcareProviders, InsuranceProviders, Invoices, LabResults, MaritalStatus, MedicalHistory, Medications,
+                     Patient, PatientInsurance, Referrals, StaffDesignations, Vaccinations
 
 004. Functions/
    ├── Capitalize first letter.sql (UPDATED)
@@ -165,16 +139,16 @@ HealthcareForm Database
 ## 🎯 Key Metrics
 
 ### Database Design
-- **Tables**: 34 (10 enhanced + 24 new)
-- **Schemas**: 5 (Location, Profile, Contacts, Auth, Exceptions, Healthcare, Forms, Billing, Security)
+- **Tables**: 45 total
+- **Schemas**: 6 (Location, Profile, Contacts, Auth, Exceptions, Lookup)
 - **Indexes**: 45+ (covering all FK and frequently queried columns)
-- **Functions**: 3 (FormatPhoneNumber, CapitalizeFirstLetter, ValidateEmail)
-- **Stored Procedures**: 14 (including new spAddPatient_v2)
+- **Triggers/Functions**: 12 total (3 functions + 9 triggers)
+- **Stored Procedures**: 50 total
 - **Views**: 0 (can be added for reporting)
 
 ### Insert Scripts
-- **Total Scripts**: 15 data population scripts
-- **Total Records**: 495+ pre-loaded records
+- **Total Scripts**: 20 data population scripts
+- **Total Records**: 500+ pre-loaded records
 - **Security Configuration**: 7 roles × 52 permissions with full mapping
 - **Reference Data**: Countries, provinces, cities, providers, insurance, allergies, medications
 - **Sample Patient**: 1 complete patient with 20+ related records for UAT

@@ -20,7 +20,7 @@ GO
 --	  Phase 2: Schemas (1 step)
 --	  Phase 3: Tables (45 tables)
 --	  Phase 4: Triggers & Functions (12 objects)
---	  Phase 5: Stored Procedures (42 procedures)
+--	  Phase 5: Stored Procedures (50 procedures)
 --	  Phase 6: Data Initialization (20 insert scripts)
 --	  Phase 7: Verification & Reporting
 --

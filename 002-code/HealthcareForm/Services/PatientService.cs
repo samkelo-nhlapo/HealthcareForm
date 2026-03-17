@@ -358,6 +358,324 @@ public sealed class PatientService : IPatientService
         }
     }
 
+    public async Task<IReadOnlyList<PatientAllergyDto>> GetPatientAllergiesAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var items = new List<PatientAllergyDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientAllergies", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("AllergyId");
+            var typeOrdinal = reader.GetOrdinal("AllergyType");
+            var nameOrdinal = reader.GetOrdinal("AllergenName");
+            var reactionOrdinal = reader.GetOrdinal("Reaction");
+            var severityOrdinal = reader.GetOrdinal("Severity");
+            var onsetOrdinal = reader.GetOrdinal("ReactionOnsetDate");
+            var verifiedOrdinal = reader.GetOrdinal("VerifiedBy");
+            var activeOrdinal = reader.GetOrdinal("IsActive");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PatientAllergyDto
+                {
+                    AllergyId = GetReaderGuid(reader, idOrdinal),
+                    AllergyType = GetReaderString(reader, typeOrdinal),
+                    AllergenName = GetReaderString(reader, nameOrdinal),
+                    Reaction = GetReaderString(reader, reactionOrdinal),
+                    Severity = GetReaderString(reader, severityOrdinal),
+                    ReactionOnsetDate = GetReaderNullableDateTime(reader, onsetOrdinal),
+                    VerifiedBy = GetReaderString(reader, verifiedOrdinal),
+                    IsActive = GetReaderBoolean(reader, activeOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load allergies for ID number {IdNumber}.", idNumber);
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientMedicationDto>> GetPatientMedicationsAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var items = new List<PatientMedicationDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientMedications", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("MedicationId");
+            var nameOrdinal = reader.GetOrdinal("MedicationName");
+            var dosageOrdinal = reader.GetOrdinal("Dosage");
+            var frequencyOrdinal = reader.GetOrdinal("Frequency");
+            var routeOrdinal = reader.GetOrdinal("Route");
+            var indicationOrdinal = reader.GetOrdinal("Indication");
+            var prescribedOrdinal = reader.GetOrdinal("PrescribedBy");
+            var prescriptionOrdinal = reader.GetOrdinal("PrescriptionDate");
+            var startOrdinal = reader.GetOrdinal("StartDate");
+            var endOrdinal = reader.GetOrdinal("EndDate");
+            var statusOrdinal = reader.GetOrdinal("Status");
+            var sideEffectsOrdinal = reader.GetOrdinal("SideEffects");
+            var notesOrdinal = reader.GetOrdinal("Notes");
+            var activeOrdinal = reader.GetOrdinal("IsActive");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PatientMedicationDto
+                {
+                    MedicationId = GetReaderGuid(reader, idOrdinal),
+                    MedicationName = GetReaderString(reader, nameOrdinal),
+                    Dosage = GetReaderString(reader, dosageOrdinal),
+                    Frequency = GetReaderString(reader, frequencyOrdinal),
+                    Route = GetReaderString(reader, routeOrdinal),
+                    Indication = GetReaderString(reader, indicationOrdinal),
+                    PrescribedBy = GetReaderString(reader, prescribedOrdinal),
+                    PrescriptionDate = GetReaderDateTime(reader, prescriptionOrdinal),
+                    StartDate = GetReaderDateTime(reader, startOrdinal),
+                    EndDate = GetReaderNullableDateTime(reader, endOrdinal),
+                    Status = GetReaderString(reader, statusOrdinal),
+                    SideEffects = GetReaderString(reader, sideEffectsOrdinal),
+                    Notes = GetReaderString(reader, notesOrdinal),
+                    IsActive = GetReaderBoolean(reader, activeOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load medications for ID number {IdNumber}.", idNumber);
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientVaccinationDto>> GetPatientVaccinationsAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var items = new List<PatientVaccinationDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientVaccinations", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("VaccinationId");
+            var nameOrdinal = reader.GetOrdinal("VaccineName");
+            var codeOrdinal = reader.GetOrdinal("VaccineCode");
+            var adminDateOrdinal = reader.GetOrdinal("AdministrationDate");
+            var dueDateOrdinal = reader.GetOrdinal("DueDate");
+            var administeredOrdinal = reader.GetOrdinal("AdministeredBy");
+            var lotOrdinal = reader.GetOrdinal("Lot");
+            var siteOrdinal = reader.GetOrdinal("Site");
+            var routeOrdinal = reader.GetOrdinal("Route");
+            var reactionOrdinal = reader.GetOrdinal("Reaction");
+            var statusOrdinal = reader.GetOrdinal("Status");
+            var notesOrdinal = reader.GetOrdinal("Notes");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PatientVaccinationDto
+                {
+                    VaccinationId = GetReaderGuid(reader, idOrdinal),
+                    VaccineName = GetReaderString(reader, nameOrdinal),
+                    VaccineCode = GetReaderString(reader, codeOrdinal),
+                    AdministrationDate = GetReaderDateTime(reader, adminDateOrdinal),
+                    DueDate = GetReaderNullableDateTime(reader, dueDateOrdinal),
+                    AdministeredBy = GetReaderString(reader, administeredOrdinal),
+                    Lot = GetReaderString(reader, lotOrdinal),
+                    Site = GetReaderString(reader, siteOrdinal),
+                    Route = GetReaderString(reader, routeOrdinal),
+                    Reaction = GetReaderString(reader, reactionOrdinal),
+                    Status = GetReaderString(reader, statusOrdinal),
+                    Notes = GetReaderString(reader, notesOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load vaccinations for ID number {IdNumber}.", idNumber);
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientConsultationNoteDto>> GetPatientConsultationNotesAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var items = new List<PatientConsultationNoteDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientConsultationNotes", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("ConsultationNoteId");
+            var appointmentOrdinal = reader.GetOrdinal("AppointmentIdFK");
+            var providerOrdinal = reader.GetOrdinal("ProviderIdFK");
+            var providerNameOrdinal = reader.GetOrdinal("ProviderName");
+            var providerSpecializationOrdinal = reader.GetOrdinal("ProviderSpecialization");
+            var consultDateOrdinal = reader.GetOrdinal("ConsultationDate");
+            var complaintOrdinal = reader.GetOrdinal("ChiefComplaint");
+            var symptomsOrdinal = reader.GetOrdinal("PresentingSymptoms");
+            var historyOrdinal = reader.GetOrdinal("History");
+            var examOrdinal = reader.GetOrdinal("PhysicalExamination");
+            var diagnosisOrdinal = reader.GetOrdinal("Diagnosis");
+            var codesOrdinal = reader.GetOrdinal("DiagnosisCodes");
+            var planOrdinal = reader.GetOrdinal("TreatmentPlan");
+            var medsOrdinal = reader.GetOrdinal("Medications");
+            var proceduresOrdinal = reader.GetOrdinal("Procedures");
+            var followUpOrdinal = reader.GetOrdinal("FollowUpDate");
+            var referralNeededOrdinal = reader.GetOrdinal("ReferralNeeded");
+            var referralReasonOrdinal = reader.GetOrdinal("ReferralReason");
+            var restrictionsOrdinal = reader.GetOrdinal("Restrictions");
+            var notesOrdinal = reader.GetOrdinal("Notes");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PatientConsultationNoteDto
+                {
+                    ConsultationNoteId = GetReaderGuid(reader, idOrdinal),
+                    AppointmentId = GetReaderGuid(reader, appointmentOrdinal),
+                    ProviderId = GetReaderGuid(reader, providerOrdinal),
+                    ProviderName = GetReaderString(reader, providerNameOrdinal),
+                    ProviderSpecialization = GetReaderString(reader, providerSpecializationOrdinal),
+                    ConsultationDate = GetReaderDateTime(reader, consultDateOrdinal),
+                    ChiefComplaint = GetReaderString(reader, complaintOrdinal),
+                    PresentingSymptoms = GetReaderString(reader, symptomsOrdinal),
+                    History = GetReaderString(reader, historyOrdinal),
+                    PhysicalExamination = GetReaderString(reader, examOrdinal),
+                    Diagnosis = GetReaderString(reader, diagnosisOrdinal),
+                    DiagnosisCodes = GetReaderString(reader, codesOrdinal),
+                    TreatmentPlan = GetReaderString(reader, planOrdinal),
+                    Medications = GetReaderString(reader, medsOrdinal),
+                    Procedures = GetReaderString(reader, proceduresOrdinal),
+                    FollowUpDate = GetReaderNullableDateTime(reader, followUpOrdinal),
+                    ReferralNeeded = GetReaderBoolean(reader, referralNeededOrdinal),
+                    ReferralReason = GetReaderString(reader, referralReasonOrdinal),
+                    Restrictions = GetReaderString(reader, restrictionsOrdinal),
+                    Notes = GetReaderString(reader, notesOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load consultation notes for ID number {IdNumber}.", idNumber);
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientReferralDto>> GetPatientReferralsAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var items = new List<PatientReferralDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientReferrals", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("ReferralId");
+            var referringIdOrdinal = reader.GetOrdinal("ReferringProviderIdFK");
+            var referringNameOrdinal = reader.GetOrdinal("ReferringProviderName");
+            var referredIdOrdinal = reader.GetOrdinal("ReferredProviderIdFK");
+            var referredNameOrdinal = reader.GetOrdinal("ReferredProviderName");
+            var referralDateOrdinal = reader.GetOrdinal("ReferralDate");
+            var reasonOrdinal = reader.GetOrdinal("Reason");
+            var priorityOrdinal = reader.GetOrdinal("Priority");
+            var typeOrdinal = reader.GetOrdinal("ReferralType");
+            var specializationOrdinal = reader.GetOrdinal("SpecializationNeeded");
+            var referralCodeOrdinal = reader.GetOrdinal("ReferralCode");
+            var statusOrdinal = reader.GetOrdinal("Status");
+            var acceptanceOrdinal = reader.GetOrdinal("AcceptanceDate");
+            var completionOrdinal = reader.GetOrdinal("CompletionDate");
+            var notesOrdinal = reader.GetOrdinal("Notes");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PatientReferralDto
+                {
+                    ReferralId = GetReaderGuid(reader, idOrdinal),
+                    ReferringProviderId = GetReaderGuid(reader, referringIdOrdinal),
+                    ReferringProviderName = GetReaderString(reader, referringNameOrdinal),
+                    ReferredProviderId = GetReaderNullableGuid(reader, referredIdOrdinal),
+                    ReferredProviderName = GetReaderString(reader, referredNameOrdinal),
+                    ReferralDate = GetReaderDateTime(reader, referralDateOrdinal),
+                    Reason = GetReaderString(reader, reasonOrdinal),
+                    Priority = GetReaderString(reader, priorityOrdinal),
+                    ReferralType = GetReaderString(reader, typeOrdinal),
+                    SpecializationNeeded = GetReaderString(reader, specializationOrdinal),
+                    ReferralCode = GetReaderString(reader, referralCodeOrdinal),
+                    Status = GetReaderString(reader, statusOrdinal),
+                    AcceptanceDate = GetReaderNullableDateTime(reader, acceptanceOrdinal),
+                    CompletionDate = GetReaderNullableDateTime(reader, completionOrdinal),
+                    Notes = GetReaderString(reader, notesOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load referrals for ID number {IdNumber}.", idNumber);
+            return [];
+        }
+    }
+
     private static string ResolveWorklistStatus(string status)
     {
         var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
@@ -466,6 +784,24 @@ public sealed class PatientService : IPatientService
         var value = command.Parameters[parameterName].Value;
         return value == DBNull.Value ? null : (Guid?)value;
     }
+
+    private static string GetReaderString(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? string.Empty : Convert.ToString(reader.GetValue(ordinal)) ?? string.Empty;
+
+    private static Guid GetReaderGuid(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? Guid.Empty : reader.GetGuid(ordinal);
+
+    private static Guid? GetReaderNullableGuid(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? null : reader.GetGuid(ordinal);
+
+    private static DateTime GetReaderDateTime(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? DateTime.MinValue : Convert.ToDateTime(reader.GetValue(ordinal));
+
+    private static DateTime? GetReaderNullableDateTime(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? null : Convert.ToDateTime(reader.GetValue(ordinal));
+
+    private static bool GetReaderBoolean(SqlDataReader reader, int ordinal)
+        => !reader.IsDBNull(ordinal) && Convert.ToBoolean(reader.GetValue(ordinal));
 
     private static DateTime GetDateTimeOutput(SqlCommand command, string parameterName)
     {

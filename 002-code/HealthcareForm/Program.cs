@@ -119,6 +119,8 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IClientDirectoryService, ClientDirectoryService>();
+builder.Services.AddScoped<IFormsService, FormsService>();
 builder.Services.AddScoped<IOperationsService, OperationsService>();
 builder.Services.AddScoped<IRevenueService, RevenueService>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));

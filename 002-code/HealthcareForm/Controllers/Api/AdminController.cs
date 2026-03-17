@@ -31,4 +31,10 @@ public sealed class AdminController : ControllerBase
     [HttpGet("data-governance")]
     public async Task<ActionResult<AdminDataGovernanceSnapshotDto>> GetDataGovernanceSnapshot(CancellationToken cancellationToken)
         => Ok(await _adminService.GetDataGovernanceAsync(cancellationToken));
+
+    [HttpGet("db-errors")]
+    public async Task<ActionResult<AdminDbErrorSnapshotDto>> GetDbErrorsSnapshot(
+        [FromQuery] AdminDbErrorQueryDto? query,
+        CancellationToken cancellationToken)
+        => Ok(await _adminService.GetDbErrorsAsync(query ?? new AdminDbErrorQueryDto(), cancellationToken));
 }

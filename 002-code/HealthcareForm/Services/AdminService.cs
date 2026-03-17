@@ -10,6 +10,8 @@ public sealed class AdminService : IAdminService
     private const int MaxAuditEvents = 500;
     private const int DefaultAuditPageSize = 50;
     private const int MaxAuditPageSize = 200;
+    private const int DefaultDbErrorRows = 200;
+    private const int MaxDbErrorRows = 1000;
 
     private static readonly string[] DefaultRoleColumns =
     [
@@ -347,6 +349,40 @@ public sealed class AdminService : IAdminService
         }
     }
 
+    public async Task<AdminDbErrorSnapshotDto> GetDbErrorsAsync(
+        AdminDbErrorQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedQuery = NormalizeDbErrorQuery(query);
+
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await connection.OpenAsync(cancellationToken);
+
+            var errors = await GetDbErrorSourceRowsAsync(connection, normalizedQuery, cancellationToken);
+
+            return new AdminDbErrorSnapshotDto
+            {
+                MaxRows = normalizedQuery.MaxRows,
+                SinceUtc = normalizedQuery.SinceUtc,
+                TotalCount = errors.Count,
+                Errors = errors
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load admin DB errors snapshot.");
+            return new AdminDbErrorSnapshotDto
+            {
+                MaxRows = normalizedQuery.MaxRows,
+                SinceUtc = normalizedQuery.SinceUtc,
+                TotalCount = 0,
+                Errors = []
+            };
+        }
+    }
+
     private async Task<GovernanceSourceSnapshot> GetDataGovernanceSourceRowsFromProcedureAsync(
         SqlConnection connection,
         CancellationToken cancellationToken)
@@ -426,6 +462,77 @@ public sealed class AdminService : IAdminService
         {
             TemplateItems = templateItems,
             LookupItems = lookupItems
+        };
+    }
+
+    private async Task<IReadOnlyList<AdminDbErrorDto>> GetDbErrorSourceRowsAsync(
+        SqlConnection connection,
+        DbErrorQueryNormalized query,
+        CancellationToken cancellationToken)
+    {
+        var errors = new List<AdminDbErrorDto>();
+
+        await using var command = new SqlCommand("Auth.spGetAdminDbErrorsSourceRows", connection)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        command.Parameters.Add(new SqlParameter("@MaxRows", query.MaxRows));
+        command.Parameters.Add(new SqlParameter("@SinceDate", SqlDbType.DateTime)
+        {
+            Value = (object?)query.SinceUtc ?? DBNull.Value
+        });
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        var idOrdinal = reader.GetOrdinal("ErrorID");
+        var userOrdinal = reader.GetOrdinal("UserName");
+        var schemaOrdinal = reader.GetOrdinal("ErrorSchema");
+        var procedureOrdinal = reader.GetOrdinal("ErrorProcedure");
+        var numberOrdinal = reader.GetOrdinal("ErrorNumber");
+        var stateOrdinal = reader.GetOrdinal("ErrorState");
+        var severityOrdinal = reader.GetOrdinal("ErrorSeverity");
+        var lineOrdinal = reader.GetOrdinal("ErrorLine");
+        var messageOrdinal = reader.GetOrdinal("ErrorMessage");
+        var dateOrdinal = reader.GetOrdinal("ErrorDateTime");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            errors.Add(new AdminDbErrorDto
+            {
+                ErrorId = GetInt32(reader, idOrdinal),
+                UserName = GetString(reader, userOrdinal),
+                ErrorSchema = GetString(reader, schemaOrdinal),
+                ErrorProcedure = GetString(reader, procedureOrdinal),
+                ErrorNumber = GetNullableInt32(reader, numberOrdinal),
+                ErrorState = GetNullableInt32(reader, stateOrdinal),
+                ErrorSeverity = GetNullableInt32(reader, severityOrdinal),
+                ErrorLine = GetNullableInt32(reader, lineOrdinal),
+                ErrorMessage = GetString(reader, messageOrdinal),
+                ErrorDateTime = GetNullableDateTime(reader, dateOrdinal)
+            });
+        }
+
+        return errors;
+    }
+
+    private DbErrorQueryNormalized NormalizeDbErrorQuery(AdminDbErrorQueryDto query)
+    {
+        var maxRows = query.MaxRows ?? DefaultDbErrorRows;
+        if (maxRows < 1)
+        {
+            maxRows = DefaultDbErrorRows;
+        }
+
+        if (maxRows > MaxDbErrorRows)
+        {
+            maxRows = MaxDbErrorRows;
+        }
+
+        return new DbErrorQueryNormalized
+        {
+            MaxRows = maxRows,
+            SinceUtc = query.SinceUtc.HasValue ? ToUtc(query.SinceUtc.Value) : null
         };
     }
 
@@ -1186,6 +1293,16 @@ ORDER BY AL.ModifiedTime DESC;",
         return Convert.ToInt32(reader.GetValue(ordinal));
     }
 
+    private static int? GetNullableInt32(SqlDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+        {
+            return null;
+        }
+
+        return Convert.ToInt32(reader.GetValue(ordinal));
+    }
+
     private static bool GetBoolean(SqlDataReader reader, int ordinal)
     {
         if (reader.IsDBNull(ordinal))
@@ -1224,6 +1341,12 @@ ORDER BY AL.ModifiedTime DESC;",
             DateTimeKind.Local => value.ToUniversalTime(),
             _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
         };
+    }
+
+    private sealed class DbErrorQueryNormalized
+    {
+        public int MaxRows { get; init; }
+        public DateTime? SinceUtc { get; init; }
     }
 
     private sealed class AuditLogQueryNormalized
