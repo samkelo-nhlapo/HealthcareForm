@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Ensures each patient ends up with exactly one primary phone row.
+-- The trigger also self-heals after deletes or conflicting updates by promoting the best remaining row.
 CREATE OR ALTER TRIGGER [Contacts].[tr_EnforceSinglePrimaryPatientPhone]
 ON [Contacts].[PatientPhones]
 AFTER INSERT, UPDATE, DELETE
@@ -22,6 +24,7 @@ BEGIN
     ),
     PrimaryRows AS
     (
+        -- Rank the preferred survivor first so the final update can collapse multiple edge cases in one pass.
         SELECT
             PP.PatientPhoneId,
             PP.PatientIdFK,

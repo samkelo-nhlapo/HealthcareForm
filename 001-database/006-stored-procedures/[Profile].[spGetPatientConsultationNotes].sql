@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns consultation notes for the patient identified by ID number.
+-- Provider details are denormalized here so the API can bind the notes in one pass.
 CREATE OR ALTER PROC [Profile].[spGetPatientConsultationNotes]
 (
     @IDNumber VARCHAR(250)

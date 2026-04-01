@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns raw audit events for the admin audit-log experience.
+-- The proc combines user-activity and table-audit streams into one flat event feed.
 CREATE OR ALTER PROC [Auth].[spGetAdminAuditEventSourceRows]
 (
     @MaxRows INT = 500
@@ -19,6 +21,7 @@ BEGIN
         SET @MaxRows = 500;
     END
 
+    -- UserActivityAudit gives the higher-fidelity application events.
     ;WITH UserActivityEvents AS
     (
         SELECT TOP (@MaxRows)
@@ -58,6 +61,7 @@ BEGIN
         ) RolePick
         ORDER BY UAA.ActivityDateTime DESC
     ),
+    -- Auth.AuditLog fills in table-level changes that did not flow through UserActivityAudit.
     TableAuditEvents AS
     (
         SELECT TOP (@MaxRows)
@@ -115,6 +119,7 @@ BEGIN
         ) ActorRolePick
         ORDER BY AL.ModifiedTime DESC
     )
+    -- Keep the union output column order stable because the API reads this as a single feed.
     SELECT
         OccurredAtUtc,
         Actor,

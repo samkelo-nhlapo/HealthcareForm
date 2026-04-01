@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Creates a patient plus the supporting address, email, phone, and emergency-contact rows.
+-- Output values are shaped for the API command-result contract.
 CREATE OR ALTER PROC [Profile].[spAddPatient]
 (
     @FirstName VARCHAR(250) = '',
@@ -154,6 +156,8 @@ BEGIN
     END
 
     BEGIN TRY
+        -- Hold the duplicate check and inserts in one serializable transaction so
+        -- concurrent requests cannot create the same active patient twice.
         SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
         BEGIN TRAN;
 
@@ -176,6 +180,8 @@ BEGIN
             SUBSTRING(@NormalizedEmergencyPhone, 4, 3) + '-' +
             SUBSTRING(@NormalizedEmergencyPhone, 7, 4);
 
+        -- Reuse shared contact master rows when they already exist; patient-specific
+        -- ownership is tracked by the junction tables inserted later in the proc.
         SELECT @EmailIDFK = E.EmailId
         FROM Contacts.Emails E WITH (UPDLOCK, HOLDLOCK)
         WHERE E.Email = @Email;

@@ -6,11 +6,14 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- Returns three result sets in a fixed order for the admin access-control screen.
+-- 1. Active non-patient roles. 2. User rows with active role assignments. 3. Permission-to-role mappings.
 CREATE OR ALTER PROC [Auth].[spGetAdminAccessControlSnapshot]
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Result set 1: role columns used to build the matrix header.
     SELECT
         R.RoleName
     FROM Auth.Roles R
@@ -28,6 +31,7 @@ BEGIN
         END,
         R.RoleName;
 
+    -- Result set 2: users with their currently active roles.
     SELECT
         U.UserId,
         U.Username,
@@ -50,6 +54,7 @@ BEGIN
        AND R.IsActive = 1
     ORDER BY U.Username;
 
+    -- Result set 3: permissions expanded to the roles that currently grant them.
     SELECT
         P.PermissionName,
         P.Module,

@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Soft-deletes a client department once it is no longer referenced by active staff.
 CREATE OR ALTER PROC [Profile].[spDeleteClientDepartment]
 (
     @ClientDepartmentId UNIQUEIDENTIFIER,
@@ -53,6 +54,7 @@ BEGIN
     END
 
     DECLARE @HasAssignedStaff BIT = 0;
+    -- Older environments may not have the staff-to-department link yet, so guard the check first.
     IF COL_LENGTH('Profile.ClientStaff', 'PrimaryDepartmentIdFK') IS NOT NULL
     BEGIN
         DECLARE @CheckSql NVARCHAR(MAX) = N'

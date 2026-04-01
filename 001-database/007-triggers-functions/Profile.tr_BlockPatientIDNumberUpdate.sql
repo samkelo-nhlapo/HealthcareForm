@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Keeps patient ID numbers immutable after insert because they behave like a business identity key.
 CREATE OR ALTER TRIGGER [Profile].[tr_BlockPatientIDNumberUpdate]
 ON [Profile].[Patient]
 AFTER UPDATE

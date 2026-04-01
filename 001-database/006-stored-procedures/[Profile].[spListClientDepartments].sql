@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns a paged department list for one client or across all clients.
+-- The join to clients keeps enough context in the row for directory-style UI screens.
 CREATE OR ALTER PROC [Profile].[spListClientDepartments]
 (
     @ClientIdFK UNIQUEIDENTIFIER = NULL,
@@ -89,6 +91,7 @@ BEGIN
                 ROW_NUMBER() OVER (ORDER BY B.DepartmentName ASC, B.ClientDepartmentId ASC) AS RowNum
             FROM Base B
         )
+        -- Materialize the filtered set once so the page slice and total count stay in sync.
         SELECT
             ClientDepartmentId,
             ClientIdFK,

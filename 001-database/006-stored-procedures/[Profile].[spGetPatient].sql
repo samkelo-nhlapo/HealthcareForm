@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Loads one patient by PatientId or ID number.
+-- The row is returned through output parameters because the API still consumes that shape.
 CREATE OR ALTER PROC [Profile].[spGetPatient]
 (
     @PatientId UNIQUEIDENTIFIER = NULL,
@@ -116,6 +118,7 @@ BEGIN
             LEFT JOIN Location.Provinces AS LP ON LC.ProvinceIDFK = LP.ProvinceId
             LEFT JOIN Location.Countries AS LCO ON LP.CountryIDFK = LCO.CountryId
             LEFT JOIN Contacts.EmergencyContacts AS CEC ON PP.EmergencyIDFK = CEC.EmergencyId
+            -- Pick the most relevant patient email/phone without introducing extra result sets.
             OUTER APPLY
             (
                 SELECT TOP (1) PE.EmailIdFK

@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns file attachments for a single form submission, newest first.
 CREATE OR ALTER PROC [Contacts].[spGetFormAttachments]
 (
     @FormSubmissionId UNIQUEIDENTIFIER

@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Looks up one auth user by username or email.
+-- Used by the login flow before password verification and role loading.
 CREATE OR ALTER PROC [Auth].[spGetUserByPrincipal]
 (
     @Principal VARCHAR(250)

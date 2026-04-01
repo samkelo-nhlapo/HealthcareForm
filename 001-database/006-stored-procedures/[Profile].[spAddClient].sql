@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Creates a client record and optionally links it to a patient, address, and clinic category.
+-- Validation and return codes stay aligned with the rest of the profile CRUD procedures.
 CREATE OR ALTER PROC [Profile].[spAddClient]
 (
     @ClientCode VARCHAR(50),
@@ -104,6 +106,7 @@ BEGIN
         RETURN;
     END
 
+    -- Keep the stored phone shape consistent with the contact-side formatting rules.
     SET @NormalizedPhone = LTRIM(RTRIM(ISNULL(@PhoneNumber, '')));
     IF @NormalizedPhone <> ''
     BEGIN

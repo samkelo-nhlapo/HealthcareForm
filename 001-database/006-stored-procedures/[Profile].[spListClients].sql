@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns a paged client roster with category and address details already joined in.
+-- The result shape is designed for admin-style list screens that also need total counts.
 CREATE OR ALTER PROC [Profile].[spListClients]
 (
     @SearchTerm VARCHAR(250) = '',
@@ -94,6 +96,7 @@ BEGIN
                 ROW_NUMBER() OVER (ORDER BY B.LastName ASC, B.FirstName ASC, B.ClientId ASC) AS RowNum
             FROM Base B
         )
+        -- Materialize the filtered set once so the page slice and total count stay in sync.
         SELECT
             ClientId,
             PatientIdFK,

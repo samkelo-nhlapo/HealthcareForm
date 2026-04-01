@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Loads one client by ID or client code.
+-- Optional deleted-row access makes this useful for both active screens and admin review.
 CREATE OR ALTER PROC [Profile].[spGetClient]
 (
     @ClientId UNIQUEIDENTIFIER = NULL,

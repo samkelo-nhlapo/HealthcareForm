@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Updates the patient row and refreshes the linked address/contact records in one transaction.
+-- Validation intentionally stays aligned with spAddPatient so create and update enforce the same rules.
 CREATE OR ALTER PROC [Profile].[spUpdatePatient]
 (
     @FirstName VARCHAR(250) = '',
@@ -228,6 +230,8 @@ BEGIN
             WHERE EmergencyId = @EmergencyId;
         END
 
+        -- Reuse shared contact master rows when possible, then move the patient's
+        -- primary junction-table links to the selected email and phone records.
         SELECT @EmailId = E.EmailId FROM Contacts.Emails E WHERE E.Email = @Email;
         IF @EmailId IS NULL
         BEGIN

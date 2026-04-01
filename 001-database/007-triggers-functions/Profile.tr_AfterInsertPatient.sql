@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Writes a patient snapshot to the audit log whenever a patient row is inserted.
 CREATE OR ALTER TRIGGER [Profile].[tr_AfterInsertPatient]
 ON [Profile].[Patient]
 AFTER INSERT

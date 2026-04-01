@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Soft-deletes a client by ID or client code.
+-- The record remains in place for auditability and can still be reported when needed.
 CREATE OR ALTER PROC [Profile].[spDeleteClient]
 (
     @ClientId UNIQUEIDENTIFIER = NULL,

@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Soft-deletes a patient by ID number.
+-- Related records stay in place; the proc reports outcome through @Message.
 CREATE OR ALTER PROC [Profile].[spDeletePatient]
 (
     @IDNumber VARCHAR(250) = '',

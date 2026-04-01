@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Updates a client-staff row and preserves the single-primary-contact rule when requested.
 CREATE OR ALTER PROC [Profile].[spUpdateClientStaff]
 (
     @ClientStaffId UNIQUEIDENTIFIER,
@@ -218,6 +219,7 @@ BEGIN
         WHERE ClientStaffId = @ClientStaffId
           AND IsDeleted = 0;
 
+        -- Normalize the rest of the staff rows so only one primary contact remains for the client.
         IF @IsPrimaryContact = 1
         BEGIN
             UPDATE Profile.ClientStaff

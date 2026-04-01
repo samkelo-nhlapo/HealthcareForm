@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Persists failed-login counters and an optional lockout timestamp.
 CREATE OR ALTER PROC [Auth].[spRegisterFailedLoginAttempt]
 (
     @UserId UNIQUEIDENTIFIER,

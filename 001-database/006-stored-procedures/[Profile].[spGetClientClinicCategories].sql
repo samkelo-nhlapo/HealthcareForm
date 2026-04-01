@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns the client clinic-category lookup used to classify clients by clinic profile.
 CREATE OR ALTER PROC [Profile].[spGetClientClinicCategories]
 (
     @ClientClinicCategoryId INT = 0,

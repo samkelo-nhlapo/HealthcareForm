@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns the captured field-value rows for a single form submission.
 CREATE OR ALTER PROC [Contacts].[spGetFormFieldValues]
 (
     @FormSubmissionId UNIQUEIDENTIFIER
@@ -29,6 +30,7 @@ BEGIN
         F.UpdatedBy
     FROM Contacts.FormFieldValues F
     WHERE F.FormSubmissionIdFK = @FormSubmissionId
+    -- Display order comes first; newest edits break ties when display order is missing.
     ORDER BY
         CASE WHEN F.DisplayOrder IS NULL THEN 1 ELSE 0 END,
         F.DisplayOrder ASC,

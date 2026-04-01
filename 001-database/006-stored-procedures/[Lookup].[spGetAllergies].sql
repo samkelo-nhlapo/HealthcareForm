@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns allergy lookup rows for search boxes and admin maintenance screens.
 CREATE OR ALTER PROC [Lookup].[spGetAllergies]
 (
     @SearchTerm VARCHAR(250) = '',

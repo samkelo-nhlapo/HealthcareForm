@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns recent database errors for the admin diagnostics view.
+-- Supports a bounded row count and an optional lower-bound timestamp filter.
 CREATE OR ALTER PROC [Auth].[spGetAdminDbErrorsSourceRows]
 (
     @MaxRows INT = 200,

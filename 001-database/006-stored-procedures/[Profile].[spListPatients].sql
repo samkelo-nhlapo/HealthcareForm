@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns a paged patient directory with preferred contact and location data already flattened.
+-- This is the broader legacy list proc; the API worklist proc handles the richer clinical dashboard view.
 CREATE OR ALTER PROC [Profile].[spListPatients]
 (
     @SearchTerm VARCHAR(250) = '',
@@ -73,6 +75,7 @@ BEGIN
             LEFT JOIN Location.Cities LC ON LC.CityId = LA.CityIDFK
             LEFT JOIN Location.Provinces LP ON LP.ProvinceId = LC.ProvinceIDFK
             LEFT JOIN Location.Countries LCO ON LCO.CountryId = LP.CountryIDFK
+            -- Pick one preferred email row per patient so the result stays one row per patient.
             OUTER APPLY
             (
                 SELECT TOP (1) PE.EmailIdFK
@@ -81,6 +84,7 @@ BEGIN
                 ORDER BY PE.IsPrimary DESC, PE.CreatedDate DESC
             ) PE1
             LEFT JOIN Contacts.Emails CE ON CE.EmailId = PE1.EmailIdFK
+            -- Pick one preferred phone row per patient for the same reason.
             OUTER APPLY
             (
                 SELECT TOP (1) PP.PhoneIdFK
@@ -112,6 +116,7 @@ BEGIN
                 ROW_NUMBER() OVER (ORDER BY PB.LastName ASC, PB.FirstName ASC, PB.PatientId ASC) AS RowNum
             FROM PatientBase PB
         )
+        -- Materialize the filtered set once so the page slice and total count stay in sync.
         SELECT
             PatientId,
             FirstName,

@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Smoke/UAT harness for the patient CRUD stored procedures.
+-- By default it runs inside a transaction and rolls everything back at the end.
 SET NOCOUNT ON;
 
 DECLARE @RunInTransaction BIT = 1;

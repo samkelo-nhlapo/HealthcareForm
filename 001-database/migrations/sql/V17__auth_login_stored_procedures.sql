@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- Looks up one auth user by username or email.
+-- Used by the login flow before password verification and role loading.
 CREATE OR ALTER PROC [Auth].[spGetUserByPrincipal]
 (
     @Principal VARCHAR(250)
@@ -31,6 +33,7 @@ BEGIN
 END
 GO
 
+-- Returns the user's active, non-expired roles for token creation and authorization checks.
 CREATE OR ALTER PROC [Auth].[spGetUserActiveRoles]
 (
     @UserId UNIQUEIDENTIFIER
@@ -50,6 +53,7 @@ BEGIN
 END
 GO
 
+-- Persists failed-login counters and an optional lockout timestamp.
 CREATE OR ALTER PROC [Auth].[spRegisterFailedLoginAttempt]
 (
     @UserId UNIQUEIDENTIFIER,
@@ -70,6 +74,7 @@ BEGIN
 END
 GO
 
+-- Resets failure counters and records the last successful login timestamp.
 CREATE OR ALTER PROC [Auth].[spRegisterSuccessfulLogin]
 (
     @UserId UNIQUEIDENTIFIER,

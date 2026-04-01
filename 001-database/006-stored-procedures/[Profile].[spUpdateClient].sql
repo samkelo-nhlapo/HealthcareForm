@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Updates a client row in place while preserving the same validation rules used on create.
+-- The proc also keeps optional patient, address, and clinic-category links in sync.
 CREATE OR ALTER PROC [Profile].[spUpdateClient]
 (
     @ClientId UNIQUEIDENTIFIER,
@@ -111,6 +113,7 @@ BEGIN
         RETURN;
     END
 
+    -- Keep the stored phone shape consistent with the contact-side formatting rules.
     SET @NormalizedPhone = LTRIM(RTRIM(ISNULL(@PhoneNumber, '')));
     IF @NormalizedPhone <> ''
     BEGIN

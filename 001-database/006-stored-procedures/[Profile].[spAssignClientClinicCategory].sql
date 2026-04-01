@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Reassigns an existing client to an active clinic category.
+-- The client can be targeted by either its primary key or business code.
 CREATE OR ALTER PROC [Profile].[spAssignClientClinicCategory]
 (
     @ClientId UNIQUEIDENTIFIER = NULL,

@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Normalizes local 10-digit phone numbers into the shared xxx-xxx-xxxx format.
+-- Returning NULL lets callers and triggers fail fast on invalid input.
 CREATE OR ALTER FUNCTION [Contacts].[FormatPhoneNumber]
 (
     @PhoneNumber VARCHAR(25)

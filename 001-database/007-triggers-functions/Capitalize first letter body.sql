@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Sentence-style capitalization helper for longer free-text bodies.
+-- Unlike the title-case helper, it avoids capitalizing after spaces so the output stays softer.
 CREATE OR ALTER FUNCTION [dbo].[CapitalizeFirstLetterBody]
 (
     @InputString VARCHAR(MAX)

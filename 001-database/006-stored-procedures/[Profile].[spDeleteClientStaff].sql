@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Soft-deletes a client-staff row by ID or staff code.
+-- Deleting also clears the primary-contact flag so the client can promote another contact later.
 CREATE OR ALTER PROC [Profile].[spDeleteClientStaff]
 (
     @ClientStaffId UNIQUEIDENTIFIER = NULL,

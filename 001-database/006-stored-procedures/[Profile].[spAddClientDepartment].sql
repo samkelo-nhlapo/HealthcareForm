@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Adds a department under a client and keeps department names unique within that client.
 CREATE OR ALTER PROC [Profile].[spAddClientDepartment]
 (
     @ClientIdFK UNIQUEIDENTIFIER,

@@ -1,6 +1,8 @@
 USE HealthcareForm
 GO
 
+-- Lightweight province lookup shaped for older dropdown-binding code paths.
+-- IDs are returned as strings because some consumers still bind everything as text.
 CREATE OR ALTER PROC [Location].[spGetProvinces]
 (
     @ProvinceId INT = 0,

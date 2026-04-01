@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- Returns invoice rows for the revenue claims board.
+-- The join picks the most relevant active insurance row per patient before resolving payer details.
 CREATE OR ALTER PROC [Profile].[spGetRevenueClaimsSourceRows]
 (
     @MaxRows INT = 400
@@ -37,6 +39,7 @@ BEGIN
     FROM Profile.Invoices I
     INNER JOIN Profile.Patient P
         ON P.PatientId = I.PatientIdFK
+    -- Prefer the current primary insurance row and fall back to the most recently updated active row.
     LEFT JOIN
     (
         SELECT

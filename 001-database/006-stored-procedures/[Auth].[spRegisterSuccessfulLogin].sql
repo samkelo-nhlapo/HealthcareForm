@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Resets failure counters and records the last successful login timestamp.
 CREATE OR ALTER PROC [Auth].[spRegisterSuccessfulLogin]
 (
     @UserId UNIQUEIDENTIFIER,

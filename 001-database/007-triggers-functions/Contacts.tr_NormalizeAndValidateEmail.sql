@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Keeps stored email values trimmed and lower-cased, and rejects malformed input early.
 CREATE OR ALTER TRIGGER [Contacts].[tr_NormalizeAndValidateEmail]
 ON [Contacts].[Emails]
 AFTER INSERT, UPDATE
@@ -14,6 +15,7 @@ BEGIN
 
     SET NOCOUNT ON;
 
+    -- Normalize once into a table variable so validation and the final update read from the same values.
     DECLARE @Normalized TABLE
     (
         EmailId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,

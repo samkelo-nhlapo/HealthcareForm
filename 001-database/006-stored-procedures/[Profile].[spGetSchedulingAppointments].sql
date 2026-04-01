@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns appointments inside a requested scheduling window.
+-- The API layers clinic normalization and capacity calculations on top of the raw rows.
 CREATE OR ALTER PROC [Profile].[spGetSchedulingAppointments]
 (
     @WindowStart DATETIME = NULL,
@@ -15,6 +17,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Default to a same-day window because the dashboard is optimized for today's load.
     IF @WindowStart IS NULL
     BEGIN
         SET @WindowStart = CAST(GETDATE() AS DATE);

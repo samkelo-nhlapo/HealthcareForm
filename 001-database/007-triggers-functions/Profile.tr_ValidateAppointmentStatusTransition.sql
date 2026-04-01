@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Guards the small appointment-status state machine directly at the table boundary.
 CREATE OR ALTER TRIGGER [Profile].[tr_ValidateAppointmentStatusTransition]
 ON [Profile].[Appointments]
 AFTER UPDATE

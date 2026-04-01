@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Title-cases words after common separators while leaving apostrophe handling predictable.
 CREATE OR ALTER FUNCTION [dbo].[CapitalizeFirstLetter]
 (
     @InputString VARCHAR(MAX)
@@ -26,6 +27,7 @@ BEGIN
                              ELSE SUBSTRING(@InputString, @Index - 1, 1)
                         END;
 
+        -- Promote the next character after common separators; skip apostrophes so names like O'Brien stay natural.
         IF @PrevChar IN (' ', ';', ':', '!', '?', ',', '.', '_', '-', '/', '&', '''', '(')
         BEGIN
             IF @PrevChar <> ''''

@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- Returns a blended operational queue built from appointments, lab results, and billing work.
+-- Each queue branch emits the same columns so the API can apply one ranking pipeline on top.
 CREATE OR ALTER PROC [Profile].[spGetTaskQueueSourceRows]
 (
     @MaxRows INT = 300
@@ -19,6 +21,7 @@ BEGIN
         SET @MaxRows = 300;
     END
 
+    -- Appointment-driven work tends to represent near-term clinical follow-ups.
     ;WITH AppointmentQueue AS
     (
         SELECT TOP (@MaxRows)
@@ -105,6 +108,7 @@ BEGIN
           AND A.AppointmentDateTime >= DATEADD(DAY, -2, GETDATE())
         ORDER BY A.AppointmentDateTime ASC, COALESCE(A.UpdatedDate, A.CreatedDate) DESC
     ),
+    -- Lab rows surface review work that may not appear in the appointment stream.
     LabQueue AS
     (
         SELECT TOP (@MaxRows)
@@ -156,6 +160,7 @@ BEGIN
           AND COALESCE(LR.ResultDate, LR.CollectionDate, LR.CreatedDate) >= DATEADD(DAY, -21, GETDATE())
         ORDER BY COALESCE(LR.ResultDate, LR.CollectionDate, LR.CreatedDate) DESC
     ),
+    -- Billing rows let the same task board surface claim follow-up alongside care tasks.
     BillingQueue AS
     (
         SELECT TOP (@MaxRows)
@@ -209,6 +214,7 @@ BEGIN
         WHERE P.IsDeleted = 0
         ORDER BY COALESCE(I.DueDate, I.InvoiceDate) ASC, COALESCE(I.UpdatedDate, I.InvoiceDate) DESC
     )
+    -- Keep the union shape stable because the API sorts and scores these rows generically.
     SELECT TaskId, Title, Team, Owner, Patient, IdNumber, SourceStatus, DueAt, StartedAt, SlaMinutes
     FROM AppointmentQueue
     UNION ALL

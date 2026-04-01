@@ -34,6 +34,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Title-cases words after common separators while leaving apostrophe handling predictable.
 CREATE OR ALTER FUNCTION [dbo].[CapitalizeFirstLetter]
 (
     @InputString VARCHAR(MAX)
@@ -59,6 +60,7 @@ BEGIN
                              ELSE SUBSTRING(@InputString, @Index - 1, 1)
                         END;
 
+        -- Promote the next character after common separators; skip apostrophes so names like O'Brien stay natural.
         IF @PrevChar IN (' ', ';', ':', '!', '?', ',', '.', '_', '-', '/', '&', '''', '(')
         BEGIN
             IF @PrevChar <> ''''
@@ -78,6 +80,8 @@ GO
 USE HealthcareForm
 GO
 
+-- Sentence-style capitalization helper for longer free-text bodies.
+-- Unlike the title-case helper, it avoids capitalizing after spaces so the output stays softer.
 CREATE OR ALTER FUNCTION [dbo].[CapitalizeFirstLetterBody]
 (
     @InputString VARCHAR(MAX)
@@ -122,6 +126,8 @@ GO
 USE HealthcareForm
 GO
 
+-- Normalizes local 10-digit phone numbers into the shared xxx-xxx-xxxx format.
+-- Returning NULL lets callers and triggers fail fast on invalid input.
 CREATE OR ALTER FUNCTION [Contacts].[FormatPhoneNumber]
 (
     @PhoneNumber VARCHAR(25)
@@ -156,6 +162,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Keeps stored email values trimmed and lower-cased, and rejects malformed input early.
 CREATE OR ALTER TRIGGER [Contacts].[tr_NormalizeAndValidateEmail]
 ON [Contacts].[Emails]
 AFTER INSERT, UPDATE
@@ -169,6 +176,7 @@ BEGIN
 
     SET NOCOUNT ON;
 
+    -- Normalize once into a table variable so validation and the final update read from the same values.
     DECLARE @Normalized TABLE
     (
         EmailId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
@@ -212,6 +220,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Keeps stored phone values in the shared display format and rolls back invalid writes.
 CREATE OR ALTER TRIGGER [Contacts].[tr_NormalizeAndValidatePhoneNumber]
 ON [Contacts].[Phones]
 AFTER INSERT, UPDATE
@@ -225,6 +234,7 @@ BEGIN
 
     SET NOCOUNT ON;
 
+    -- Normalize once into a table variable so validation and the final update read from the same values.
     DECLARE @Normalized TABLE
     (
         PhoneId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
@@ -266,6 +276,8 @@ GO
 USE HealthcareForm
 GO
 
+-- Ensures each patient ends up with exactly one primary email row.
+-- The trigger also self-heals after deletes or conflicting updates by promoting the best remaining row.
 CREATE OR ALTER TRIGGER [Contacts].[tr_EnforceSinglePrimaryPatientEmail]
 ON [Contacts].[PatientEmails]
 AFTER INSERT, UPDATE, DELETE
@@ -287,6 +299,7 @@ BEGIN
     ),
     PrimaryRows AS
     (
+        -- Rank the preferred survivor first so the final update can collapse multiple edge cases in one pass.
         SELECT
             PE.PatientEmailId,
             PE.PatientIdFK,
@@ -323,6 +336,8 @@ GO
 USE HealthcareForm
 GO
 
+-- Ensures each patient ends up with exactly one primary phone row.
+-- The trigger also self-heals after deletes or conflicting updates by promoting the best remaining row.
 CREATE OR ALTER TRIGGER [Contacts].[tr_EnforceSinglePrimaryPatientPhone]
 ON [Contacts].[PatientPhones]
 AFTER INSERT, UPDATE, DELETE
@@ -344,6 +359,7 @@ BEGIN
     ),
     PrimaryRows AS
     (
+        -- Rank the preferred survivor first so the final update can collapse multiple edge cases in one pass.
         SELECT
             PP.PatientPhoneId,
             PP.PatientIdFK,
@@ -385,6 +401,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Writes a patient snapshot to the audit log whenever a patient row is inserted.
 CREATE OR ALTER TRIGGER [Profile].[tr_AfterInsertPatient]
 ON [Profile].[Patient]
 AFTER INSERT
@@ -446,6 +463,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Writes old/new patient snapshots to the audit log whenever tracked patient values change.
 CREATE OR ALTER TRIGGER [Profile].[tr_AUpdatePatient]
 ON [Profile].[Patient]
 AFTER UPDATE
@@ -458,6 +476,7 @@ BEGIN
 
     ;WITH ChangedRows AS
     (
+        -- Filter out rows where nothing we care about actually changed so the audit log stays useful.
         SELECT I.*, D.PatientId AS DPatientId,
                D.FirstName AS DFirstName,
                D.LastName AS DLastName,
@@ -567,6 +586,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Blocks hard deletes on patients and records the attempted delete in the audit log.
 CREATE OR ALTER TRIGGER [Profile].[tr_ADeletePatient]
 ON [Profile].[Patient]
 INSTEAD OF DELETE
@@ -632,6 +652,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Keeps patient ID numbers immutable after insert because they behave like a business identity key.
 CREATE OR ALTER TRIGGER [Profile].[tr_BlockPatientIDNumberUpdate]
 ON [Profile].[Patient]
 AFTER UPDATE
@@ -663,6 +684,7 @@ GO
 USE HealthcareForm
 GO
 
+-- Guards the small appointment-status state machine directly at the table boundary.
 CREATE OR ALTER TRIGGER [Profile].[tr_ValidateAppointmentStatusTransition]
 ON [Profile].[Appointments]
 AFTER UPDATE

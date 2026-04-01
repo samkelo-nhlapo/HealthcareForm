@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns referral rows for the patient identified by ID number.
+-- Both referring and destination provider names are flattened into the output for the API.
 CREATE OR ALTER PROC [Profile].[spGetPatientReferrals]
 (
     @IDNumber VARCHAR(250)

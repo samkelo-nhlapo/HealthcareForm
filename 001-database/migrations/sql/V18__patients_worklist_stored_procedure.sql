@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- Returns a flat patient worklist feed for the clinical dashboard.
+-- SQL handles the latest-appointment and medical-summary joins so the API can stay presentation-focused.
 CREATE OR ALTER PROC [Profile].[spGetPatientWorklistSourceRows]
 (
     @MaxRows INT = 250
@@ -24,6 +26,8 @@ BEGIN
         SET @MaxRows = 1000;
     END
 
+    -- Keep only the most recent appointment per patient so the worklist reflects
+    -- the latest operational touchpoint instead of every historical booking.
     ;WITH LatestAppointmentPerPatient AS
     (
         SELECT
@@ -44,6 +48,7 @@ BEGIN
         LEFT JOIN Profile.HealthcareProviders HP
             ON HP.ProviderId = A.ProviderIdFK
     ),
+    -- Roll up active and chronic-condition counts once per patient for the risk label.
     MedicalSummary AS
     (
         SELECT

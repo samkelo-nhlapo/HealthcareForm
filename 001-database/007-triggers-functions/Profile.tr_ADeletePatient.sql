@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Blocks hard deletes on patients and records the attempted delete in the audit log.
 CREATE OR ALTER TRIGGER [Profile].[tr_ADeletePatient]
 ON [Profile].[Patient]
 INSTEAD OF DELETE

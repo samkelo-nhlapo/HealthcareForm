@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Keeps stored phone values in the shared display format and rolls back invalid writes.
 CREATE OR ALTER TRIGGER [Contacts].[tr_NormalizeAndValidatePhoneNumber]
 ON [Contacts].[Phones]
 AFTER INSERT, UPDATE
@@ -14,6 +15,7 @@ BEGIN
 
     SET NOCOUNT ON;
 
+    -- Normalize once into a table variable so validation and the final update read from the same values.
     DECLARE @Normalized TABLE
     (
         PhoneId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,

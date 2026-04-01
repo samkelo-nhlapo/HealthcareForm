@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns the user's active, non-expired roles for token creation and authorization checks.
 CREATE OR ALTER PROC [Auth].[spGetUserActiveRoles]
 (
     @UserId UNIQUEIDENTIFIER

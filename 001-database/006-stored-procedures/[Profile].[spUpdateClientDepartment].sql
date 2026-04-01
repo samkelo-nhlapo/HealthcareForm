@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Updates one client department while preserving per-client name uniqueness.
 CREATE OR ALTER PROC [Profile].[spUpdateClientDepartment]
 (
     @ClientDepartmentId UNIQUEIDENTIFIER,

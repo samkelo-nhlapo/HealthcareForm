@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Adds a staff member for a client and optionally links the row to auth, provider, and department records.
 CREATE OR ALTER PROC [Profile].[spAddClientStaff]
 (
     @ClientIdFK UNIQUEIDENTIFIER,
@@ -203,6 +204,7 @@ BEGIN
             @Now, COALESCE(NULLIF(@CreatedBy, ''), SUSER_SNAME()), @Now, COALESCE(NULLIF(@CreatedBy, ''), SUSER_SNAME())
         );
 
+        -- Normalize the rest of the staff rows so only one primary contact remains for the client.
         IF @IsPrimaryContact = 1
         BEGIN
             UPDATE Profile.ClientStaff

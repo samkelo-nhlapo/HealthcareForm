@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Lightweight country lookup shaped for older dropdown-binding code paths.
+-- IDs are returned as strings because some consumers still bind everything as text.
 CREATE OR ALTER PROC [Location].[spGetCountries]
 (
     @CountryId INT = 0,

@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns vaccination rows for the patient identified by ID number.
+-- Output stays close to the table shape because the API performs only light mapping.
 CREATE OR ALTER PROC [Profile].[spGetPatientVaccinations]
 (
     @IDNumber VARCHAR(250)

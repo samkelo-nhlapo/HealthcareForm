@@ -6,6 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Loads one enriched client-staff row by ID or staff code.
 CREATE OR ALTER PROC [Profile].[spGetClientStaff]
 (
     @ClientStaffId UNIQUEIDENTIFIER = NULL,

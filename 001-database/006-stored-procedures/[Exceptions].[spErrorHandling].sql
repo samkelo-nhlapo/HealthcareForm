@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Centralized error sink used by the legacy SQL CRUD procedures.
+-- Messages are trimmed here to fit the Exceptions.Errors table contract.
 CREATE OR ALTER PROC [Exceptions].[spErrorHandling]
 (
     @UserName VARCHAR(200),

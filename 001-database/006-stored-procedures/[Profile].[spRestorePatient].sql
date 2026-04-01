@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Re-activates a soft-deleted patient by ID number.
+-- The proc is intentionally conservative: active rows are left untouched and hard deletes stay blocked elsewhere.
 CREATE OR ALTER PROC [Profile].[spRestorePatient]
 (
     @IDNumber VARCHAR(250) = '',

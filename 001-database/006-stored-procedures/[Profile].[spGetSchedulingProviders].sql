@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns active providers for the scheduling dashboard.
+-- The API derives display labels, capacity, and clinic grouping on top of this lightweight shape.
 CREATE OR ALTER PROC [Profile].[spGetSchedulingProviders]
 AS
 BEGIN

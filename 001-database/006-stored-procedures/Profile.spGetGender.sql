@@ -6,6 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Lightweight gender lookup shaped for older dropdown-binding code paths.
+-- IDs are returned as strings because some consumers still bind everything as text.
 CREATE OR ALTER PROC [Profile].[spGetGender]
 (
     @GenderId INT = 0,

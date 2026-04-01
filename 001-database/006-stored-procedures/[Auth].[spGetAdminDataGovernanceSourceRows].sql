@@ -6,11 +6,14 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Returns two result sets in a fixed order for the admin data-governance view.
+-- 1. Template governance summary. 2. Lookup freshness summary.
 CREATE OR ALTER PROC [Auth].[spGetAdminDataGovernanceSourceRows]
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Result set 1: templates/forms and their latest approval signals.
     SELECT TOP (50)
         FT.FormName,
         FT.FormVersion,
@@ -38,6 +41,7 @@ BEGIN
         FT.CreatedDate
     ORDER BY COALESCE(FT.UpdatedDate, FT.CreatedDate, GETDATE()) DESC;
 
+    -- Result set 2: lookup domains and their freshness metadata.
     SELECT 'Gender' AS LookupName, COUNT(1) AS Records, MAX(UpdateDate) AS LastSync, 'api/lookups/genders' AS Source, 'Weekly' AS RefreshCadence
     FROM Profile.Gender
     WHERE IsActive = 1

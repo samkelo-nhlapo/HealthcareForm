@@ -1,6 +1,7 @@
 USE HealthcareForm
 GO
 
+-- Writes old/new patient snapshots to the audit log whenever tracked patient values change.
 CREATE OR ALTER TRIGGER [Profile].[tr_AUpdatePatient]
 ON [Profile].[Patient]
 AFTER UPDATE
@@ -13,6 +14,7 @@ BEGIN
 
     ;WITH ChangedRows AS
     (
+        -- Filter out rows where nothing we care about actually changed so the audit log stays useful.
         SELECT I.*, D.PatientId AS DPatientId,
                D.FirstName AS DFirstName,
                D.LastName AS DLastName,
