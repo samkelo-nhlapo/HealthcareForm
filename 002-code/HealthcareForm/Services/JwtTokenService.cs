@@ -95,11 +95,8 @@ public sealed class JwtTokenService : IJwtTokenService
         };
     }
 
-    /// <summary>
-    /// Validates all JWT settings at startup and returns key bytes.
-    /// Throwing here causes the application to refuse to start rather than
-    /// silently issuing unsigned or misconfigured tokens at runtime.
-    /// </summary>
+    // Validates all JWT settings at startup and returns key bytes.
+    // Throwing here keeps the app from starting with a broken or unsafe token setup.
     private static byte[] ValidateAndGetKey(JwtSettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.Issuer))

@@ -72,6 +72,8 @@ public sealed class OperationsService : IOperationsService
                     row,
                     item = ToTaskQueueItem(row, now)
                 })
+                // Keep the queue biased toward SLA pressure first, then use due
+                // time as a stable tiebreaker for tasks with similar urgency.
                 .OrderByDescending(item => CalculateTaskSortScore(item.item))
                 .ThenBy(item => item.row.DueAt)
                 .Take(MaxTaskQueueRows)
@@ -131,6 +133,8 @@ public sealed class OperationsService : IOperationsService
     private async Task<IReadOnlyList<AppointmentRow>> GetAppointmentsAsync(SqlConnection connection, CancellationToken cancellationToken)
     {
         var appointments = new List<AppointmentRow>();
+        // Scheduling is intentionally a same-day view so the dashboard reflects
+        // what operators need to react to right now.
         var windowStart = DateTime.Today;
         var windowEnd = windowStart.AddDays(1);
 
@@ -240,6 +244,8 @@ public sealed class OperationsService : IOperationsService
             providerAppointments ??= [];
 
             var booked = providerAppointments.Count;
+            // Once the baseline capacity is exceeded, grow in small blocks so the
+            // dashboard still communicates usable headroom instead of a hard cap.
             var capacity = booked <= DefaultProviderCapacity
                 ? DefaultProviderCapacity
                 : ((booked + SlotsPerBlockPerProvider - 1) / SlotsPerBlockPerProvider) * SlotsPerBlockPerProvider;

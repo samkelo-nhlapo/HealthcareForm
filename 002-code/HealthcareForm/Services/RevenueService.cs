@@ -69,6 +69,8 @@ public sealed class RevenueService : IRevenueService
                     patientName = "Unknown Patient";
                 }
 
+                // These helpers collapse raw invoice states into the smaller set
+                // of billing labels the dashboard is designed around.
                 var claimStatus = ResolveClaimStatus(status, notes);
                 var codingStatus = ResolveCodingStatus(GetString(reader, billingCodeOrdinal), status);
                 var paidAmount = ResolvePaidAmount(amount, insuranceCoverage, status);

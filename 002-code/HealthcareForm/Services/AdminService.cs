@@ -83,6 +83,8 @@ public sealed class AdminService : IAdminService
             }
         }
 
+        // The procedure returns roles first so the UI can build stable matrix columns
+        // even when there are temporarily no matching users in a role.
         if (roleColumns.Count == 0)
         {
             roleColumns.AddRange(DefaultRoleColumns);
@@ -132,6 +134,8 @@ public sealed class AdminService : IAdminService
             }
         }
 
+        // The final result set expands permission-to-role mappings into matrix rows
+        // that the UI can render without additional joins.
         if (await reader.NextResultAsync(cancellationToken))
         {
             var permissionNameOrdinal = reader.GetOrdinal("PermissionName");
@@ -430,6 +434,8 @@ public sealed class AdminService : IAdminService
             });
         }
 
+        // The stored procedure returns templates first and lookup health second so the
+        // admin dashboard can hydrate both cards in one round-trip.
         if (await reader.NextResultAsync(cancellationToken))
         {
             var lookupNameOrdinal = reader.GetOrdinal("LookupName");
@@ -480,7 +486,7 @@ public sealed class AdminService : IAdminService
         command.Parameters.Add(new SqlParameter("@MaxRows", query.MaxRows));
         command.Parameters.Add(new SqlParameter("@SinceDate", SqlDbType.DateTime)
         {
-            Value = query.SinceUtc ?? DBNull.Value
+            Value = query.SinceUtc.HasValue ? query.SinceUtc.Value : DBNull.Value
         });
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -518,6 +524,8 @@ public sealed class AdminService : IAdminService
 
     private DbErrorQueryNormalized NormalizeDbErrorQuery(AdminDbErrorQueryDto query)
     {
+        // Keep the endpoint forgiving: out-of-range values are pulled back into a
+        // safe window instead of failing the whole request over a bad query string.
         var maxRows = query.MaxRows ?? DefaultDbErrorRows;
         if (maxRows < 1)
         {

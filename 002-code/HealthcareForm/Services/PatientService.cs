@@ -153,6 +153,8 @@ public sealed class PatientService : IPatientService
                     patient = "Unknown Patient";
                 }
 
+                // Normalize sparse source data here so the worklist UI can stay
+                // focused on rendering instead of reconstructing fallbacks.
                 rows.Add(new PatientWorklistItemDto
                 {
                     IdNumber = reader.IsDBNull(idNumberOrdinal)
@@ -187,6 +189,8 @@ public sealed class PatientService : IPatientService
 
             command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
 
+            // This stored procedure returns the patient record through output
+            // parameters, so the null-safe materialization happens after execution.
             command.Parameters.Add(new SqlParameter("@FirstName", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
             command.Parameters.Add(new SqlParameter("@LastName", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
             command.Parameters.Add(new SqlParameter("@ID_Number", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
