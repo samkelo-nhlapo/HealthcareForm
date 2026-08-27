@@ -132,8 +132,20 @@ Date: 2026-08-27
 - API smoke checks passed: `/api/health/live` and `/api/health/db` both returned HTTP 200.
 - Live Clients, Patients, Appointments, PatientClients, and ClientProviderAffiliations counts remain zero.
 
+## Flyway Baseline
+
+Status: Completed
+Date: 2026-08-27
+
+- Confirmed `dbo.flyway_schema_history` was absent before the baseline.
+- Validated Flyway `9.10` baseline behavior on a disposable clone first.
+- Baseline version `27` was selected because the recovered database already contains the recovered V19–V27 state and the historical V1–V5 entries include non-runnable placeholders.
+- Applied the baseline to live `HealthcareForm`; Flyway created exactly one successful `BASELINE` row and `migrate` reported no pending migrations.
+- The disposable baseline clone was removed after validation.
+- Future migrations must start at `V28` or higher and must not hardcode a database context.
+
 ## Remaining Follow-up
 
 Status: Pending
 
-- Establish a proper Flyway history baseline before future automated migration runs; the current manual migration remains intentionally recorded here.
+- Create and test the next incremental migration as `V28` or higher before the next schema change.

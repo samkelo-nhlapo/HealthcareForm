@@ -12,6 +12,27 @@ Files created
 Current status
 - `V2` to `V5` are fail-fast placeholders and intentionally `THROW` until implemented.
 - This prevents silent "successful" Flyway runs that skip required schema/data changes.
+- The recovered `HealthcareForm` database is baselined at version `27`; the existing `V1`-`V27` files are historical and will not be replayed.
+
+Recovered database baseline
+The one-time recovery baseline was validated against a disposable clone before being applied to
+`HealthcareForm`. It creates only `dbo.flyway_schema_history` metadata and does not execute the
+historical migrations. Future migrations must use versions `V28` or higher.
+
+```bash
+export FLYWAY_PASSWORD="YOUR_REAL_PASSWORD"
+docker run --rm --network host \
+  -v "$PWD/001-database/migrations/sql:/flyway/sql:ro" \
+  flyway/flyway:9.10 \
+  -url="jdbc:sqlserver://127.0.0.1:1433;databaseName=HealthcareForm;encrypt=true;trustServerCertificate=true" \
+  -user=sa -password="$FLYWAY_PASSWORD" \
+  -locations=filesystem:/flyway/sql \
+  -baselineVersion=27 \
+  -baselineDescription="Recovered HealthcareForm schema" baseline
+```
+
+After the baseline exists, use `info`, `validate`, and `migrate` for future changes. Do not enable
+`baselineOnMigrate` for production because it can hide an unintended database target.
 
 Usage - Local (Flyway CLI)
 1. Install Flyway CLI: https://flywaydb.org/documentation/usage/commandline
@@ -37,6 +58,7 @@ kubectl create configmap db-migrations-configmap \
 Next steps (recommended)
 - Review `V1__baseline.sql` and split it into logical, incremental migrations (schema, indexes, FKs, seeds).
 - Remove `V1__baseline.sql` after the migration history is established and migrations are split, to prevent running large duplicate DDL.
+- Start new versioned changes at `V28` and keep migration scripts independent of a hardcoded database context.
 - Configure a Flyway `conf/flyway.conf` for your CI/CD pipeline and ensure credentials are provided via secrets.
 - Prefer a PVC or baked-in image for migrations in Kubernetes rather than large ConfigMaps.
 
