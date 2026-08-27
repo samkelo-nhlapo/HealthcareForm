@@ -84,7 +84,31 @@ Date: 2026-08-27
 - Rehearsed corrected V19–V27 migrations against a disposable clone; all migrations completed and the clone passed `DBCC CHECKDB`.
 - The live `HealthcareForm` database was not migrated; it remains at the verified recovery-backup schema pending an explicit migration decision.
 
-## Next Validation Step
+## Initial Validation Plan
+
+Status: Completed
 
 - Run the backend and frontend build/test checks against the recovered source.
 - Decide whether to apply V19–V27 to `HealthcareForm` after reviewing the successful disposable rehearsal.
+
+## Live Migration and Smoke Validation
+
+Status: Completed
+Date: 2026-08-27
+
+- Created a fresh pre-migration `COPY_ONLY`, compressed, checksum-protected backup and verified it successfully.
+- Backup file: `001-database/recovery-backups/HealthcareForm.pre-migration-20260827.bak`.
+- Applied V19–V27 sequentially to the live `HealthcareForm` database; all migrations completed successfully.
+- Post-migration row counts for Clients, ClientStaff, ClientProviderAffiliations, PatientClients, and Appointments are zero; no data was unexpectedly seeded.
+- `HealthcareForm` is online, its new tables/procedures and appointment affiliation constraint exist, and `DBCC CHECKDB` passes.
+- Backend `dotnet build --no-restore` passed with zero warnings and zero errors.
+- API smoke checks passed: `/api/health/live` and `/api/health/db` both returned HTTP 200.
+- Angular `npm run build` passed successfully.
+- Migration scripts no longer hardcode `HealthcareForm`; the target database is supplied by the caller.
+
+## Remaining Validation
+
+Status: Pending
+
+- Run the full backend test suite and Angular test suite when test execution is approved.
+- Establish a proper Flyway history baseline before future automated migration runs; the current manual migration remains intentionally recorded here.
