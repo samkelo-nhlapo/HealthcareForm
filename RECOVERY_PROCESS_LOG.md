@@ -57,9 +57,18 @@ Date: 2026-08-27
 
 ## Phase 5 — Remote Synchronization
 
-Status: In progress
+Status: Completed
 Date: 2026-08-27
 
 - Remote `main` is `f279b2f`; the recovery commit is a fast-forward from that point.
 - The outgoing commit removes tracked database backup artifacts from the remote while retaining local recovery copies.
-- Push only after this checkpoint is confirmed; no force push is required.
+- Published `recovery/2026-08-27` for rollback and review.
+- Fast-forwarded remote `main` to `f39994f`; no force push was required.
+
+## Recovery Handoff
+
+- Local branch: `recovery/2026-08-27`.
+- Remote `main` and the published recovery branch now point to the recovered project commit.
+- Persistent `HealthcareForm` is online through `healthcare-mssql` on host port `1433`.
+- The stopped `healthcare_db` container and `mssql-legacy-20260827` data set remain available for rollback investigation.
+- Database backup and local recovery directories are intentionally ignored by Git.
