@@ -118,9 +118,22 @@ Date: 2026-08-27
 - Angular `npm test -- --watch=false --browsers=ChromeHeadless` passed 23/23 tests.
 - The disposable test database was removed; live `HealthcareForm` remained at zero Clients, Patients, and Appointments and passed `DBCC CHECKDB` after validation.
 
+## Live Schema and Procedure Alignment
+
+Status: Completed
+Date: 2026-08-27
+
+- Created and verified a fresh `COPY_ONLY`, compressed, checksum-protected backup before live alignment.
+- Backup file: `001-database/recovery-backups/HealthcareForm.pre-live-schema-align-20260827.bak`.
+- Backup SHA-256: `7ba80dedca79e5f1c60f7f7464d29077f841febec2a9b17c29c1c9461aee024e`.
+- Applied the canonical expanded `Profile.Clients` table definition, including facility and directory columns and indexes.
+- Deployed the modular stored-procedure set from `001-database/006-stored-procedures` to live `HealthcareForm`.
+- Verified required procedure signatures, executed key read procedures, and passed `DBCC CHECKDB`.
+- API smoke checks passed: `/api/health/live` and `/api/health/db` both returned HTTP 200.
+- Live Clients, Patients, Appointments, PatientClients, and ClientProviderAffiliations counts remain zero.
+
 ## Remaining Follow-up
 
 Status: Pending
 
-- Apply the canonical expanded `Profile.Clients` schema and modular stored-procedure deployment to live `HealthcareForm` only after a fresh verified backup; this validation phase did not modify live data or procedures.
 - Establish a proper Flyway history baseline before future automated migration runs; the current manual migration remains intentionally recorded here.
