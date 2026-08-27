@@ -142,10 +142,21 @@ Date: 2026-08-27
 - Baseline version `27` was selected because the recovered database already contains the recovered V19–V27 state and the historical V1–V5 entries include non-runnable placeholders.
 - Applied the baseline to live `HealthcareForm`; Flyway created exactly one successful `BASELINE` row and `migrate` reported no pending migrations.
 - The disposable baseline clone was removed after validation.
-- Future migrations must start at `V28` or higher and must not hardcode a database context.
+- Future migrations must start at `V29` or higher and must not hardcode a database context.
+
+## V28 Recovery Migration
+
+Status: Completed
+Date: 2026-08-27
+
+- Added `V28__client_directory_schema_alignment.sql` to codify the recovered client facility and directory schema delta.
+- Rehearsed the migration on a clone lacking the expanded client columns; Flyway applied exactly one migration and reached version `28`.
+- Applied V28 to live `HealthcareForm`; the idempotent migration recorded success without changing business rows.
+- Final live history contains the successful version `27` baseline and version `28` migration.
+- Final live checks passed: `DBCC CHECKDB`, zero Clients/Patients/Appointments, and API health endpoints returned HTTP 200.
 
 ## Remaining Follow-up
 
 Status: Pending
 
-- Create and test the next incremental migration as `V28` or higher before the next schema change.
+- Create and test the next incremental migration as `V29` or higher before the next schema change.
