@@ -106,9 +106,20 @@ Date: 2026-08-27
 - Angular `npm run build` passed successfully.
 - Migration scripts no longer hardcode `HealthcareForm`; the target database is supplied by the caller.
 
-## Remaining Validation
+## Automated Test Validation
+
+Status: Completed with fixture failures
+Date: 2026-08-27
+
+- Backend unit-only run passed 57/57 tests with DB-backed execution disabled.
+- Backend DB-backed run passed 50/57 tests against an isolated migrated clone.
+- The seven failures are fixture-dependent: scheduling could not find a patient, patient workflows returned HTTP 500 without reference data, client detail found no client, and two scheduling reads returned HTTP 500 on the empty dataset.
+- Angular `npm test -- --watch=false --browsers=ChromeHeadless` passed 23/23 tests.
+- The disposable test database was removed; live `HealthcareForm` remained at zero Clients, Patients, and Appointments and passed `DBCC CHECKDB`.
+
+## Remaining Follow-up
 
 Status: Pending
 
-- Run the full backend test suite and Angular test suite when test execution is approved.
+- Make DB-backed integration tests self-seeding or provide a documented fixture database before treating the full backend suite as green.
 - Establish a proper Flyway history baseline before future automated migration runs; the current manual migration remains intentionally recorded here.
