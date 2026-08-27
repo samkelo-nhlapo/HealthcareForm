@@ -1,9 +1,6 @@
 -- V26__client_provider_affiliations_backfill.sql
 -- Phase 2 data alignment for the client-provider affiliation model.
 
-USE HealthcareForm;
-GO
-
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;

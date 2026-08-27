@@ -72,3 +72,19 @@ Date: 2026-08-27
 - Persistent `HealthcareForm` is online through `healthcare-mssql` on host port `1433`.
 - The stopped `healthcare_db` container and `mssql-legacy-20260827` data set remain available for rollback investigation.
 - Database backup and local recovery directories are intentionally ignored by Git.
+
+## Post-Recovery Validation
+
+Status: In progress
+Date: 2026-08-27
+
+- The recovered database is healthy but predates the recovered V19–V27 schema; `dbo.flyway_schema_history` is absent.
+- The first migration rehearsal exposed that V19–V27 hardcoded `USE HealthcareForm`, which bypassed the requested target database. Its partial V19 changes were audited and rolled back immediately.
+- Removed hardcoded database context switches from V19–V27 and enabled the required index SET options in V19.
+- Rehearsed corrected V19–V27 migrations against a disposable clone; all migrations completed and the clone passed `DBCC CHECKDB`.
+- The live `HealthcareForm` database was not migrated; it remains at the verified recovery-backup schema pending an explicit migration decision.
+
+## Next Validation Step
+
+- Run the backend and frontend build/test checks against the recovered source.
+- Decide whether to apply V19–V27 to `HealthcareForm` after reviewing the successful disposable rehearsal.

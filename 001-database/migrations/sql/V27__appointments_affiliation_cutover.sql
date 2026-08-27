@@ -1,6 +1,3 @@
-USE HealthcareForm;
-GO
-
 IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
 AND NOT EXISTS (
     SELECT 1

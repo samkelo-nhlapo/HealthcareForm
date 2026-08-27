@@ -1,9 +1,6 @@
 -- V20__expand_client_categories_for_hospitals.sql
 -- Expands organisation categories so client records can represent both clinics and hospitals.
 
-USE HealthcareForm;
-GO
-
 IF OBJECT_ID(N'[Profile].[ClientClinicCategories]', N'U') IS NOT NULL
 BEGIN
     IF EXISTS

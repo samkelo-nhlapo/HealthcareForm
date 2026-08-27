@@ -1,9 +1,6 @@
 -- V25__client_provider_affiliations_foundation.sql
 -- Phase 1 foundation for separating client employment from provider-client operating relationships.
 
-USE HealthcareForm;
-GO
-
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;

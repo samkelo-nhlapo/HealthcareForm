@@ -1,6 +1,3 @@
-USE HealthcareForm;
-GO
-
 SET ANSI_NULLS ON;
 GO
 SET QUOTED_IDENTIFIER ON;
@@ -338,9 +335,6 @@ BEGIN
 END
 GO
 
-USE HealthcareForm
-GO
-
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -393,9 +387,6 @@ BEGIN
         HP.FirstName,
         CS.ClientStaffId;
 END
-GO
-
-USE HealthcareForm
 GO
 
 SET ANSI_NULLS ON
@@ -483,9 +474,6 @@ BEGIN
 END
 GO
 
-USE HealthcareForm
-GO
-
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -550,9 +538,6 @@ BEGIN
 
     SET NOCOUNT OFF;
 END
-GO
-
-USE HealthcareForm
 GO
 
 SET ANSI_NULLS ON
