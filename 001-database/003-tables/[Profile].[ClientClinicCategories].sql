@@ -23,17 +23,31 @@ BEGIN
 END
 GO
 
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientClinicCategories_ClinicSize')
+BEGIN
+    ALTER TABLE [Profile].[ClientClinicCategories]
+    DROP CONSTRAINT [CK_ClientClinicCategories_ClinicSize];
+END
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientClinicCategories_ClinicSize')
 BEGIN
     ALTER TABLE [Profile].[ClientClinicCategories]
-    ADD CONSTRAINT CK_ClientClinicCategories_ClinicSize CHECK ([ClinicSize] IN ('Small', 'Medium'));
+    ADD CONSTRAINT CK_ClientClinicCategories_ClinicSize CHECK ([ClinicSize] IN ('Small', 'Medium', 'Large', 'Unknown'));
+END
+GO
+
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientClinicCategories_OwnershipType')
+BEGIN
+    ALTER TABLE [Profile].[ClientClinicCategories]
+    DROP CONSTRAINT [CK_ClientClinicCategories_OwnershipType];
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientClinicCategories_OwnershipType')
 BEGIN
     ALTER TABLE [Profile].[ClientClinicCategories]
-    ADD CONSTRAINT CK_ClientClinicCategories_OwnershipType CHECK ([OwnershipType] IN ('Private', 'Public'));
+    ADD CONSTRAINT CK_ClientClinicCategories_OwnershipType CHECK ([OwnershipType] IN ('Private', 'Public', 'Unknown'));
 END
 GO
 

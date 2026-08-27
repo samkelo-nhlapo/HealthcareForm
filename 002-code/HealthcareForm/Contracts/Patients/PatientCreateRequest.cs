@@ -3,8 +3,15 @@ using System.ComponentModel.DataAnnotations;
 namespace HealthcareForm.Contracts.Patients;
 
 // Request body used to create a new patient.
-public sealed class PatientCreateRequest
+public sealed class PatientCreateRequest : IValidatableObject
 {
+    // Primary clinic or hospital the patient is registered under.
+    [Required]
+    public Guid? PrimaryClientId { get; init; }
+
+    // Additional clinics or hospitals the patient is shared with.
+    public IReadOnlyList<Guid> SecondaryClientIds { get; init; } = [];
+
     // Patient given name.
     [Required, MaxLength(30)]
     public string FirstName { get; init; } = string.Empty;
@@ -14,7 +21,7 @@ public sealed class PatientCreateRequest
     public string LastName { get; init; } = string.Empty;
 
     // National ID number used as the primary lookup key.
-    [Required, MinLength(13), MaxLength(13)]
+    [Required]
     public string IdNumber { get; init; } = string.Empty;
 
     // Patient date of birth.
@@ -79,4 +86,27 @@ public sealed class PatientCreateRequest
 
     // Free-text medication list captured at registration time.
     public string MedicationList { get; init; } = string.Empty;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (!PatientRequestRules.IsValidIdNumber(IdNumber))
+        {
+            yield return new ValidationResult(
+                "ID number must be exactly 13 digits.",
+                [nameof(IdNumber)]);
+        }
+
+        foreach (var result in PatientRequestRules.ValidateRequiredDate(DateOfBirth, nameof(DateOfBirth), "Date of birth"))
+        {
+            yield return result;
+        }
+
+        foreach (var result in PatientRequestRules.ValidateRequiredDate(
+                     EmergencyDateOfBirth,
+                     nameof(EmergencyDateOfBirth),
+                     "Emergency date of birth"))
+        {
+            yield return result;
+        }
+    }
 }

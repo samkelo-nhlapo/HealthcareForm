@@ -7,6 +7,8 @@ namespace HealthcareForm.Services;
 public sealed class PatientService : IPatientService
 {
     private const string ConnectionStringKey = "HealthcareEntity";
+    private const int DefaultPageSize = 25;
+    private const int MaxPageSize = 200;
     private const int MaxWorklistRows = 250;
 
     private readonly IConfiguration _configuration;
@@ -20,6 +22,19 @@ public sealed class PatientService : IPatientService
 
     public async Task<PatientCommandResult> AddPatientAsync(PatientCreateRequest request, CancellationToken cancellationToken = default)
     {
+        var normalizedRequest = NormalizeRequest(request);
+        var clientSelection = BuildClientSelection(normalizedRequest.PrimaryClientId, normalizedRequest.SecondaryClientIds);
+        if (!clientSelection.IsValid)
+        {
+            return new PatientCommandResult
+            {
+                Success = false,
+                Message = "Please select a primary clinic or hospital for the patient.",
+                StatusCode = 1,
+                PatientId = null
+            };
+        }
+
         try
         {
             await using var connection = new SqlConnection(GetConnectionString());
@@ -28,26 +43,33 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@FirstName", request.FirstName));
-            command.Parameters.Add(new SqlParameter("@LastName", request.LastName));
-            command.Parameters.Add(new SqlParameter("@ID_Number", request.IdNumber));
-            command.Parameters.Add(new SqlParameter("@DateOfBirth", request.DateOfBirth));
-            command.Parameters.Add(new SqlParameter("@GenderIDFK", request.GenderId));
-            command.Parameters.Add(new SqlParameter("@PhoneNumber", request.PhoneNumber));
-            command.Parameters.Add(new SqlParameter("@Email", request.Email));
-            command.Parameters.Add(new SqlParameter("@Line1", request.Line1));
-            command.Parameters.Add(new SqlParameter("@Line2", request.Line2));
-            command.Parameters.Add(new SqlParameter("@CityIDFK", request.CityId));
-            command.Parameters.Add(new SqlParameter("@ProvinceIDFK", request.ProvinceId));
-            command.Parameters.Add(new SqlParameter("@CountryIDFK", request.CountryId));
-            command.Parameters.Add(new SqlParameter("@MaritalStatusIDFK", request.MaritalStatusId));
-            command.Parameters.Add(new SqlParameter("@EmergencyName", request.EmergencyName));
-            command.Parameters.Add(new SqlParameter("@EmergencyLastName", request.EmergencyLastName));
-            command.Parameters.Add(new SqlParameter("@EmergencyPhoneNumber", request.EmergencyPhoneNumber));
-            command.Parameters.Add(new SqlParameter("@Relationship", request.Relationship));
-            command.Parameters.Add(new SqlParameter("@EmergancyDateOfBirth", request.EmergencyDateOfBirth));
-            command.Parameters.Add(new SqlParameter("@MedicationList", request.MedicationList ?? string.Empty));
-            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier) { Value = DBNull.Value });
+            command.Parameters.Add(new SqlParameter("@FirstName", normalizedRequest.FirstName));
+            command.Parameters.Add(new SqlParameter("@LastName", normalizedRequest.LastName));
+            command.Parameters.Add(new SqlParameter("@ID_Number", normalizedRequest.IdNumber));
+            command.Parameters.Add(new SqlParameter("@DateOfBirth", normalizedRequest.DateOfBirth));
+            command.Parameters.Add(new SqlParameter("@GenderIDFK", normalizedRequest.GenderId));
+            command.Parameters.Add(new SqlParameter("@PhoneNumber", normalizedRequest.PhoneNumber));
+            command.Parameters.Add(new SqlParameter("@Email", normalizedRequest.Email));
+            command.Parameters.Add(new SqlParameter("@Line1", normalizedRequest.Line1));
+            command.Parameters.Add(new SqlParameter("@Line2", normalizedRequest.Line2));
+            command.Parameters.Add(new SqlParameter("@CityIDFK", normalizedRequest.CityId));
+            command.Parameters.Add(new SqlParameter("@ProvinceIDFK", normalizedRequest.ProvinceId));
+            command.Parameters.Add(new SqlParameter("@CountryIDFK", normalizedRequest.CountryId));
+            command.Parameters.Add(new SqlParameter("@MaritalStatusIDFK", normalizedRequest.MaritalStatusId));
+            command.Parameters.Add(new SqlParameter("@EmergencyName", normalizedRequest.EmergencyName));
+            command.Parameters.Add(new SqlParameter("@EmergencyLastName", normalizedRequest.EmergencyLastName));
+            command.Parameters.Add(new SqlParameter("@EmergencyPhoneNumber", normalizedRequest.EmergencyPhoneNumber));
+            command.Parameters.Add(new SqlParameter("@Relationship", normalizedRequest.Relationship));
+            command.Parameters.Add(new SqlParameter("@EmergancyDateOfBirth", normalizedRequest.EmergencyDateOfBirth));
+            command.Parameters.Add(new SqlParameter("@MedicationList", normalizedRequest.MedicationList));
+            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier)
+            {
+                Value = clientSelection.PrimaryClientId
+            });
+            command.Parameters.Add(new SqlParameter("@AdditionalClientIds", SqlDbType.VarChar, -1)
+            {
+                Value = ToDbString(clientSelection.AdditionalClientIdsCsv)
+            });
 
             var messageParameter = command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250));
             messageParameter.Direction = ParameterDirection.Output;
@@ -83,6 +105,63 @@ public sealed class PatientService : IPatientService
                 StatusCode = null,
                 PatientId = null
             };
+        }
+    }
+
+    public async Task<IReadOnlyList<PatientClientLookupItemDto>> GetClientLookupAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var clients = new List<PatientClientLookupItemDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand(
+                """
+                SELECT
+                    C.ClientId,
+                    C.ClientCode,
+                    C.FirstName,
+                    C.LastName,
+                    ISNULL(CCC.CategoryName, '') AS ClientClinicCategoryName
+                FROM Profile.Clients C
+                LEFT JOIN Profile.ClientClinicCategories CCC
+                    ON CCC.ClientClinicCategoryId = C.ClientClinicCategoryIDFK
+                WHERE C.IsDeleted = 0
+                  AND C.IsActive = 1
+                ORDER BY C.FirstName ASC, C.LastName ASC, C.ClientCode ASC;
+                """,
+                connection);
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var clientIdOrdinal = reader.GetOrdinal("ClientId");
+            var clientCodeOrdinal = reader.GetOrdinal("ClientCode");
+            var firstNameOrdinal = reader.GetOrdinal("FirstName");
+            var lastNameOrdinal = reader.GetOrdinal("LastName");
+            var categoryNameOrdinal = reader.GetOrdinal("ClientClinicCategoryName");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var clientCode = GetReaderString(reader, clientCodeOrdinal);
+                var firstName = GetReaderString(reader, firstNameOrdinal);
+                var lastName = GetReaderString(reader, lastNameOrdinal);
+
+                clients.Add(new PatientClientLookupItemDto
+                {
+                    ClientId = GetReaderGuid(reader, clientIdOrdinal),
+                    ClientCode = clientCode,
+                    ClientName = BuildClientDisplayName(firstName, lastName, clientCode),
+                    ClientClinicCategoryName = GetReaderString(reader, categoryNameOrdinal)
+                });
+            }
+
+            return clients;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load active client lookup values.");
+            return [];
         }
     }
 
@@ -177,8 +256,138 @@ public sealed class PatientService : IPatientService
         }
     }
 
+    public async Task<PatientDirectorySnapshotDto> GetDirectoryAsync(PatientDirectoryQueryDto query, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var (pageNumber, pageSize) = NormalizePage(query.PageNumber, query.PageSize);
+            var patients = new List<PatientDirectoryItemDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spListPatients", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@SearchTerm", SqlDbType.VarChar, 250)
+            {
+                Value = (query.SearchTerm ?? string.Empty).Trim()
+            });
+            command.Parameters.Add(new SqlParameter("@GenderIDFK", SqlDbType.Int)
+            {
+                Value = query.GenderId.GetValueOrDefault() > 0 ? query.GenderId!.Value : 0
+            });
+            command.Parameters.Add(new SqlParameter("@MaritalStatusIDFK", SqlDbType.Int)
+            {
+                Value = query.MaritalStatusId.GetValueOrDefault() > 0 ? query.MaritalStatusId!.Value : 0
+            });
+            command.Parameters.Add(new SqlParameter("@CityIDFK", SqlDbType.Int) { Value = 0 });
+            command.Parameters.Add(new SqlParameter("@IsDeleted", SqlDbType.Bit)
+            {
+                Value = query.IsDeleted.HasValue ? query.IsDeleted.Value : DBNull.Value
+            });
+            command.Parameters.Add(new SqlParameter("@PageNumber", SqlDbType.Int) { Value = pageNumber });
+            command.Parameters.Add(new SqlParameter("@PageSize", SqlDbType.Int) { Value = pageSize });
+
+            var totalRecordsParameter = new SqlParameter("@TotalRecords", SqlDbType.Int)
+            {
+                Direction = ParameterDirection.Output
+            };
+            var messageParameter = new SqlParameter("@Message", SqlDbType.VarChar, 250)
+            {
+                Direction = ParameterDirection.Output
+            };
+
+            command.Parameters.Add(totalRecordsParameter);
+            command.Parameters.Add(messageParameter);
+            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier)
+            {
+                Value = query.ClientId.HasValue ? query.ClientId.Value : DBNull.Value
+            });
+
+            await connection.OpenAsync(cancellationToken);
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+            {
+                var patientIdOrdinal = reader.GetOrdinal("PatientId");
+                var firstNameOrdinal = reader.GetOrdinal("FirstName");
+                var lastNameOrdinal = reader.GetOrdinal("LastName");
+                var idNumberOrdinal = reader.GetOrdinal("ID_Number");
+                var dateOfBirthOrdinal = reader.GetOrdinal("DateOfBirth");
+                var genderIdOrdinal = reader.GetOrdinal("GenderIDFK");
+                var maritalStatusIdOrdinal = reader.GetOrdinal("MaritalStatusIDFK");
+                var clientIdOrdinal = reader.GetOrdinal("ClientIdFK");
+                var medicationListOrdinal = reader.GetOrdinal("MedicationList");
+                var isDeletedOrdinal = reader.GetOrdinal("IsDeleted");
+                var emailOrdinal = reader.GetOrdinal("Email");
+                var phoneOrdinal = reader.GetOrdinal("PhoneNumber");
+                var line1Ordinal = reader.GetOrdinal("Line1");
+                var line2Ordinal = reader.GetOrdinal("Line2");
+                var cityIdOrdinal = reader.GetOrdinal("CityId");
+                var cityNameOrdinal = reader.GetOrdinal("CityName");
+                var provinceIdOrdinal = reader.GetOrdinal("ProvinceId");
+                var provinceNameOrdinal = reader.GetOrdinal("ProvinceName");
+                var countryIdOrdinal = reader.GetOrdinal("CountryId");
+                var countryNameOrdinal = reader.GetOrdinal("CountryName");
+                var createdDateOrdinal = reader.GetOrdinal("CreatedDate");
+                var updatedDateOrdinal = reader.GetOrdinal("UpdatedDate");
+
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    patients.Add(new PatientDirectoryItemDto
+                    {
+                        PatientId = GetReaderGuid(reader, patientIdOrdinal),
+                        FirstName = GetReaderString(reader, firstNameOrdinal),
+                        LastName = GetReaderString(reader, lastNameOrdinal),
+                        IdNumber = GetReaderString(reader, idNumberOrdinal),
+                        DateOfBirth = GetReaderNullableDateTime(reader, dateOfBirthOrdinal),
+                        GenderId = GetReaderInt(reader, genderIdOrdinal),
+                        MaritalStatusId = GetReaderInt(reader, maritalStatusIdOrdinal),
+                        ClientId = GetReaderNullableGuid(reader, clientIdOrdinal),
+                        MedicationList = GetReaderString(reader, medicationListOrdinal),
+                        IsDeleted = GetReaderBoolean(reader, isDeletedOrdinal),
+                        Email = GetReaderString(reader, emailOrdinal),
+                        PhoneNumber = GetReaderString(reader, phoneOrdinal),
+                        Line1 = GetReaderString(reader, line1Ordinal),
+                        Line2 = GetReaderString(reader, line2Ordinal),
+                        CityId = GetReaderInt(reader, cityIdOrdinal),
+                        CityName = GetReaderString(reader, cityNameOrdinal),
+                        ProvinceId = GetReaderInt(reader, provinceIdOrdinal),
+                        ProvinceName = GetReaderString(reader, provinceNameOrdinal),
+                        CountryId = GetReaderInt(reader, countryIdOrdinal),
+                        CountryName = GetReaderString(reader, countryNameOrdinal),
+                        CreatedDate = GetReaderDateTime(reader, createdDateOrdinal),
+                        UpdatedDate = GetReaderDateTime(reader, updatedDateOrdinal)
+                    });
+                }
+            }
+
+            await PopulateClientSummariesAsync(patients, cancellationToken);
+            await PopulateClientAssignmentsAsync(patients, cancellationToken);
+
+            var totalRecords = GetIntOutput(command, "@TotalRecords") ?? 0;
+            var message = GetStringOutput(command, "@Message");
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                _logger.LogWarning("Patient directory returned message: {Message}", message);
+            }
+
+            return new PatientDirectorySnapshotDto
+            {
+                Patients = patients,
+                TotalRecords = totalRecords
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to build patient directory snapshot.");
+            return new PatientDirectorySnapshotDto();
+        }
+    }
+
     public async Task<PatientLookupResult> GetPatientAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             await using var connection = new SqlConnection(GetConnectionString());
@@ -187,7 +396,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             // This stored procedure returns the patient record through output
             // parameters, so the null-safe materialization happens after execution.
@@ -211,6 +420,7 @@ public sealed class PatientService : IPatientService
             command.Parameters.Add(new SqlParameter("@Relationship", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
             command.Parameters.Add(new SqlParameter("@EmergancyDateOfBirth", SqlDbType.DateTime) { Direction = ParameterDirection.Output });
             command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
+            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier) { Direction = ParameterDirection.Output });
 
             await connection.OpenAsync(cancellationToken);
             await command.ExecuteNonQueryAsync(cancellationToken);
@@ -226,12 +436,32 @@ public sealed class PatientService : IPatientService
                 };
             }
 
+            var clientId = GetGuidOutput(command, "@ClientIdFK");
+            var patientId = await GetPatientIdByIdNumberAsync(normalizedIdNumber, false, cancellationToken);
+            var clientAssignments = patientId.HasValue
+                ? await GetPatientClientAssignmentsAsync(patientId.Value, cancellationToken)
+                : [];
+
+            var primaryAssignment = clientAssignments.FirstOrDefault((assignment) => assignment.IsPrimary)
+                ?? clientAssignments.FirstOrDefault();
+            PatientClientLookupItemDto? clientSummary = null;
+            if (primaryAssignment is null && clientId.HasValue)
+            {
+                var clientLookup = await GetClientLookupMapAsync([clientId.Value], cancellationToken);
+                clientLookup.TryGetValue(clientId.Value, out clientSummary);
+            }
+
             return new PatientLookupResult
             {
                 Found = true,
                 Message = string.Empty,
                 Patient = new PatientRecordDto
                 {
+                    ClientId = primaryAssignment?.ClientId ?? clientId,
+                    ClientCode = primaryAssignment?.ClientCode ?? clientSummary?.ClientCode ?? string.Empty,
+                    ClientName = primaryAssignment?.ClientName ?? clientSummary?.ClientName ?? string.Empty,
+                    ClientClinicCategoryName = primaryAssignment?.ClientClinicCategoryName ?? clientSummary?.ClientClinicCategoryName ?? string.Empty,
+                    Clients = clientAssignments,
                     IdNumber = GetStringOutput(command, "@ID_Number"),
                     FirstName = GetStringOutput(command, "@FirstName"),
                     LastName = GetStringOutput(command, "@LastName"),
@@ -256,7 +486,7 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch patient for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to fetch patient for ID number {IdNumber}.", normalizedIdNumber);
             return new PatientLookupResult
             {
                 Found = false,
@@ -268,6 +498,20 @@ public sealed class PatientService : IPatientService
 
     public async Task<PatientCommandResult> UpdatePatientAsync(string idNumber, PatientUpdateRequest request, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+        var normalizedRequest = NormalizeRequest(request);
+        var clientSelection = BuildClientSelection(normalizedRequest.PrimaryClientId, normalizedRequest.SecondaryClientIds);
+        if (!clientSelection.IsValid)
+        {
+            return new PatientCommandResult
+            {
+                Success = false,
+                Message = "Please select a primary clinic or hospital for the patient.",
+                StatusCode = 1,
+                PatientId = null
+            };
+        }
+
         try
         {
             await using var connection = new SqlConnection(GetConnectionString());
@@ -276,26 +520,33 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@FirstName", request.FirstName));
-            command.Parameters.Add(new SqlParameter("@LastName", request.LastName));
-            command.Parameters.Add(new SqlParameter("@ID_Number", idNumber));
-            command.Parameters.Add(new SqlParameter("@DateOfBirth", request.DateOfBirth));
-            command.Parameters.Add(new SqlParameter("@GenderIDFK", request.GenderId));
-            command.Parameters.Add(new SqlParameter("@PhoneNumber", request.PhoneNumber));
-            command.Parameters.Add(new SqlParameter("@Email", request.Email));
-            command.Parameters.Add(new SqlParameter("@Line1", request.Line1));
-            command.Parameters.Add(new SqlParameter("@Line2", request.Line2));
-            command.Parameters.Add(new SqlParameter("@CityIDFK", request.CityId));
-            command.Parameters.Add(new SqlParameter("@ProvinceIDFK", request.ProvinceId));
-            command.Parameters.Add(new SqlParameter("@CountryIDFK", request.CountryId));
-            command.Parameters.Add(new SqlParameter("@MaritalStatusIDFK", request.MaritalStatusId));
-            command.Parameters.Add(new SqlParameter("@MedicationList", request.MedicationList ?? string.Empty));
-            command.Parameters.Add(new SqlParameter("@EmergencyName", request.EmergencyName));
-            command.Parameters.Add(new SqlParameter("@EmergencyLastName", request.EmergencyLastName));
-            command.Parameters.Add(new SqlParameter("@EmergencyPhoneNumber", request.EmergencyPhoneNumber));
-            command.Parameters.Add(new SqlParameter("@Relationship", request.Relationship));
-            command.Parameters.Add(new SqlParameter("@EmergancyDateOfBirth", request.EmergencyDateOfBirth));
-            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier) { Value = DBNull.Value });
+            command.Parameters.Add(new SqlParameter("@FirstName", normalizedRequest.FirstName));
+            command.Parameters.Add(new SqlParameter("@LastName", normalizedRequest.LastName));
+            command.Parameters.Add(new SqlParameter("@ID_Number", normalizedIdNumber));
+            command.Parameters.Add(new SqlParameter("@DateOfBirth", normalizedRequest.DateOfBirth));
+            command.Parameters.Add(new SqlParameter("@GenderIDFK", normalizedRequest.GenderId));
+            command.Parameters.Add(new SqlParameter("@PhoneNumber", normalizedRequest.PhoneNumber));
+            command.Parameters.Add(new SqlParameter("@Email", normalizedRequest.Email));
+            command.Parameters.Add(new SqlParameter("@Line1", normalizedRequest.Line1));
+            command.Parameters.Add(new SqlParameter("@Line2", normalizedRequest.Line2));
+            command.Parameters.Add(new SqlParameter("@CityIDFK", normalizedRequest.CityId));
+            command.Parameters.Add(new SqlParameter("@ProvinceIDFK", normalizedRequest.ProvinceId));
+            command.Parameters.Add(new SqlParameter("@CountryIDFK", normalizedRequest.CountryId));
+            command.Parameters.Add(new SqlParameter("@MaritalStatusIDFK", normalizedRequest.MaritalStatusId));
+            command.Parameters.Add(new SqlParameter("@MedicationList", normalizedRequest.MedicationList));
+            command.Parameters.Add(new SqlParameter("@EmergencyName", normalizedRequest.EmergencyName));
+            command.Parameters.Add(new SqlParameter("@EmergencyLastName", normalizedRequest.EmergencyLastName));
+            command.Parameters.Add(new SqlParameter("@EmergencyPhoneNumber", normalizedRequest.EmergencyPhoneNumber));
+            command.Parameters.Add(new SqlParameter("@Relationship", normalizedRequest.Relationship));
+            command.Parameters.Add(new SqlParameter("@EmergancyDateOfBirth", normalizedRequest.EmergencyDateOfBirth));
+            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier)
+            {
+                Value = clientSelection.PrimaryClientId
+            });
+            command.Parameters.Add(new SqlParameter("@AdditionalClientIds", SqlDbType.VarChar, -1)
+            {
+                Value = ToDbString(clientSelection.AdditionalClientIdsCsv)
+            });
 
             command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
 
@@ -313,7 +564,7 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update patient for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to update patient for ID number {IdNumber}.", normalizedIdNumber);
             return new PatientCommandResult
             {
                 Success = false,
@@ -326,6 +577,8 @@ public sealed class PatientService : IPatientService
 
     public async Task<PatientCommandResult> DeletePatientAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             await using var connection = new SqlConnection(GetConnectionString());
@@ -334,7 +587,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
             command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
 
             await connection.OpenAsync(cancellationToken);
@@ -351,7 +604,7 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete patient for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to delete patient for ID number {IdNumber}.", normalizedIdNumber);
             return new PatientCommandResult
             {
                 Success = false,
@@ -362,8 +615,53 @@ public sealed class PatientService : IPatientService
         }
     }
 
+    public async Task<PatientCommandResult> RestorePatientAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spRestorePatient", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
+            command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250) { Direction = ParameterDirection.Output });
+            command.Parameters.Add(new SqlParameter("@StatusCode", SqlDbType.Int) { Direction = ParameterDirection.Output });
+
+            await connection.OpenAsync(cancellationToken);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+
+            var message = GetStringOutput(command, "@Message");
+            var statusCode = GetIntOutput(command, "@StatusCode");
+
+            return new PatientCommandResult
+            {
+                Success = statusCode == 0,
+                Message = message,
+                StatusCode = statusCode,
+                PatientId = null
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to restore patient for ID number {IdNumber}.", normalizedIdNumber);
+            return new PatientCommandResult
+            {
+                Success = false,
+                Message = "Unable to restore patient right now. Please try again.",
+                StatusCode = null,
+                PatientId = null
+            };
+        }
+    }
+
     public async Task<IReadOnlyList<PatientAllergyDto>> GetPatientAllergiesAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             var items = new List<PatientAllergyDto>();
@@ -374,7 +672,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             await connection.OpenAsync(cancellationToken);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -409,13 +707,15 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load allergies for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to load allergies for ID number {IdNumber}.", normalizedIdNumber);
             return [];
         }
     }
 
     public async Task<IReadOnlyList<PatientMedicationDto>> GetPatientMedicationsAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             var items = new List<PatientMedicationDto>();
@@ -426,7 +726,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             await connection.OpenAsync(cancellationToken);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -473,13 +773,125 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load medications for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to load medications for ID number {IdNumber}.", normalizedIdNumber);
             return [];
+        }
+    }
+
+    public async Task<PatientOrdersResultsSnapshotDto> GetPatientOrdersResultsAsync(string idNumber, CancellationToken cancellationToken = default)
+    {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
+        try
+        {
+            var rows = new List<PatientLabResultRow>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spGetPatientLabResults", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var idOrdinal = reader.GetOrdinal("LabResultId");
+            var testNameOrdinal = reader.GetOrdinal("TestName");
+            var testCodeOrdinal = reader.GetOrdinal("TestCode");
+            var specimenTypeOrdinal = reader.GetOrdinal("SpecimenType");
+            var collectionOrdinal = reader.GetOrdinal("CollectionDate");
+            var resultDateOrdinal = reader.GetOrdinal("ResultDate");
+            var resultValueOrdinal = reader.GetOrdinal("ResultValue");
+            var unitOrdinal = reader.GetOrdinal("Unit");
+            var referenceRangeOrdinal = reader.GetOrdinal("ReferenceRange");
+            var statusOrdinal = reader.GetOrdinal("Status");
+            var orderedByOrdinal = reader.GetOrdinal("OrderedBy");
+            var labOrdinal = reader.GetOrdinal("Lab");
+            var interpretationOrdinal = reader.GetOrdinal("Interpretation");
+            var notesOrdinal = reader.GetOrdinal("Notes");
+            var createdOrdinal = reader.GetOrdinal("CreatedDate");
+            var updatedOrdinal = reader.GetOrdinal("UpdatedDate");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                rows.Add(new PatientLabResultRow
+                {
+                    LabResultId = GetReaderGuid(reader, idOrdinal),
+                    TestName = GetReaderString(reader, testNameOrdinal),
+                    TestCode = GetReaderString(reader, testCodeOrdinal),
+                    SpecimenType = GetReaderString(reader, specimenTypeOrdinal),
+                    CollectionDate = GetReaderNullableDateTime(reader, collectionOrdinal),
+                    ResultDate = GetReaderNullableDateTime(reader, resultDateOrdinal),
+                    ResultValue = GetReaderString(reader, resultValueOrdinal),
+                    Unit = GetReaderString(reader, unitOrdinal),
+                    ReferenceRange = GetReaderString(reader, referenceRangeOrdinal),
+                    Status = GetReaderString(reader, statusOrdinal),
+                    OrderedBy = GetReaderString(reader, orderedByOrdinal),
+                    Lab = GetReaderString(reader, labOrdinal),
+                    Interpretation = GetReaderString(reader, interpretationOrdinal),
+                    Notes = GetReaderString(reader, notesOrdinal),
+                    CreatedDate = GetReaderNullableDateTime(reader, createdOrdinal),
+                    UpdatedDate = GetReaderNullableDateTime(reader, updatedOrdinal)
+                });
+            }
+
+            var pendingOrders = rows
+                .Where(IsPendingLabResult)
+                .OrderByDescending(GetLabRowSortDate)
+                .Select(row => new PatientPendingOrderDto
+                {
+                    LabResultId = row.LabResultId,
+                    TestName = row.TestName,
+                    TestCode = row.TestCode,
+                    SpecimenType = row.SpecimenType,
+                    Status = NormalizePendingOrderStatus(row.Status),
+                    OrderedBy = row.OrderedBy,
+                    Lab = row.Lab,
+                    CollectionDate = row.CollectionDate,
+                    ResultDate = row.ResultDate
+                })
+                .ToList();
+
+            var results = rows
+                .Where(row => !IsPendingLabResult(row))
+                .OrderByDescending(GetLabRowSortDate)
+                .Select(row => new PatientLabResultDto
+                {
+                    LabResultId = row.LabResultId,
+                    TestName = row.TestName,
+                    TestCode = row.TestCode,
+                    ResultValue = row.ResultValue,
+                    Unit = row.Unit,
+                    ReferenceRange = row.ReferenceRange,
+                    Severity = NormalizeResultSeverity(row.Status),
+                    OrderedBy = row.OrderedBy,
+                    Lab = row.Lab,
+                    Interpretation = row.Interpretation,
+                    Notes = row.Notes,
+                    CollectionDate = row.CollectionDate,
+                    ResultDate = row.ResultDate
+                })
+                .ToList();
+
+            return new PatientOrdersResultsSnapshotDto
+            {
+                PendingOrders = pendingOrders,
+                Results = results
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load orders and results for ID number {IdNumber}.", normalizedIdNumber);
+            return new PatientOrdersResultsSnapshotDto();
         }
     }
 
     public async Task<IReadOnlyList<PatientVaccinationDto>> GetPatientVaccinationsAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             var items = new List<PatientVaccinationDto>();
@@ -490,7 +902,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             await connection.OpenAsync(cancellationToken);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -533,13 +945,15 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load vaccinations for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to load vaccinations for ID number {IdNumber}.", normalizedIdNumber);
             return [];
         }
     }
 
     public async Task<IReadOnlyList<PatientConsultationNoteDto>> GetPatientConsultationNotesAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             var items = new List<PatientConsultationNoteDto>();
@@ -550,7 +964,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             await connection.OpenAsync(cancellationToken);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -609,13 +1023,15 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load consultation notes for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to load consultation notes for ID number {IdNumber}.", normalizedIdNumber);
             return [];
         }
     }
 
     public async Task<IReadOnlyList<PatientReferralDto>> GetPatientReferralsAsync(string idNumber, CancellationToken cancellationToken = default)
     {
+        var normalizedIdNumber = PatientRequestRules.NormalizeText(idNumber);
+
         try
         {
             var items = new List<PatientReferralDto>();
@@ -626,7 +1042,7 @@ public sealed class PatientService : IPatientService
                 CommandType = CommandType.StoredProcedure
             };
 
-            command.Parameters.Add(new SqlParameter("@IDNumber", idNumber));
+            command.Parameters.Add(new SqlParameter("@IDNumber", normalizedIdNumber));
 
             await connection.OpenAsync(cancellationToken);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -675,7 +1091,7 @@ public sealed class PatientService : IPatientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load referrals for ID number {IdNumber}.", idNumber);
+            _logger.LogError(ex, "Failed to load referrals for ID number {IdNumber}.", normalizedIdNumber);
             return [];
         }
     }
@@ -746,6 +1162,79 @@ public sealed class PatientService : IPatientService
         return "Low";
     }
 
+    private static bool IsPendingLabResult(PatientLabResultRow row)
+    {
+        var normalized = (row.Status ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return false;
+        }
+
+        return normalized.Contains("PENDING", StringComparison.Ordinal)
+            || normalized.Contains("ORDER", StringComparison.Ordinal)
+            || normalized.Contains("PROCESS", StringComparison.Ordinal)
+            || normalized.Contains("COLLECT", StringComparison.Ordinal)
+            || normalized.Contains("QUEUE", StringComparison.Ordinal);
+    }
+
+    private static string NormalizePendingOrderStatus(string status)
+    {
+        var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalized.Contains("COLLECT", StringComparison.Ordinal))
+        {
+            return "Collected";
+        }
+
+        if (normalized.Contains("PROCESS", StringComparison.Ordinal))
+        {
+            return "Processing";
+        }
+
+        if (normalized.Contains("ORDER", StringComparison.Ordinal))
+        {
+            return "Ordered";
+        }
+
+        if (normalized.Contains("QUEUE", StringComparison.Ordinal))
+        {
+            return "Queued";
+        }
+
+        if (normalized.Contains("PENDING", StringComparison.Ordinal))
+        {
+            return "Pending";
+        }
+
+        return string.IsNullOrWhiteSpace(status) ? "Pending" : status.Trim();
+    }
+
+    private static string NormalizeResultSeverity(string status)
+    {
+        var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalized.Contains("CRITIC", StringComparison.Ordinal))
+        {
+            return "Critical";
+        }
+
+        if (normalized.Contains("ABNORMAL", StringComparison.Ordinal)
+            || normalized.Contains("HIGH", StringComparison.Ordinal)
+            || normalized.Contains("LOW", StringComparison.Ordinal))
+        {
+            return "Abnormal";
+        }
+
+        return "Normal";
+    }
+
+    private static DateTime GetLabRowSortDate(PatientLabResultRow row)
+        => row.ResultDate
+            ?? row.CollectionDate
+            ?? row.UpdatedDate
+            ?? row.CreatedDate
+            ?? DateTime.MinValue;
+
     private static int CalculateAge(DateTime dateOfBirth)
     {
         var today = DateTime.UtcNow.Date;
@@ -758,6 +1247,385 @@ public sealed class PatientService : IPatientService
         }
 
         return Math.Max(0, age);
+    }
+
+    private async Task PopulateClientSummariesAsync(
+        List<PatientDirectoryItemDto> patients,
+        CancellationToken cancellationToken)
+    {
+        var clientIds = patients
+            .Where((patient) => patient.ClientId.HasValue && patient.ClientId.Value != Guid.Empty)
+            .Select((patient) => patient.ClientId!.Value)
+            .Distinct()
+            .ToArray();
+
+        if (clientIds.Length == 0)
+        {
+            return;
+        }
+
+        var summaries = await GetClientLookupMapAsync(clientIds, cancellationToken);
+        foreach (var patient in patients)
+        {
+            if (!patient.ClientId.HasValue || !summaries.TryGetValue(patient.ClientId.Value, out var summary))
+            {
+                continue;
+            }
+
+            patient.ClientCode = summary.ClientCode;
+            patient.ClientName = summary.ClientName;
+            patient.ClientClinicCategoryName = summary.ClientClinicCategoryName;
+        }
+    }
+
+    private async Task PopulateClientAssignmentsAsync(
+        List<PatientDirectoryItemDto> patients,
+        CancellationToken cancellationToken)
+    {
+        var patientIds = patients
+            .Select((patient) => patient.PatientId)
+            .Where((patientId) => patientId != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        if (patientIds.Length == 0)
+        {
+            return;
+        }
+
+        var assignmentMap = await GetPatientClientAssignmentsMapAsync(patientIds, cancellationToken);
+        if (assignmentMap.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var patient in patients)
+        {
+            if (!assignmentMap.TryGetValue(patient.PatientId, out var assignments) || assignments.Count == 0)
+            {
+                continue;
+            }
+
+            patient.Clients = assignments;
+
+            var primaryAssignment = assignments.FirstOrDefault((assignment) => assignment.IsPrimary) ?? assignments[0];
+            patient.ClientId = primaryAssignment.ClientId;
+            patient.ClientCode = primaryAssignment.ClientCode;
+            patient.ClientName = primaryAssignment.ClientName;
+            patient.ClientClinicCategoryName = primaryAssignment.ClientClinicCategoryName;
+        }
+    }
+
+    private async Task<Dictionary<Guid, PatientClientLookupItemDto>> GetClientLookupMapAsync(
+        IReadOnlyCollection<Guid> clientIds,
+        CancellationToken cancellationToken)
+    {
+        if (clientIds.Count == 0)
+        {
+            return [];
+        }
+
+        try
+        {
+            var parameterNames = clientIds
+                .Select((_, index) => $"@ClientId{index}")
+                .ToArray();
+
+            var lookup = new Dictionary<Guid, PatientClientLookupItemDto>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand(
+                $"""
+                 SELECT
+                     C.ClientId,
+                     C.ClientCode,
+                     C.FirstName,
+                     C.LastName,
+                     ISNULL(CCC.CategoryName, '') AS ClientClinicCategoryName
+                 FROM Profile.Clients C
+                 LEFT JOIN Profile.ClientClinicCategories CCC
+                     ON CCC.ClientClinicCategoryId = C.ClientClinicCategoryIDFK
+                 WHERE C.ClientId IN ({string.Join(", ", parameterNames)});
+                 """,
+                connection);
+
+            var index = 0;
+            foreach (var clientId in clientIds)
+            {
+                command.Parameters.Add(new SqlParameter(parameterNames[index], SqlDbType.UniqueIdentifier) { Value = clientId });
+                index += 1;
+            }
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var clientIdOrdinal = reader.GetOrdinal("ClientId");
+            var clientCodeOrdinal = reader.GetOrdinal("ClientCode");
+            var firstNameOrdinal = reader.GetOrdinal("FirstName");
+            var lastNameOrdinal = reader.GetOrdinal("LastName");
+            var categoryNameOrdinal = reader.GetOrdinal("ClientClinicCategoryName");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var clientId = GetReaderGuid(reader, clientIdOrdinal);
+                if (clientId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                var clientCode = GetReaderString(reader, clientCodeOrdinal);
+                var firstName = GetReaderString(reader, firstNameOrdinal);
+                var lastName = GetReaderString(reader, lastNameOrdinal);
+
+                lookup[clientId] = new PatientClientLookupItemDto
+                {
+                    ClientId = clientId,
+                    ClientCode = clientCode,
+                    ClientName = BuildClientDisplayName(firstName, lastName, clientCode),
+                    ClientClinicCategoryName = GetReaderString(reader, categoryNameOrdinal)
+                };
+            }
+
+            return lookup;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to resolve client summaries for patient records.");
+            return [];
+        }
+    }
+
+    private async Task<IReadOnlyList<PatientClientAssignmentDto>> GetPatientClientAssignmentsAsync(
+        Guid patientId,
+        CancellationToken cancellationToken)
+    {
+        var map = await GetPatientClientAssignmentsMapAsync([patientId], cancellationToken);
+        return map.TryGetValue(patientId, out var assignments) ? assignments : [];
+    }
+
+    private async Task<Dictionary<Guid, List<PatientClientAssignmentDto>>> GetPatientClientAssignmentsMapAsync(
+        IReadOnlyCollection<Guid> patientIds,
+        CancellationToken cancellationToken)
+    {
+        if (patientIds.Count == 0)
+        {
+            return [];
+        }
+
+        try
+        {
+            var parameterNames = patientIds
+                .Select((_, index) => $"@PatientId{index}")
+                .ToArray();
+
+            var lookup = new Dictionary<Guid, List<PatientClientAssignmentDto>>();
+
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand(
+                $"""
+                 SELECT
+                     PC.PatientIdFK,
+                     PC.ClientIdFK,
+                     C.ClientCode,
+                     C.FirstName,
+                     C.LastName,
+                     ISNULL(CCC.CategoryName, '') AS ClientClinicCategoryName,
+                     PC.IsPrimary
+                 FROM Profile.PatientClients PC
+                 INNER JOIN Profile.Clients C
+                     ON C.ClientId = PC.ClientIdFK
+                 LEFT JOIN Profile.ClientClinicCategories CCC
+                     ON CCC.ClientClinicCategoryId = C.ClientClinicCategoryIDFK
+                 WHERE PC.PatientIdFK IN ({string.Join(", ", parameterNames)})
+                 ORDER BY PC.PatientIdFK ASC, PC.IsPrimary DESC, C.FirstName ASC, C.LastName ASC, C.ClientCode ASC;
+                 """,
+                connection);
+
+            var index = 0;
+            foreach (var patientId in patientIds)
+            {
+                command.Parameters.Add(new SqlParameter(parameterNames[index], SqlDbType.UniqueIdentifier) { Value = patientId });
+                index += 1;
+            }
+
+            await connection.OpenAsync(cancellationToken);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var patientIdOrdinal = reader.GetOrdinal("PatientIdFK");
+            var clientIdOrdinal = reader.GetOrdinal("ClientIdFK");
+            var clientCodeOrdinal = reader.GetOrdinal("ClientCode");
+            var firstNameOrdinal = reader.GetOrdinal("FirstName");
+            var lastNameOrdinal = reader.GetOrdinal("LastName");
+            var categoryNameOrdinal = reader.GetOrdinal("ClientClinicCategoryName");
+            var isPrimaryOrdinal = reader.GetOrdinal("IsPrimary");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var patientId = GetReaderGuid(reader, patientIdOrdinal);
+                var clientId = GetReaderGuid(reader, clientIdOrdinal);
+                if (patientId == Guid.Empty || clientId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (!lookup.TryGetValue(patientId, out var assignments))
+                {
+                    assignments = [];
+                    lookup[patientId] = assignments;
+                }
+
+                var clientCode = GetReaderString(reader, clientCodeOrdinal);
+                var firstName = GetReaderString(reader, firstNameOrdinal);
+                var lastName = GetReaderString(reader, lastNameOrdinal);
+
+                assignments.Add(new PatientClientAssignmentDto
+                {
+                    ClientId = clientId,
+                    ClientCode = clientCode,
+                    ClientName = BuildClientDisplayName(firstName, lastName, clientCode),
+                    ClientClinicCategoryName = GetReaderString(reader, categoryNameOrdinal),
+                    IsPrimary = GetReaderBoolean(reader, isPrimaryOrdinal)
+                });
+            }
+
+            return lookup;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to resolve patient-client memberships.");
+            return [];
+        }
+    }
+
+    private async Task<Guid?> GetPatientIdByIdNumberAsync(
+        string idNumber,
+        bool includeDeleted,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand(
+                """
+                SELECT TOP (1) PatientId
+                FROM Profile.Patient
+                WHERE ID_Number = @IDNumber
+                  AND (@IncludeDeleted = 1 OR IsDeleted = 0);
+                """,
+                connection);
+
+            command.Parameters.Add(new SqlParameter("@IDNumber", SqlDbType.VarChar, 250) { Value = idNumber });
+            command.Parameters.Add(new SqlParameter("@IncludeDeleted", SqlDbType.Bit) { Value = includeDeleted });
+
+            await connection.OpenAsync(cancellationToken);
+            var scalar = await command.ExecuteScalarAsync(cancellationToken);
+            return scalar is Guid patientId ? patientId : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to resolve patient ID for {IdNumber}.", idNumber);
+            return null;
+        }
+    }
+
+    private static string BuildClientDisplayName(string firstName, string lastName, string clientCode)
+    {
+        var name = $"{firstName} {lastName}".Trim();
+        return string.IsNullOrWhiteSpace(name) ? clientCode : name;
+    }
+
+    private static PatientCreateRequest NormalizeRequest(PatientCreateRequest request)
+        => new()
+        {
+            PrimaryClientId = request.PrimaryClientId,
+            SecondaryClientIds = request.SecondaryClientIds,
+            FirstName = PatientRequestRules.NormalizeText(request.FirstName),
+            LastName = PatientRequestRules.NormalizeText(request.LastName),
+            IdNumber = PatientRequestRules.NormalizeText(request.IdNumber),
+            DateOfBirth = PatientRequestRules.NormalizeDate(request.DateOfBirth),
+            GenderId = request.GenderId,
+            PhoneNumber = PatientRequestRules.NormalizeText(request.PhoneNumber),
+            Email = PatientRequestRules.NormalizeText(request.Email),
+            Line1 = PatientRequestRules.NormalizeText(request.Line1),
+            Line2 = PatientRequestRules.NormalizeText(request.Line2),
+            CityId = request.CityId,
+            ProvinceId = request.ProvinceId,
+            CountryId = request.CountryId,
+            MaritalStatusId = request.MaritalStatusId,
+            EmergencyName = PatientRequestRules.NormalizeText(request.EmergencyName),
+            EmergencyLastName = PatientRequestRules.NormalizeText(request.EmergencyLastName),
+            EmergencyPhoneNumber = PatientRequestRules.NormalizeText(request.EmergencyPhoneNumber),
+            Relationship = PatientRequestRules.NormalizeText(request.Relationship),
+            EmergencyDateOfBirth = PatientRequestRules.NormalizeDate(request.EmergencyDateOfBirth),
+            MedicationList = PatientRequestRules.NormalizeText(request.MedicationList)
+        };
+
+    private static PatientUpdateRequest NormalizeRequest(PatientUpdateRequest request)
+        => new()
+        {
+            PrimaryClientId = request.PrimaryClientId,
+            SecondaryClientIds = request.SecondaryClientIds,
+            FirstName = PatientRequestRules.NormalizeText(request.FirstName),
+            LastName = PatientRequestRules.NormalizeText(request.LastName),
+            DateOfBirth = PatientRequestRules.NormalizeDate(request.DateOfBirth),
+            GenderId = request.GenderId,
+            PhoneNumber = PatientRequestRules.NormalizeText(request.PhoneNumber),
+            Email = PatientRequestRules.NormalizeText(request.Email),
+            Line1 = PatientRequestRules.NormalizeText(request.Line1),
+            Line2 = PatientRequestRules.NormalizeText(request.Line2),
+            CityId = request.CityId,
+            ProvinceId = request.ProvinceId,
+            CountryId = request.CountryId,
+            MaritalStatusId = request.MaritalStatusId,
+            EmergencyName = PatientRequestRules.NormalizeText(request.EmergencyName),
+            EmergencyLastName = PatientRequestRules.NormalizeText(request.EmergencyLastName),
+            EmergencyPhoneNumber = PatientRequestRules.NormalizeText(request.EmergencyPhoneNumber),
+            Relationship = PatientRequestRules.NormalizeText(request.Relationship),
+            EmergencyDateOfBirth = PatientRequestRules.NormalizeDate(request.EmergencyDateOfBirth),
+            MedicationList = PatientRequestRules.NormalizeText(request.MedicationList)
+        };
+
+    private static (bool IsValid, Guid PrimaryClientId, string AdditionalClientIdsCsv) BuildClientSelection(
+        Guid? primaryClientId,
+        IReadOnlyList<Guid>? secondaryClientIds)
+    {
+        if (!primaryClientId.HasValue || primaryClientId.Value == Guid.Empty)
+        {
+            return (false, Guid.Empty, string.Empty);
+        }
+
+        var normalizedSecondaryIds = (secondaryClientIds ?? [])
+            .Where((clientId) => clientId != Guid.Empty && clientId != primaryClientId.Value)
+            .Distinct()
+            .ToArray();
+
+        return (true, primaryClientId.Value, string.Join(",", normalizedSecondaryIds));
+    }
+
+    private static object ToDbString(string? value)
+    {
+        var trimmed = (value ?? string.Empty).Trim();
+        return trimmed.Length > 0 ? trimmed : DBNull.Value;
+    }
+
+    private sealed class PatientLabResultRow
+    {
+        public Guid LabResultId { get; init; }
+        public string TestName { get; init; } = string.Empty;
+        public string TestCode { get; init; } = string.Empty;
+        public string SpecimenType { get; init; } = string.Empty;
+        public DateTime? CollectionDate { get; init; }
+        public DateTime? ResultDate { get; init; }
+        public string ResultValue { get; init; } = string.Empty;
+        public string Unit { get; init; } = string.Empty;
+        public string ReferenceRange { get; init; } = string.Empty;
+        public string Status { get; init; } = string.Empty;
+        public string OrderedBy { get; init; } = string.Empty;
+        public string Lab { get; init; } = string.Empty;
+        public string Interpretation { get; init; } = string.Empty;
+        public string Notes { get; init; } = string.Empty;
+        public DateTime? CreatedDate { get; init; }
+        public DateTime? UpdatedDate { get; init; }
     }
 
     private string GetConnectionString()
@@ -795,6 +1663,9 @@ public sealed class PatientService : IPatientService
     private static Guid GetReaderGuid(SqlDataReader reader, int ordinal)
         => reader.IsDBNull(ordinal) ? Guid.Empty : reader.GetGuid(ordinal);
 
+    private static int GetReaderInt(SqlDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? 0 : Convert.ToInt32(reader.GetValue(ordinal));
+
     private static Guid? GetReaderNullableGuid(SqlDataReader reader, int ordinal)
         => reader.IsDBNull(ordinal) ? null : reader.GetGuid(ordinal);
 
@@ -806,6 +1677,13 @@ public sealed class PatientService : IPatientService
 
     private static bool GetReaderBoolean(SqlDataReader reader, int ordinal)
         => !reader.IsDBNull(ordinal) && Convert.ToBoolean(reader.GetValue(ordinal));
+
+    private static (int PageNumber, int PageSize) NormalizePage(int pageNumber, int pageSize)
+    {
+        var normalizedPageNumber = pageNumber < 1 ? 1 : pageNumber;
+        var normalizedPageSize = pageSize < 1 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
+        return (normalizedPageNumber, normalizedPageSize);
+    }
 
     private static DateTime GetDateTimeOutput(SqlCommand command, string parameterName)
     {

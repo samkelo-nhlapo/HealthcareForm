@@ -3,8 +3,15 @@ using System.ComponentModel.DataAnnotations;
 namespace HealthcareForm.Contracts.Patients;
 
 // Request body used to update an existing patient.
-public sealed class PatientUpdateRequest
+public sealed class PatientUpdateRequest : IValidatableObject
 {
+    // Primary clinic or hospital the patient is registered under.
+    [Required]
+    public Guid? PrimaryClientId { get; init; }
+
+    // Additional clinics or hospitals the patient is shared with.
+    public IReadOnlyList<Guid> SecondaryClientIds { get; init; } = [];
+
     // Patient given name.
     [Required, MaxLength(30)]
     public string FirstName { get; init; } = string.Empty;
@@ -75,4 +82,20 @@ public sealed class PatientUpdateRequest
 
     // Free-text medication list captured on the patient record.
     public string MedicationList { get; init; } = string.Empty;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        foreach (var result in PatientRequestRules.ValidateRequiredDate(DateOfBirth, nameof(DateOfBirth), "Date of birth"))
+        {
+            yield return result;
+        }
+
+        foreach (var result in PatientRequestRules.ValidateRequiredDate(
+                     EmergencyDateOfBirth,
+                     nameof(EmergencyDateOfBirth),
+                     "Emergency date of birth"))
+        {
+            yield return result;
+        }
+    }
 }

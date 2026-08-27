@@ -102,7 +102,22 @@ BEGIN
                     OR ISNULL(CE.Email, '') LIKE '%' + @SearchTerm + '%'
                     OR ISNULL(CP.PhoneNumber, '') LIKE '%' + @SearchTerm + '%'
                 )
-                AND (@ClientIdFK IS NULL OR P.ClientIdFK = @ClientIdFK)
+                AND
+                (
+                    @ClientIdFK IS NULL
+                    OR P.ClientIdFK = @ClientIdFK
+                    OR
+                    (
+                        OBJECT_ID(N'Profile.PatientClients', N'U') IS NOT NULL
+                        AND EXISTS
+                        (
+                            SELECT 1
+                            FROM Profile.PatientClients PC
+                            WHERE PC.PatientIdFK = P.PatientId
+                              AND PC.ClientIdFK = @ClientIdFK
+                        )
+                    )
+                )
                 AND (@GenderIDFK = 0 OR P.GenderIDFK = @GenderIDFK)
                 AND (@MaritalStatusIDFK = 0 OR P.MaritalStatusIDFK = @MaritalStatusIDFK)
                 AND (@CityIDFK = 0 OR LC.CityId = @CityIDFK)

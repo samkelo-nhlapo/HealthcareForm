@@ -1,7 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SchedulingSnapshotDto, TaskQueueSnapshotDto } from '../models/operations.models';
+import {
+  SchedulingAppointmentCommandResultDto,
+  SchedulingAppointmentCreateRequestDto,
+  SchedulingBookingOptionsDto,
+  SchedulingSnapshotDto,
+  TaskQueueSnapshotDto
+} from '../models/operations.models';
 
 @Injectable({ providedIn: 'root' })
 export class OperationsApiService {
@@ -11,6 +17,14 @@ export class OperationsApiService {
 
   getSchedulingSnapshot(): Observable<SchedulingSnapshotDto> {
     return this.http.get<SchedulingSnapshotDto>(`${this.apiBaseUrl}/scheduling`);
+  }
+
+  getSchedulingBookingOptions(): Observable<SchedulingBookingOptionsDto> {
+    return this.http.get<SchedulingBookingOptionsDto>(`${this.apiBaseUrl}/scheduling/booking-options`);
+  }
+
+  createSchedulingAppointment(request: SchedulingAppointmentCreateRequestDto): Observable<SchedulingAppointmentCommandResultDto> {
+    return this.http.post<SchedulingAppointmentCommandResultDto>(`${this.apiBaseUrl}/scheduling/appointments`, request);
   }
 
   getTaskQueueSnapshot(): Observable<TaskQueueSnapshotDto> {

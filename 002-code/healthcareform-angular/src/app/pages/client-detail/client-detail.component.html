@@ -1,0 +1,432 @@
+<section class="panel hero">
+  <div>
+    <p class="eyebrow">Client Admin</p>
+    <div class="hero-heading">
+      <h3>{{ title }}</h3>
+      <div class="hero-chips" *ngIf="client as record">
+        <span class="hero-chip">{{ organizationContent.singular }}</span>
+        <span class="hero-chip muted">{{ readText(record.ClientClinicCategoryName, 'Unassigned category') }}</span>
+      </div>
+    </div>
+    <p class="lead">Review the {{ client ? organizationContent.singularLower : 'organisation' }} profile, registered patients, departments, and staff from one admin workspace.</p>
+  </div>
+  <div class="hero-actions">
+    <button type="button" class="danger-link" *ngIf="canEdit && client" (click)="deleteClient()" [disabled]="clientDeleting">
+      {{ clientDeleting ? 'Deleting...' : 'Delete organisation' }}
+    </button>
+    <a *ngIf="canEdit && client" class="edit-link" [routerLink]="['/admin/clients', client.ClientId, 'edit']">Edit organisation</a>
+    <a class="back-link" [routerLink]="['/admin/clients']">Back to client directory</a>
+  </div>
+</section>
+
+<div class="state" *ngIf="statusMessage" [class.error]="statusError">
+  <span>{{ statusMessage }}</span>
+</div>
+
+<div class="state" *ngIf="isLoading">Loading organisation detail...</div>
+<div class="state error" *ngIf="!isLoading && loadError">
+  <span>{{ loadError }}</span>
+  <button type="button" class="ghost" (click)="retryLoad()">Retry</button>
+</div>
+
+<ng-container *ngIf="!isLoading && !loadError && client as record">
+  <section class="grid">
+    <article class="panel card">
+      <h4>Organisation Snapshot</h4>
+      <dl>
+        <div>
+          <dt>Organisation Type</dt>
+          <dd>{{ organizationContent.singular }}</dd>
+        </div>
+        <div>
+          <dt>Organisation Code</dt>
+          <dd>{{ readText(record.ClientCode) }}</dd>
+        </div>
+        <div>
+          <dt>Registered Organisation Name</dt>
+          <dd>{{ title }}</dd>
+        </div>
+        <div>
+          <dt>{{ organizationContent.secondaryNameLabel }}</dt>
+          <dd>{{ organizationSecondaryName || 'Uses the registered organisation name' }}</dd>
+        </div>
+        <div>
+          <dt>Organisation Category</dt>
+          <dd>{{ readText(record.ClientClinicCategoryName, 'Unassigned category') }}</dd>
+        </div>
+        <div>
+          <dt>Facility Profile</dt>
+          <dd>{{ organizationProfile }}</dd>
+        </div>
+        <div>
+          <dt>Facility Location</dt>
+          <dd>{{ getFacilityLocation(record) }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="panel card">
+      <h4>Registry and Operations</h4>
+      <dl>
+        <div>
+          <dt>{{ organizationContent.registrationLabel }}</dt>
+          <dd>{{ readText(record.IdNumber, 'Not recorded') }}</dd>
+        </div>
+        <div>
+          <dt>{{ organizationContent.establishedLabel }}</dt>
+          <dd>{{ formatDate(record.DateOfBirth, 'Not recorded') }}</dd>
+        </div>
+        <div>
+          <dt>Group / Operator</dt>
+          <dd>{{ readText(record.GroupOperator, 'Not recorded') }}</dd>
+        </div>
+        <div>
+          <dt>Network Sources</dt>
+          <dd>{{ readText(record.NetworkSources, 'Not recorded') }}</dd>
+        </div>
+        <div>
+          <dt>Record Status</dt>
+          <dd>
+            <span class="pill" [class.inactive]="!record.IsActive">
+              {{ record.IsActive ? 'Active' : 'Inactive' }}
+            </span>
+            <span class="pill deleted" *ngIf="record.IsDeleted">Deleted</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Active Patients</dt>
+          <dd>{{ record.ActivePatientCount || 0 }}</dd>
+        </div>
+        <div>
+          <dt>Registered Patients</dt>
+          <dd>{{ record.RegisteredPatientCount || patientTotalRecords }}</dd>
+        </div>
+        <div>
+          <dt>Patient Link Model</dt>
+          <dd>Patients can be registered primarily here or shared with this {{ organizationContent.singularLower }} through multi-client membership.</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="panel card">
+      <h4>Contact and Address</h4>
+      <dl>
+        <div>
+          <dt>Operations Email</dt>
+          <dd>{{ readText(record.Email, 'No operations email') }}</dd>
+        </div>
+        <div>
+          <dt>{{ organizationContent.phoneLabel }}</dt>
+          <dd>{{ readText(record.PhoneNumber, 'No phone number on file') }}</dd>
+        </div>
+        <div>
+          <dt>Address</dt>
+          <dd>{{ getAddress(record) }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="panel card">
+      <h4>Audit Trail</h4>
+      <dl>
+        <div>
+          <dt>Client ID</dt>
+          <dd>{{ record.ClientId }}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ formatDateTime(record.CreatedDate) }}</dd>
+        </div>
+        <div>
+          <dt>Created By</dt>
+          <dd>{{ readText(record.CreatedBy) }}</dd>
+        </div>
+        <div>
+          <dt>Updated</dt>
+          <dd>{{ formatDateTime(record.UpdatedDate) }}</dd>
+        </div>
+        <div>
+          <dt>Updated By</dt>
+          <dd>{{ readText(record.UpdatedBy) }}</dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+
+  <section class="panel section">
+    <header class="section-header">
+      <div>
+        <h4>Registered Patients</h4>
+        <p>Patients currently registered under this {{ organizationContent.singularLower }} profile.</p>
+      </div>
+      <strong>{{ patientTotalRecords }} total</strong>
+    </header>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>ID Number</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let patient of registeredPatients">
+            <td>
+              <div class="primary">{{ readText(patient.FirstName, '') }} {{ readText(patient.LastName, '') }}</div>
+              <div class="secondary">{{ formatDate(patient.DateOfBirth) }}</div>
+            </td>
+            <td>{{ readText(patient.IdNumber, 'No ID number') }}</td>
+            <td>
+              <div class="primary">{{ readText(patient.PhoneNumber, 'No phone') }}</div>
+              <div class="secondary">{{ readText(patient.Email, 'No email') }}</div>
+            </td>
+            <td>
+              <div class="primary">{{ getPatientMembershipLabel(patient) }}</div>
+              <span class="pill" [class.deleted]="patient.IsDeleted">
+                {{ patient.IsDeleted ? 'Deleted' : 'Active' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <a *ngIf="!patient.IsDeleted" [routerLink]="['/patients/chart', patient.IdNumber]">Chart</a>
+              <a [routerLink]="['/patients/registration']" [queryParams]="{ idNumber: patient.IdNumber }">Open registration</a>
+            </td>
+          </tr>
+          <tr *ngIf="registeredPatients.length === 0">
+            <td colspan="5" class="empty">No patient records are registered under this organisation yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <header class="section-header">
+      <div>
+        <h4>Departments</h4>
+        <p>Operational departments currently linked to this organisation profile.</p>
+      </div>
+      <strong>{{ departments.length }} total</strong>
+    </header>
+
+    <form class="editor-form" *ngIf="canManageLinkedRecords" [formGroup]="departmentForm" (ngSubmit)="saveDepartment()">
+      <div class="editor-header">
+        <h5>{{ departmentFormTitle }}</h5>
+        <p>Create and maintain departments without leaving the organisation detail view.</p>
+      </div>
+      <div class="editor-grid compact">
+        <label>
+          Department Name
+          <input type="text" formControlName="DepartmentName" placeholder="Radiology" />
+        </label>
+        <label>
+          Department Code
+          <input type="text" formControlName="DepartmentCode" placeholder="RAD" />
+        </label>
+        <label>
+          Department Type
+          <select formControlName="DepartmentType">
+            <option *ngFor="let option of departmentTypes" [value]="option">{{ option }}</option>
+          </select>
+        </label>
+        <label class="checkbox-field" *ngIf="editingDepartmentId">
+          <input type="checkbox" formControlName="IsActive" />
+          <span>Department is active</span>
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button type="submit" [disabled]="departmentFormBusy">{{ editingDepartmentId ? 'Save department' : 'Add department' }}</button>
+        <button type="button" class="ghost" *ngIf="editingDepartmentId" (click)="cancelDepartmentEdit()" [disabled]="departmentFormBusy">Cancel</button>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Department</th>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th *ngIf="canManageLinkedRecords"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let department of departments">
+            <td>{{ readText(department.DepartmentName) }}</td>
+            <td>{{ readText(department.DepartmentCode) }}</td>
+            <td>{{ readText(department.DepartmentType) }}</td>
+            <td>
+              <span class="pill" [class.inactive]="!department.IsActive">
+                {{ department.IsActive ? 'Active' : 'Inactive' }}
+              </span>
+              <span class="pill deleted" *ngIf="department.IsDeleted">Deleted</span>
+            </td>
+            <td>{{ formatDate(department.UpdatedDate) }}</td>
+            <td class="actions-cell" *ngIf="canManageLinkedRecords">
+              <button type="button" class="link-button" *ngIf="!department.IsDeleted" (click)="editDepartment(department)" [disabled]="departmentFormBusy">Edit</button>
+              <button
+                type="button"
+                class="link-button danger"
+                *ngIf="!department.IsDeleted"
+                (click)="deleteDepartment(department)"
+                [disabled]="departmentFormBusy || isDeletingDepartment(department.ClientDepartmentId)">
+                {{ isDeletingDepartment(department.ClientDepartmentId) ? 'Deleting...' : 'Delete' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="departments.length === 0">
+            <td [attr.colspan]="canManageLinkedRecords ? 6 : 5" class="empty">No departments are linked to this organisation yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <header class="section-header">
+      <div>
+        <h4>Staff Roster</h4>
+        <p>People currently associated with the organisation, including archived or inactive assignments.</p>
+      </div>
+      <strong>{{ staff.length }} total</strong>
+    </header>
+
+    <form class="editor-form" *ngIf="canManageLinkedRecords" [formGroup]="staffForm" (ngSubmit)="saveStaff()">
+      <div class="editor-header">
+        <h5>{{ staffFormTitle }}</h5>
+        <p>Capture operations contacts, department leads, and other client-linked staff records.</p>
+      </div>
+      <div class="editor-grid">
+        <label>
+          Staff Code
+          <input type="text" formControlName="StaffCode" placeholder="STF-001" />
+        </label>
+        <label>
+          First Name
+          <input type="text" formControlName="FirstName" placeholder="Avery" />
+        </label>
+        <label>
+          Last Name
+          <input type="text" formControlName="LastName" placeholder="Moyo" />
+        </label>
+        <label>
+          Email
+          <input type="email" formControlName="Email" placeholder="avery@example.com" />
+        </label>
+        <label>
+          Phone Number
+          <input type="tel" formControlName="PhoneNumber" placeholder="0821234567" />
+        </label>
+        <label>
+          Job Title
+          <input type="text" formControlName="JobTitle" placeholder="Practice Manager" />
+        </label>
+        <label>
+          Department Group
+          <input type="text" formControlName="Department" placeholder="Operations" />
+        </label>
+        <label>
+          Primary Department
+          <select formControlName="PrimaryDepartmentId">
+            <option value="">No primary department</option>
+            <option *ngFor="let department of activeDepartments" [value]="department.ClientDepartmentId">
+              {{ readText(department.DepartmentName) }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Staff Type
+          <select formControlName="StaffType">
+            <option *ngFor="let option of staffTypeOptions" [value]="option">{{ option }}</option>
+          </select>
+        </label>
+        <label>
+          Employment Type
+          <select formControlName="EmploymentType">
+            <option *ngFor="let option of employmentTypeOptions" [value]="option">{{ option }}</option>
+          </select>
+        </label>
+        <label>
+          Hire Date
+          <input type="date" formControlName="HireDate" />
+        </label>
+        <label>
+          Termination Date
+          <input type="date" formControlName="TerminationDate" />
+        </label>
+        <label class="checkbox-field">
+          <input type="checkbox" formControlName="IsPrimaryContact" />
+          <span>Primary contact for this organisation</span>
+        </label>
+        <label class="checkbox-field" *ngIf="editingStaffId">
+          <input type="checkbox" formControlName="IsActive" />
+          <span>Staff record is active</span>
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button type="submit" [disabled]="staffFormBusy">{{ editingStaffId ? 'Save staff member' : 'Add staff member' }}</button>
+        <button type="button" class="ghost" *ngIf="editingStaffId" (click)="cancelStaffEdit()" [disabled]="staffFormBusy">Cancel</button>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th *ngIf="canManageLinkedRecords"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let member of staff">
+            <td>
+              <div class="primary">{{ readText(member.FirstName, '') }} {{ readText(member.LastName, '') }}</div>
+              <div class="secondary">{{ readText(member.StaffCode, 'No staff code') }}</div>
+            </td>
+            <td>
+              <div class="primary">{{ readText(member.RoleName, 'Unassigned role') }}</div>
+              <div class="secondary">{{ readText(member.JobTitle, 'No title') }}</div>
+            </td>
+            <td>
+              <div class="primary">{{ readText(member.PrimaryDepartmentName, 'No primary department') }}</div>
+              <div class="secondary">{{ readText(member.Department, 'No department group') }}</div>
+            </td>
+            <td>
+              <div class="primary">{{ readText(member.PhoneNumber, 'No phone') }}</div>
+              <div class="secondary">{{ readText(member.Email, 'No email') }}</div>
+            </td>
+            <td>
+              <span class="pill" [class.inactive]="!member.IsActive">
+                {{ member.IsActive ? 'Active' : 'Inactive' }}
+              </span>
+              <span class="pill deleted" *ngIf="member.IsDeleted">Deleted</span>
+            </td>
+            <td class="actions-cell" *ngIf="canManageLinkedRecords">
+              <button type="button" class="link-button" *ngIf="!member.IsDeleted" (click)="editStaff(member)" [disabled]="staffFormBusy">Edit</button>
+              <button
+                type="button"
+                class="link-button danger"
+                *ngIf="!member.IsDeleted"
+                (click)="deleteStaff(member)"
+                [disabled]="staffFormBusy || isDeletingStaff(member.ClientStaffId)">
+                {{ isDeletingStaff(member.ClientStaffId) ? 'Deleting...' : 'Delete' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="staff.length === 0">
+            <td [attr.colspan]="canManageLinkedRecords ? 6 : 5" class="empty">No staff records are linked to this organisation yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</ng-container>

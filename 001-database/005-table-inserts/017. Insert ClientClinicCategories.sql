@@ -15,7 +15,17 @@ FROM
         ('Small Private Clinic', 'Small', 'Private'),
         ('Small Public Clinic', 'Small', 'Public'),
         ('Medium Private Clinic', 'Medium', 'Private'),
-        ('Medium Public Clinic', 'Medium', 'Public')
+        ('Medium Public Clinic', 'Medium', 'Public'),
+        ('Medium Private Hospital', 'Medium', 'Private'),
+        ('Medium Public Hospital', 'Medium', 'Public'),
+        ('Large Private Hospital', 'Large', 'Private'),
+        ('Large Public Hospital', 'Large', 'Public'),
+        ('Private Clinic', 'Unknown', 'Private'),
+        ('Public Clinic', 'Unknown', 'Public'),
+        ('Unknown Clinic', 'Unknown', 'Unknown'),
+        ('Private Hospital', 'Unknown', 'Private'),
+        ('Public Hospital', 'Unknown', 'Public'),
+        ('Unknown Hospital', 'Unknown', 'Unknown')
 ) V(CategoryName, ClinicSize, OwnershipType)
 WHERE NOT EXISTS
 (

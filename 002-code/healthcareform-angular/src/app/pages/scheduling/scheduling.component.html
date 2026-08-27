@@ -29,6 +29,91 @@
     No scheduling provider/resource rows are currently available.
   </div>
 
+  <section class="sub-panel booking" *ngIf="!loadError">
+    <h4>Quick Appointment Ingestion</h4>
+    <p class="empty-note booking-error" *ngIf="bookingLoadError">{{ bookingLoadError }}</p>
+    <p class="empty-note" *ngIf="!bookingLoadError && !hasBookingClients">No active clinics or hospitals are available for booking.</p>
+    <p class="empty-note" *ngIf="!bookingLoadError && hasBookingClients && !hasSelectedAppointmentClient">
+      Select a clinic or hospital first to load linked doctor options.
+    </p>
+    <p class="empty-note" *ngIf="!bookingLoadError && hasBookingClients && hasSelectedAppointmentClient && !hasAppointmentProviders">
+      No active doctor providers are linked to the selected clinic or hospital.
+    </p>
+    <div class="booking-grid">
+      <label>
+        Clinic / Hospital (Private/Public)
+        <select [value]="appointmentClientId" (change)="setAppointmentClient($any($event.target).value)">
+          <option value="">Select clinic or hospital</option>
+          <option *ngFor="let client of bookingClients" [value]="client.clientId">
+            {{ client.clientName }} ({{ client.clientCategory }})
+          </option>
+        </select>
+      </label>
+      <label>
+        Patient ID Number
+        <input
+          type="text"
+          inputmode="numeric"
+          maxlength="13"
+          [value]="appointmentPatientIdNumber"
+          (input)="appointmentPatientIdNumber = $any($event.target).value"
+          placeholder="13-digit national ID"
+        />
+      </label>
+      <label>
+        Doctor
+        <select
+          [value]="appointmentClientProviderAffiliationId"
+          [disabled]="!hasSelectedAppointmentClient || !hasAppointmentProviders"
+          (change)="appointmentClientProviderAffiliationId = $any($event.target).value"
+        >
+          <option value="" [disabled]="hasAppointmentProviders">{{ appointmentProviderPlaceholder }}</option>
+          <option *ngFor="let provider of appointmentProviders" [value]="provider.clientProviderAffiliationId">
+            {{ provider.provider }} ({{ provider.clinic }})
+          </option>
+        </select>
+      </label>
+      <label>
+        Appointment Time
+        <input
+          type="datetime-local"
+          [value]="appointmentDateTimeLocal"
+          (input)="appointmentDateTimeLocal = $any($event.target).value"
+        />
+      </label>
+      <label>
+        Duration (minutes)
+        <input
+          type="number"
+          min="5"
+          max="480"
+          step="5"
+          [value]="appointmentDurationMinutes"
+          (input)="appointmentDurationMinutes = +$any($event.target).value"
+        />
+      </label>
+      <label>
+        Appointment Type
+        <input type="text" maxlength="100" [value]="appointmentType" (input)="appointmentType = $any($event.target).value" />
+      </label>
+      <label>
+        Location
+        <input type="text" maxlength="250" [value]="appointmentLocation" (input)="appointmentLocation = $any($event.target).value" />
+      </label>
+      <label class="booking-reason">
+        Reason
+        <input type="text" [value]="appointmentReason" (input)="appointmentReason = $any($event.target).value" />
+      </label>
+    </div>
+    <div class="booking-actions">
+      <button type="button" (click)="submitAppointment()" [disabled]="!canSubmitAppointment">
+        {{ isSubmittingAppointment ? 'Scheduling...' : 'Schedule Appointment' }}
+      </button>
+      <small class="booking-state error" *ngIf="appointmentSubmitError">{{ appointmentSubmitError }}</small>
+      <small class="booking-state success" *ngIf="appointmentSubmitSuccess">{{ appointmentSubmitSuccess }}</small>
+    </div>
+  </section>
+
   <section class="metrics" *ngIf="!loadError">
     <article>
       <p class="label">Booked Slots</p>
@@ -55,7 +140,7 @@
       <div class="provider" *ngFor="let provider of filteredProviders">
         <div class="provider-row">
           <strong>{{ provider.provider }}</strong>
-          <span>{{ provider.clinic }} • {{ provider.room }}</span>
+          <span>{{ provider.clientName }} • {{ provider.clinic }} • {{ provider.room }}</span>
         </div>
         <div class="provider-row">
           <small>{{ provider.booked }}/{{ provider.capacity }} booked • next {{ provider.nextSlot }}</small>

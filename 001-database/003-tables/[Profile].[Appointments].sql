@@ -19,6 +19,9 @@ BEGIN
 CREATE TABLE [Profile].[Appointments](
 	[AppointmentId] [uniqueidentifier] NOT NULL,
 	[PatientIdFK] [uniqueidentifier] NOT NULL,
+	[ClientIdFK] [uniqueidentifier] NOT NULL,
+	[ClientProviderAffiliationIdFK] [uniqueidentifier] NOT NULL,
+	[ClientStaffIdFK] [uniqueidentifier] NULL,
 	[ProviderIdFK] [uniqueidentifier] NOT NULL,
 	[AppointmentDateTime] [datetime] NOT NULL,
 	[DurationMinutes] [int] NOT NULL DEFAULT 30,
@@ -40,6 +43,60 @@ PRIMARY KEY CLUSTERED
 	[AppointmentId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientIdFK] [uniqueidentifier] NULL
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientStaffIdFK] [uniqueidentifier] NULL
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientProviderAffiliationIdFK] [uniqueidentifier] NULL
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND name = N'ClientStaffIdFK'
+      AND is_nullable = 0
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] ALTER COLUMN [ClientStaffIdFK] [uniqueidentifier] NULL
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND name = N'ClientProviderAffiliationIdFK'
+      AND is_nullable = 1
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM [Profile].[Appointments]
+    WHERE [ClientProviderAffiliationIdFK] IS NULL
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] ALTER COLUMN [ClientProviderAffiliationIdFK] [uniqueidentifier] NOT NULL
 END
 GO
 
@@ -90,6 +147,58 @@ REFERENCES [Profile].[HealthcareProviders] ([ProviderId])
 END
 GO
 
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Clients]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[Clients]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Clients]'), N'ClientId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientIdFK])
+REFERENCES [Profile].[Clients] ([ClientId])
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientStaff]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientStaffIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[ClientStaff]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[ClientStaff]'), N'ClientStaffId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientStaffIdFK])
+REFERENCES [Profile].[ClientStaff] ([ClientStaffId])
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ProviderIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_Appointments_ClientProviderAffiliations_Id_Client_Provider'
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK
+ADD CONSTRAINT [FK_Appointments_ClientProviderAffiliations_Id_Client_Provider]
+FOREIGN KEY([ClientProviderAffiliationIdFK], [ClientIdFK], [ProviderIdFK])
+REFERENCES [Profile].[ClientProviderAffiliations] ([ClientProviderAffiliationId], [ClientIdFK], [ProviderIdFK])
+END
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_PatientIdFK')
 BEGIN
 CREATE INDEX IX_Appointments_PatientIdFK ON [Profile].[Appointments]([PatientIdFK])
@@ -99,6 +208,27 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ProviderIdFK')
 BEGIN
 CREATE INDEX IX_Appointments_ProviderIdFK ON [Profile].[Appointments]([ProviderIdFK])
+END
+GO
+
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientStaffIdFK')
+BEGIN
+CREATE INDEX IX_Appointments_ClientStaffIdFK ON [Profile].[Appointments]([ClientStaffIdFK])
+END
+GO
+
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientProviderAffiliationIdFK')
+BEGIN
+CREATE INDEX IX_Appointments_ClientProviderAffiliationIdFK ON [Profile].[Appointments]([ClientProviderAffiliationIdFK])
+END
+GO
+
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientIdFK_AppointmentDateTime')
+BEGIN
+CREATE INDEX IX_Appointments_ClientIdFK_AppointmentDateTime ON [Profile].[Appointments]([ClientIdFK], [AppointmentDateTime])
 END
 GO
 

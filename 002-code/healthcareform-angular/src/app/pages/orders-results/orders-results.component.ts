@@ -1,17 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { PatientRecordDto } from '../../models/patient.models';
+import { isValidPatientIdNumber, normalizePatientIdNumber } from '../../models/patient-id.utils';
+import { PatientLabResultDto, PatientPendingOrderDto, PatientRecordDto } from '../../models/patient.models';
 import { PatientApiService } from '../../services/patient-api.service';
 
 type ResultSeverity = 'Normal' | 'Abnormal' | 'Critical';
-type ResultRow = {
-  test: string;
-  value: string;
-  referenceRange: string;
-  severity: ResultSeverity;
-  completedAt: string;
-};
 
 @Component({
   selector: 'app-orders-results',
@@ -24,57 +18,106 @@ export class OrdersResultsComponent {
   patient: PatientRecordDto | null = null;
   contextLabel = 'No patient selected.';
   loadError = '';
+  resultsLoadError = '';
+  isLoading = false;
   abnormalOnly = false;
 
-  readonly pendingOrders: string[] = [
-    'CBC with differential',
-    'Renal function panel',
-    '12-lead ECG follow-up'
-  ];
-
-  readonly results: ResultRow[] = [
-    { test: 'Hemoglobin', value: '10.4 g/dL', referenceRange: '12.0 - 15.5', severity: 'Abnormal', completedAt: '2026-02-21 08:10' },
-    { test: 'Potassium', value: '5.9 mmol/L', referenceRange: '3.5 - 5.1', severity: 'Critical', completedAt: '2026-02-21 08:14' },
-    { test: 'Creatinine', value: '89 umol/L', referenceRange: '50 - 98', severity: 'Normal', completedAt: '2026-02-21 08:14' },
-    { test: 'Troponin I', value: '0.06 ng/mL', referenceRange: '< 0.04', severity: 'Abnormal', completedAt: '2026-02-21 08:17' }
-  ];
+  pendingOrders: PatientPendingOrderDto[] = [];
+  results: PatientLabResultDto[] = [];
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly patientApi: PatientApiService
   ) {
     this.route.queryParamMap.subscribe((params) => {
-      const idNumber = (params.get('idNumber') ?? '').trim();
-      if (idNumber.length !== 13) {
-        this.patient = null;
-        this.contextLabel = 'No patient selected. Launch from chart or worklist.';
+      const idNumber = normalizePatientIdNumber(params.get('idNumber'));
+      if (!isValidPatientIdNumber(idNumber)) {
+        this.resetView();
         return;
       }
+
+      this.isLoading = true;
+      this.loadError = '';
+      this.resultsLoadError = '';
 
       this.patientApi.getPatient(idNumber).subscribe({
         next: (patient) => {
           this.patient = patient;
-          this.loadError = '';
           this.contextLabel = `${patient.FirstName} ${patient.LastName} (${patient.IdNumber})`;
+          this.loadOrdersResults(idNumber);
         },
         error: (error) => {
-          this.patient = null;
+          this.resetView(`Patient ${idNumber}`);
           this.loadError = error?.error?.Message ?? error?.error?.message ?? 'Failed to load patient context.';
-          this.contextLabel = `Patient ${idNumber}`;
+          this.isLoading = false;
         }
       });
     });
   }
 
-  get visibleResults(): ResultRow[] {
+  get visibleResults(): PatientLabResultDto[] {
     if (!this.abnormalOnly) {
       return this.results;
     }
 
-    return this.results.filter((row) => row.severity !== 'Normal');
+    return this.results.filter((row) => this.normalizeSeverity(row.Severity) !== 'Normal');
   }
 
   toggleAbnormalOnly(): void {
     this.abnormalOnly = !this.abnormalOnly;
+  }
+
+  severityOf(result: PatientLabResultDto): ResultSeverity {
+    return this.normalizeSeverity(result.Severity);
+  }
+
+  formattedResultValue(result: PatientLabResultDto): string {
+    const value = (result.ResultValue ?? '').trim();
+    const unit = (result.Unit ?? '').trim();
+    if (!unit) {
+      return value;
+    }
+
+    return `${value} ${unit}`.trim();
+  }
+
+  private loadOrdersResults(idNumber: string): void {
+    this.patientApi.getOrdersResults(idNumber).subscribe({
+      next: (snapshot) => {
+        this.pendingOrders = Array.isArray(snapshot.PendingOrders) ? snapshot.PendingOrders : [];
+        this.results = Array.isArray(snapshot.Results) ? snapshot.Results : [];
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.pendingOrders = [];
+        this.results = [];
+        this.resultsLoadError = error?.error?.Message ?? error?.error?.message ?? 'Failed to load orders and results.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private resetView(contextLabel = 'No patient selected. Launch from chart or worklist.'): void {
+    this.patient = null;
+    this.contextLabel = contextLabel;
+    this.loadError = '';
+    this.resultsLoadError = '';
+    this.pendingOrders = [];
+    this.results = [];
+    this.isLoading = false;
+    this.abnormalOnly = false;
+  }
+
+  private normalizeSeverity(value: string): ResultSeverity {
+    const normalized = (value ?? '').trim().toLowerCase();
+    if (normalized === 'critical') {
+      return 'Critical';
+    }
+
+    if (normalized === 'abnormal') {
+      return 'Abnormal';
+    }
+
+    return 'Normal';
   }
 }

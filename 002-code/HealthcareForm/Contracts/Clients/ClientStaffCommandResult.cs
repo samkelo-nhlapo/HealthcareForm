@@ -1,0 +1,9 @@
+namespace HealthcareForm.Contracts.Clients;
+
+public sealed class ClientStaffCommandResult
+{
+    public bool Success { get; init; }
+    public string Message { get; init; } = string.Empty;
+    public int? StatusCode { get; init; }
+    public Guid? ClientStaffId { get; init; }
+}

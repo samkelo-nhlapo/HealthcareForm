@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PatientWorklistItemDto } from '../../models/patient.models';
+import { PatientHubSearchService } from '../patient-hub/patient-hub-search.service';
+import { PatientHubSelectionService } from '../patient-hub/patient-hub-selection.service';
 import { PatientApiService } from '../../services/patient-api.service';
 
 type WorklistRow = {
@@ -23,13 +26,17 @@ type WorklistRow = {
 })
 export class WorklistComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly patientHubSearch = inject(PatientHubSearchService);
+  private readonly patientHubSelection = inject(PatientHubSelectionService);
   private readonly patientApiService = inject(PatientApiService);
 
   isLoading = true;
   loadError = '';
+  sharedSearchTerm = '';
+  focusedPatientId = '';
 
   readonly filters = this.fb.nonNullable.group({
-    search: [''],
     status: ['ALL'],
     clinic: ['ALL'],
     risk: ['ALL'],
@@ -40,12 +47,24 @@ export class WorklistComponent implements OnInit {
   rows: WorklistRow[] = [];
 
   ngOnInit(): void {
+    this.patientHubSearch.searchTerm$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((searchTerm) => {
+        this.sharedSearchTerm = searchTerm;
+      });
+
+    this.patientHubSelection.selection$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((selection) => {
+        this.focusedPatientId = selection?.idNumber ?? '';
+      });
+
     this.loadWorklist();
   }
 
   get filteredRows(): WorklistRow[] {
     const value = this.filters.getRawValue();
-    const search = value.search.trim().toLowerCase();
+    const search = this.sharedSearchTerm.toLowerCase();
 
     return this.rows.filter((row) => {
       const matchesSearch = !search
@@ -69,7 +88,6 @@ export class WorklistComponent implements OnInit {
 
   clearFilters(): void {
     this.filters.reset({
-      search: '',
       status: 'ALL',
       clinic: 'ALL',
       risk: 'ALL',
@@ -80,6 +98,20 @@ export class WorklistComponent implements OnInit {
 
   retryLoad(): void {
     this.loadWorklist();
+  }
+
+  focusPatient(row: WorklistRow): void {
+    this.patientHubSelection.focusPatient({
+      idNumber: row.idNumber,
+      patientLabel: row.patient,
+      contextLabel: `${row.status} • ${row.clinic} • ${row.risk} risk`,
+      source: 'worklist',
+      isDeleted: false
+    });
+  }
+
+  isFocusedRow(row: WorklistRow): boolean {
+    return this.focusedPatientId === row.idNumber;
   }
 
   private loadWorklist(): void {

@@ -7,6 +7,8 @@
 # .NET build outputs
 **/bin/
 **/obj/
+**/TestResults/
+*.trx
 *.user
 *.suo
 *.userosscache
@@ -17,6 +19,15 @@
 **/dist/
 **/.angular/
 **/coverage/
+
+# Python tooling outputs
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 
 # IDE/editor
 .vs/
@@ -40,8 +51,20 @@ pnpm-debug.log*
 Thumbs.db
 
 # Local tooling/data folders
+/.codex
+/.dev-runtime/
+/aider_env/
+/chroma_db_ollama/
+/code_rag_db_v2/
+/path/to/
+/generated/
 001-database/.tools/
 001-database/.docker-volumes/
 001-database/docker-volumes/
+001-database/recovery-backups/
+002-code/HealthcareForm.backup/
+packages-microsoft-prod.deb
 .continue/
 schema-HealthcareForm.jpeg
+001-database/HealthcareForm.bak
+.aider*

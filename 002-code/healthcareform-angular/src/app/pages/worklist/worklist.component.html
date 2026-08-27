@@ -12,10 +12,6 @@
 
   <form [formGroup]="filters" class="filters">
     <label>
-      Search
-      <input type="text" formControlName="search" placeholder="Name or ID number" />
-    </label>
-    <label>
       Status
       <select formControlName="status">
         <option value="ALL">All statuses</option>
@@ -72,7 +68,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let row of filteredRows">
+        <tr *ngFor="let row of filteredRows" [class.focused-row]="isFocusedRow(row)">
           <td>{{ row.idNumber }}</td>
           <td>{{ row.patient }}</td>
           <td>{{ row.status }}</td>
@@ -84,8 +80,11 @@
           </td>
           <td>{{ row.updatedOn }}</td>
           <td class="actions-cell">
+            <button type="button" class="link" [class.active-link]="isFocusedRow(row)" (click)="focusPatient(row)">
+              {{ isFocusedRow(row) ? 'Focused' : 'Focus' }}
+            </button>
             <a [routerLink]="['/patients/chart', row.idNumber]">Chart</a>
-            <a [routerLink]="['/patients/workbench']" [queryParams]="{ idNumber: row.idNumber }">Edit</a>
+            <a [routerLink]="['/patients/registration']" [queryParams]="{ idNumber: row.idNumber }">Edit</a>
             <a [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: row.idNumber }">Encounter</a>
           </td>
         </tr>

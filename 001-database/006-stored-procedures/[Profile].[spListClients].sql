@@ -6,8 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- Returns a paged client roster with category and address details already joined in.
--- The result shape is designed for admin-style list screens that also need total counts.
+-- Returns a paged client roster with organisation metadata, directory-import fields,
+-- and resolved location details for admin and directory screens.
 CREATE OR ALTER PROC [Profile].[spListClients]
 (
     @SearchTerm VARCHAR(250) = '',
@@ -24,6 +24,7 @@ CREATE OR ALTER PROC [Profile].[spListClients]
 AS
 BEGIN
     DECLARE @Offset INT,
+            @NormalizedSearchTerm VARCHAR(250),
             @UserName VARCHAR(200),
             @ErrorSchema VARCHAR(200),
             @ErrorProc VARCHAR(200),
@@ -43,6 +44,7 @@ BEGIN
     SET @Offset = (@PageNumber - 1) * @PageSize;
     SET @TotalRecords = 0;
     SET @Message = '';
+    SET @NormalizedSearchTerm = LTRIM(RTRIM(ISNULL(@SearchTerm, '')));
 
     BEGIN TRY
         ;WITH Base AS
@@ -55,6 +57,11 @@ BEGIN
                 CCC.ClinicSize,
                 CCC.OwnershipType,
                 C.ClientCode,
+                C.DisplayName,
+                C.OrganizationType,
+                C.GroupOperator,
+                C.NetworkSources,
+                C.DirectoryExternalKey,
                 C.FirstName,
                 C.LastName,
                 C.DateOfBirth,
@@ -62,25 +69,65 @@ BEGIN
                 C.Email,
                 C.PhoneNumber,
                 C.AddressIDFK,
+                LA.Line1,
+                LA.Line2,
+                LA.CityIDFK,
+                C.FacilityCityIDFK,
+                FacilityTownName = COALESCE(NULLIF(C.FacilityTownName, ''), FC.CityName, AC.CityName, ''),
+                FacilityProvinceName = COALESCE(NULLIF(C.FacilityProvinceName, ''), FP.ProvinceName, AP.ProvinceName, ''),
+                FacilityCountryName = COALESCE(NULLIF(C.FacilityCountryName, ''), FCO.CountryName, ACO.CountryName, ''),
+                FacilityAddressText =
+                    COALESCE(
+                        NULLIF(C.FacilityAddressText, ''),
+                        NULLIF(
+                            LTRIM(RTRIM(
+                                CONCAT(
+                                    ISNULL(LA.Line1, ''),
+                                    CASE
+                                        WHEN NULLIF(LTRIM(RTRIM(ISNULL(LA.Line2, ''))), '') IS NULL THEN ''
+                                        ELSE ', ' + LTRIM(RTRIM(LA.Line2))
+                                    END
+                                )
+                            )),
+                            ''
+                        ),
+                        ''
+                    ),
                 C.IsActive,
                 C.IsDeleted,
                 C.CreatedDate,
-                C.UpdatedDate,
-                LA.Line1,
-                LA.Line2,
-                LA.CityIDFK
+                C.UpdatedDate
             FROM Profile.Clients C
             LEFT JOIN Location.Address LA ON LA.AddressId = C.AddressIDFK
+            LEFT JOIN Location.Cities AC ON AC.CityId = LA.CityIDFK
+            LEFT JOIN Location.Provinces AP ON AP.ProvinceId = AC.ProvinceIDFK
+            LEFT JOIN Location.Countries ACO ON ACO.CountryId = AP.CountryIDFK
+            LEFT JOIN Location.Cities FC ON FC.CityId = C.FacilityCityIDFK
+            LEFT JOIN Location.Provinces FP ON FP.ProvinceId = FC.ProvinceIDFK
+            LEFT JOIN Location.Countries FCO ON FCO.CountryId = FP.CountryIDFK
             LEFT JOIN Profile.ClientClinicCategories CCC ON CCC.ClientClinicCategoryId = C.ClientClinicCategoryIDFK
             WHERE
                 (
-                    @SearchTerm = ''
-                    OR C.ClientCode LIKE '%' + @SearchTerm + '%'
-                    OR C.FirstName LIKE '%' + @SearchTerm + '%'
-                    OR C.LastName LIKE '%' + @SearchTerm + '%'
-                    OR ISNULL(C.ID_Number, '') LIKE '%' + @SearchTerm + '%'
-                    OR ISNULL(C.Email, '') LIKE '%' + @SearchTerm + '%'
-                    OR ISNULL(C.PhoneNumber, '') LIKE '%' + @SearchTerm + '%'
+                    @NormalizedSearchTerm = ''
+                    OR C.ClientCode LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.DisplayName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR C.FirstName LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR C.LastName LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.ID_Number, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.Email, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.PhoneNumber, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.GroupOperator, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.NetworkSources, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.FacilityTownName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.FacilityProvinceName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.FacilityCountryName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(C.FacilityAddressText, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(FC.CityName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(FP.ProvinceName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(FCO.CountryName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(AC.CityName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(AP.ProvinceName, '') LIKE '%' + @NormalizedSearchTerm + '%'
+                    OR ISNULL(ACO.CountryName, '') LIKE '%' + @NormalizedSearchTerm + '%'
                 )
                 AND (@ClientClinicCategoryIDFK = 0 OR C.ClientClinicCategoryIDFK = @ClientClinicCategoryIDFK)
                 AND (@ClinicSize = '' OR ISNULL(CCC.ClinicSize, '') = @ClinicSize)
@@ -93,10 +140,15 @@ BEGIN
             SELECT
                 B.*,
                 COUNT(1) OVER () AS TotalRows,
-                ROW_NUMBER() OVER (ORDER BY B.LastName ASC, B.FirstName ASC, B.ClientId ASC) AS RowNum
+                ROW_NUMBER() OVER
+                (
+                    ORDER BY
+                        COALESCE(NULLIF(B.DisplayName, ''), NULLIF(B.LastName, ''), NULLIF(B.FirstName, ''), B.ClientCode) ASC,
+                        B.ClientCode ASC,
+                        B.ClientId ASC
+                ) AS RowNum
             FROM Base B
         )
-        -- Materialize the filtered set once so the page slice and total count stay in sync.
         SELECT
             ClientId,
             PatientIdFK,
@@ -105,6 +157,11 @@ BEGIN
             ClinicSize,
             OwnershipType,
             ClientCode,
+            DisplayName,
+            OrganizationType,
+            GroupOperator,
+            NetworkSources,
+            DirectoryExternalKey,
             FirstName,
             LastName,
             DateOfBirth,
@@ -115,6 +172,11 @@ BEGIN
             Line1,
             Line2,
             CityIDFK,
+            FacilityCityIDFK,
+            FacilityTownName,
+            FacilityProvinceName,
+            FacilityCountryName,
+            FacilityAddressText,
             IsActive,
             IsDeleted,
             CreatedDate,
@@ -132,6 +194,11 @@ BEGIN
             ClinicSize,
             OwnershipType,
             ClientCode,
+            DisplayName,
+            OrganizationType,
+            GroupOperator,
+            NetworkSources,
+            DirectoryExternalKey,
             FirstName,
             LastName,
             DateOfBirth,
@@ -142,6 +209,11 @@ BEGIN
             Line1,
             Line2,
             CityIDFK,
+            FacilityCityIDFK,
+            FacilityTownName,
+            FacilityProvinceName,
+            FacilityCountryName,
+            FacilityAddressText,
             IsActive,
             IsDeleted,
             CreatedDate,

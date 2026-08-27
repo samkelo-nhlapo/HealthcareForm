@@ -8,7 +8,6 @@
 - Extended integration tests to cover the new lookups and patient clinical endpoints.
 - Updated Phase 12 plan to mark the clinical history slice integrated and set the next slice to dynamic forms.
 - Added form field value and attachment procedures plus API endpoints for dynamic forms.
-- Updated stored-procedure deployment script to include the dynamic forms procedures.
 - Updated Phase 12 plan and tracker to mark the dynamic forms slice complete and set the next slice to admin diagnostics (`Auth.DB_Errors`).
 - Updated table usage matrix to reflect dynamic forms coverage (remaining gap was `Auth.DB_Errors`).
 - Added admin DB error stored procedure, contracts, and endpoint; updated tests and tracking to close Phase 12.

@@ -27,6 +27,7 @@ GO
 :r 006-stored-procedures/[Profile].[spGetPatient].sql
 :r 006-stored-procedures/[Profile].[spGetPatientAllergies].sql
 :r 006-stored-procedures/[Profile].[spGetPatientMedications].sql
+:r 006-stored-procedures/[Profile].[spGetPatientLabResults].sql
 :r 006-stored-procedures/[Profile].[spGetPatientVaccinations].sql
 :r 006-stored-procedures/[Profile].[spGetPatientConsultationNotes].sql
 :r 006-stored-procedures/[Profile].[spGetPatientReferrals].sql
@@ -38,6 +39,8 @@ GO
 :r 006-stored-procedures/[Profile].[spGetTaskQueueSourceRows].sql
 :r 006-stored-procedures/[Profile].[spGetSchedulingProviders].sql
 :r 006-stored-procedures/[Profile].[spGetSchedulingAppointments].sql
+:r 006-stored-procedures/[Profile].[spGetSchedulingBookingOptions].sql
+:r 006-stored-procedures/[Profile].[spAddAppointment].sql
 :r 006-stored-procedures/[Profile].[spGetRevenueClaimsSourceRows].sql
 :r 006-stored-procedures/[Auth].[spGetUserByPrincipal].sql
 :r 006-stored-procedures/[Auth].[spGetUserActiveRoles].sql
@@ -53,8 +56,8 @@ GO
 :r 006-stored-procedures/[Profile].[spGetClient].sql
 :r 006-stored-procedures/[Profile].[spListClients].sql
 :r 006-stored-procedures/[Profile].[spUpdateClient].sql
+:r 006-stored-procedures/[Profile].[spUpsertFacilityClient].sql
 :r 006-stored-procedures/[Profile].[spDeleteClient].sql
-:r 006-stored-procedures/[Profile].[spAssignClientClinicCategory].sql
 
 :r 006-stored-procedures/[Profile].[spAddClientDepartment].sql
 :r 006-stored-procedures/[Profile].[spListClientDepartments].sql

@@ -1142,6 +1142,9 @@ BEGIN
 CREATE TABLE [Profile].[Appointments](
 	[AppointmentId] [uniqueidentifier] NOT NULL,
 	[PatientIdFK] [uniqueidentifier] NOT NULL,
+	[ClientIdFK] [uniqueidentifier] NOT NULL,
+	[ClientProviderAffiliationIdFK] [uniqueidentifier] NOT NULL,
+	[ClientStaffIdFK] [uniqueidentifier] NULL,
 	[ProviderIdFK] [uniqueidentifier] NOT NULL,
 	[AppointmentDateTime] [datetime] NOT NULL,
 	[DurationMinutes] [int] NOT NULL DEFAULT 30,
@@ -1166,6 +1169,55 @@ PRIMARY KEY CLUSTERED
 END
 GO
 IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientIdFK] [uniqueidentifier] NULL
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientStaffIdFK] [uniqueidentifier] NULL
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NULL
+BEGIN
+ALTER TABLE [Profile].[Appointments] ADD [ClientProviderAffiliationIdFK] [uniqueidentifier] NULL
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND name = N'ClientStaffIdFK'
+      AND is_nullable = 0
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] ALTER COLUMN [ClientStaffIdFK] [uniqueidentifier] NULL
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND name = N'ClientProviderAffiliationIdFK'
+      AND is_nullable = 1
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM [Profile].[Appointments]
+    WHERE [ClientProviderAffiliationIdFK] IS NULL
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] ALTER COLUMN [ClientProviderAffiliationIdFK] [uniqueidentifier] NOT NULL
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
 AND NOT EXISTS (
     SELECT 1
     FROM sys.default_constraints AS dc
@@ -1179,9 +1231,121 @@ BEGIN
 ALTER TABLE [Profile].[Appointments] ADD DEFAULT (newid()) FOR [AppointmentId]
 END
 GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Patient]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'PatientIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[Patient]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Patient]'), N'PatientId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([PatientIdFK])
+REFERENCES [Profile].[Patient] ([PatientId])
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[HealthcareProviders]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ProviderIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[HealthcareProviders]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[HealthcareProviders]'), N'ProviderId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ProviderIdFK])
+REFERENCES [Profile].[HealthcareProviders] ([ProviderId])
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Clients]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[Clients]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Clients]'), N'ClientId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientIdFK])
+REFERENCES [Profile].[Clients] ([ClientId])
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientStaff]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientStaffIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[ClientStaff]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[ClientStaff]'), N'ClientStaffId', 'ColumnId')
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientStaffIdFK])
+REFERENCES [Profile].[ClientStaff] ([ClientStaffId])
+END
+GO
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ProviderIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_Appointments_ClientProviderAffiliations_Id_Client_Provider'
+)
+BEGIN
+ALTER TABLE [Profile].[Appointments] WITH CHECK
+ADD CONSTRAINT [FK_Appointments_ClientProviderAffiliations_Id_Client_Provider]
+FOREIGN KEY([ClientProviderAffiliationIdFK], [ClientIdFK], [ProviderIdFK])
+REFERENCES [Profile].[ClientProviderAffiliations] ([ClientProviderAffiliationId], [ClientIdFK], [ProviderIdFK])
+END
+GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_PatientIdFK')
 BEGIN
 CREATE INDEX IX_Appointments_PatientIdFK ON [Profile].[Appointments]([PatientIdFK])
+END
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ProviderIdFK')
+BEGIN
+CREATE INDEX IX_Appointments_ProviderIdFK ON [Profile].[Appointments]([ProviderIdFK])
+END
+GO
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientStaffIdFK')
+BEGIN
+CREATE INDEX IX_Appointments_ClientStaffIdFK ON [Profile].[Appointments]([ClientStaffIdFK])
+END
+GO
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientProviderAffiliationIdFK')
+BEGIN
+CREATE INDEX IX_Appointments_ClientProviderAffiliationIdFK ON [Profile].[Appointments]([ClientProviderAffiliationIdFK])
+END
+GO
+IF COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_ClientIdFK_AppointmentDateTime')
+BEGIN
+CREATE INDEX IX_Appointments_ClientIdFK_AppointmentDateTime ON [Profile].[Appointments]([ClientIdFK], [AppointmentDateTime])
+END
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_AppointmentDateTime')
+BEGIN
+CREATE INDEX IX_Appointments_AppointmentDateTime ON [Profile].[Appointments]([AppointmentDateTime])
+END
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[Appointments]') AND name = 'IX_Appointments_Status')
+BEGIN
+CREATE INDEX IX_Appointments_Status ON [Profile].[Appointments]([Status])
 END
 GO
 
@@ -2020,6 +2184,11 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = 'IX_ClientStaff_RoleIdFK')
 BEGIN
 CREATE INDEX IX_ClientStaff_RoleIdFK ON [Profile].[ClientStaff]([RoleIdFK])
+END
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = 'IX_ClientStaff_ProviderIdFK')
+BEGIN
+CREATE INDEX IX_ClientStaff_ProviderIdFK ON [Profile].[ClientStaff]([ProviderIdFK])
 END
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = 'IX_ClientStaff_IsActive')
@@ -3610,167 +3779,6 @@ BEGIN
     WHERE (@ClientClinicCategoryId = 0 OR CCC.ClientClinicCategoryId = @ClientClinicCategoryId)
       AND (@IsActive IS NULL OR CCC.IsActive = @IsActive)
     ORDER BY CCC.CategoryName;
-
-    SET NOCOUNT OFF;
-END
-GO
-USE HealthcareForm
-GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE OR ALTER PROC [Profile].[spAssignClientClinicCategory]
-(
-    @ClientId UNIQUEIDENTIFIER = NULL,
-    @ClientCode VARCHAR(50) = '',
-    @ClientClinicCategoryIDFK INT,
-    @UpdatedBy VARCHAR(250) = NULL,
-    @StatusCode INT OUTPUT,
-    @Message VARCHAR(250) OUTPUT
-)
-AS
-BEGIN
-    DECLARE @Now DATETIME = GETDATE(),
-            @UserName VARCHAR(200),
-            @ErrorSchema VARCHAR(200),
-            @ErrorProc VARCHAR(200),
-            @ErrorNumber INT,
-            @ErrorState INT,
-            @ErrorSeverity INT,
-            @ErrorLine INT,
-            @ErrorMessage VARCHAR(MAX),
-            @ErrorDateTime DATETIME;
-
-    SET NOCOUNT ON;
-
-    SET @StatusCode = -1;
-    SET @Message = '';
-
-    BEGIN TRY
-        IF @ClientId IS NULL AND LTRIM(RTRIM(@ClientCode)) = ''
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientId or ClientCode is required.';
-            RETURN;
-        END
-
-        IF @ClientClinicCategoryIDFK IS NULL
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientClinicCategoryIDFK is required.';
-            RETURN;
-        END
-
-        IF NOT EXISTS
-        (
-            SELECT 1
-            FROM Profile.ClientClinicCategories CCC
-            WHERE CCC.ClientClinicCategoryId = @ClientClinicCategoryIDFK
-              AND CCC.IsActive = 1
-        )
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientClinicCategoryIDFK does not exist or is inactive.';
-            RETURN;
-        END
-
-        IF EXISTS
-        (
-            SELECT 1
-            FROM Profile.Clients C
-            WHERE
-                ((@ClientId IS NOT NULL AND C.ClientId = @ClientId)
-                 OR (@ClientId IS NULL AND C.ClientCode = @ClientCode))
-                AND C.IsDeleted = 0
-        )
-        BEGIN
-            UPDATE C
-            SET C.ClientClinicCategoryIDFK = @ClientClinicCategoryIDFK,
-                C.UpdatedDate = @Now,
-                C.UpdatedBy = COALESCE(NULLIF(@UpdatedBy, ''), SUSER_SNAME())
-            FROM Profile.Clients C
-            WHERE
-                ((@ClientId IS NOT NULL AND C.ClientId = @ClientId)
-                 OR (@ClientId IS NULL AND C.ClientCode = @ClientCode))
-                AND C.IsDeleted = 0;
-
-            SET @StatusCode = 0;
-            SET @Message = '';
-        END
-        ELSE
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'Client does not exist or is deleted.';
-        END
-    END TRY
-    BEGIN CATCH
-        SET @UserName = SUSER_SNAME();
-        SET @ErrorSchema = 'Profile';
-        SET @ErrorProc = ERROR_PROCEDURE();
-        SET @ErrorNumber = ERROR_NUMBER();
-        SET @ErrorState = ERROR_STATE();
-        SET @ErrorSeverity = ERROR_SEVERITY();
-        SET @ErrorLine = ERROR_LINE();
-        SET @ErrorMessage = ERROR_MESSAGE();
-        SET @ErrorDateTime = GETDATE();
-
-        IF EXISTS
-        (
-            SELECT 1
-            FROM sys.procedures P
-            INNER JOIN sys.schemas S ON S.schema_id = P.schema_id
-            WHERE S.name = 'Exceptions'
-              AND P.name = 'spErrorHandling'
-        )
-        BEGIN
-            BEGIN TRY
-                EXEC [Exceptions].[spErrorHandling]
-                    @UserName = @UserName,
-                    @ErrorSchema = @ErrorSchema,
-                    @ErrorProc = @ErrorProc,
-                    @ErrorNumber = @ErrorNumber,
-                    @ErrorState = @ErrorState,
-                    @ErrorSeverity = @ErrorSeverity,
-                    @ErrorLine = @ErrorLine,
-                    @ErrorMessage = @ErrorMessage,
-                    @ErrorDateTime = @ErrorDateTime;
-            END TRY
-            BEGIN CATCH
-                IF OBJECT_ID('Exceptions.Errors', 'U') IS NOT NULL
-                BEGIN
-                    INSERT INTO Exceptions.Errors
-                    (
-                        UserName, ErrorSchema, ErrorProcedure, ErrorNumber,
-                        ErrorState, ErrorSeverity, ErrorLine, ErrorMessage, ErrorDateTime
-                    )
-                    VALUES
-                    (
-                        @UserName, @ErrorSchema, @ErrorProc, @ErrorNumber,
-                        @ErrorState, @ErrorSeverity, @ErrorLine, LEFT(@ErrorMessage, 500), @ErrorDateTime
-                    );
-                END
-            END CATCH
-        END
-        ELSE IF OBJECT_ID('Exceptions.Errors', 'U') IS NOT NULL
-        BEGIN
-            INSERT INTO Exceptions.Errors
-            (
-                UserName, ErrorSchema, ErrorProcedure, ErrorNumber,
-                ErrorState, ErrorSeverity, ErrorLine, ErrorMessage, ErrorDateTime
-            )
-            VALUES
-            (
-                @UserName, @ErrorSchema, @ErrorProc, @ErrorNumber,
-                @ErrorState, @ErrorSeverity, @ErrorLine, LEFT(@ErrorMessage, 500), @ErrorDateTime
-            );
-        END
-
-        SET @StatusCode = -1;
-        SET @Message = 'Failed to assign clinic category to client.';
-    END CATCH
 
     SET NOCOUNT OFF;
 END
@@ -6534,6 +6542,91 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile]
     CREATE INDEX IX_ClientDepartments_IsActive ON [Profile].[ClientDepartments]([IsActive])
 GO
 
+-- [Profile].[PatientClients]
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID(N'[Profile].[PatientClients]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [Profile].[PatientClients]
+    (
+        [PatientClientId] [uniqueidentifier] NOT NULL,
+        [PatientIdFK] [uniqueidentifier] NOT NULL,
+        [ClientIdFK] [uniqueidentifier] NOT NULL,
+        [IsPrimary] [bit] NOT NULL CONSTRAINT DF_PatientClients_IsPrimary DEFAULT 0,
+        [CreatedDate] [datetime] NOT NULL CONSTRAINT DF_PatientClients_CreatedDate DEFAULT GETDATE(),
+        [CreatedBy] [varchar](250) NULL,
+        [UpdatedDate] [datetime] NOT NULL CONSTRAINT DF_PatientClients_UpdatedDate DEFAULT GETDATE(),
+        [UpdatedBy] [varchar](250) NULL,
+        CONSTRAINT PK_PatientClients PRIMARY KEY CLUSTERED ([PatientClientId] ASC)
+    );
+
+    ALTER TABLE [Profile].[PatientClients]
+    ADD CONSTRAINT DF_PatientClients_PatientClientId DEFAULT (NEWID()) FOR [PatientClientId];
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[PatientClients]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Patient]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE parent_object_id = OBJECT_ID(N'[Profile].[PatientClients]')
+      AND name = N'FK_PatientClients_Patient'
+)
+BEGIN
+    ALTER TABLE [Profile].[PatientClients] WITH CHECK
+    ADD CONSTRAINT FK_PatientClients_Patient FOREIGN KEY([PatientIdFK])
+    REFERENCES [Profile].[Patient]([PatientId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[PatientClients]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Clients]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE parent_object_id = OBJECT_ID(N'[Profile].[PatientClients]')
+      AND name = N'FK_PatientClients_Client'
+)
+BEGIN
+    ALTER TABLE [Profile].[PatientClients] WITH CHECK
+    ADD CONSTRAINT FK_PatientClients_Client FOREIGN KEY([ClientIdFK])
+    REFERENCES [Profile].[Clients]([ClientId]);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[PatientClients]') AND name = N'UX_PatientClients_PatientClient')
+BEGIN
+    CREATE UNIQUE INDEX UX_PatientClients_PatientClient
+    ON [Profile].[PatientClients]([PatientIdFK], [ClientIdFK]);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[PatientClients]') AND name = N'UX_PatientClients_PrimaryPerPatient')
+BEGIN
+    CREATE UNIQUE INDEX UX_PatientClients_PrimaryPerPatient
+    ON [Profile].[PatientClients]([PatientIdFK])
+    WHERE [IsPrimary] = 1;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[PatientClients]') AND name = N'IX_PatientClients_ClientIdFK')
+BEGIN
+    CREATE INDEX IX_PatientClients_ClientIdFK ON [Profile].[PatientClients]([ClientIdFK]);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[PatientClients]') AND name = N'IX_PatientClients_PatientIdFK')
+BEGIN
+    CREATE INDEX IX_PatientClients_PatientIdFK ON [Profile].[PatientClients]([PatientIdFK]);
+END
+GO
+
 -- [Profile].[ClientStaff] designation and primary department compatibility
 
 IF OBJECT_ID(N'[Profile].[ClientStaff]', N'U') IS NOT NULL
@@ -6583,6 +6676,257 @@ AND COL_LENGTH('Profile.ClientStaff', 'PrimaryDepartmentIdFK') IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = 'IX_ClientStaff_PrimaryDepartmentIdFK')
 BEGIN
     CREATE INDEX IX_ClientStaff_PrimaryDepartmentIdFK ON [Profile].[ClientStaff]([PrimaryDepartmentIdFK]);
+END
+GO
+
+-- [Profile].[ClientProviderAffiliations]
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NULL
+BEGIN
+CREATE TABLE [Profile].[ClientProviderAffiliations](
+    [ClientProviderAffiliationId] [uniqueidentifier] NOT NULL,
+    [ClientIdFK] [uniqueidentifier] NOT NULL,
+    [ProviderIdFK] [uniqueidentifier] NOT NULL,
+    [ClientStaffIdFK] [uniqueidentifier] NULL,
+    [PrimaryDepartmentIdFK] [uniqueidentifier] NULL,
+    [RelationshipType] [varchar](50) NOT NULL DEFAULT 'Employee',
+    [CanBookAppointments] [bit] NOT NULL DEFAULT 1,
+    [CanReceiveReferrals] [bit] NOT NULL DEFAULT 1,
+    [StartDate] [datetime] NOT NULL DEFAULT GETDATE(),
+    [EndDate] [datetime] NULL,
+    [IsActive] [bit] NOT NULL DEFAULT 1,
+    [Notes] [varchar](500) NULL,
+    [CreatedDate] [datetime] NOT NULL DEFAULT GETDATE(),
+    [CreatedBy] [varchar](250) NULL,
+    [UpdatedDate] [datetime] NOT NULL DEFAULT GETDATE(),
+    [UpdatedBy] [varchar](250) NULL,
+PRIMARY KEY CLUSTERED
+(
+    [ClientProviderAffiliationId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints AS dc
+    INNER JOIN sys.columns AS c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]')
+      AND c.name = N'ClientProviderAffiliationId'
+)
+BEGIN
+ALTER TABLE [Profile].[ClientProviderAffiliations] ADD DEFAULT (newid()) FOR [ClientProviderAffiliationId]
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientProviderAffiliations_RelationshipType')
+BEGIN
+ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+ADD CONSTRAINT [CK_ClientProviderAffiliations_RelationshipType]
+CHECK ([RelationshipType] IN ('Employee', 'Visiting', 'Locum', 'Contracted', 'ReferralNetwork'))
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientProviderAffiliations_DateRange')
+BEGIN
+ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+ADD CONSTRAINT [CK_ClientProviderAffiliations_DateRange]
+CHECK ([EndDate] IS NULL OR [EndDate] >= [StartDate])
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientProviderAffiliations_EmployeeRequiresStaff')
+BEGIN
+ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+ADD CONSTRAINT [CK_ClientProviderAffiliations_EmployeeRequiresStaff]
+CHECK (([RelationshipType] <> 'Employee') OR ([ClientStaffIdFK] IS NOT NULL))
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_ClientProviderAffiliations_StaffImpliesEmployee')
+BEGIN
+ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+ADD CONSTRAINT [CK_ClientProviderAffiliations_StaffImpliesEmployee]
+CHECK ([ClientStaffIdFK] IS NULL OR [RelationshipType] = 'Employee')
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Clients]', N'U') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ClientProviderAffiliations_Client')
+BEGIN
+    ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+    ADD CONSTRAINT [FK_ClientProviderAffiliations_Client]
+    FOREIGN KEY([ClientIdFK]) REFERENCES [Profile].[Clients]([ClientId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[HealthcareProviders]', N'U') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ClientProviderAffiliations_Provider')
+BEGIN
+    ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+    ADD CONSTRAINT [FK_ClientProviderAffiliations_Provider]
+    FOREIGN KEY([ProviderIdFK]) REFERENCES [Profile].[HealthcareProviders]([ProviderId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientStaff]', N'U') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ClientProviderAffiliations_ClientStaff')
+BEGIN
+    ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+    ADD CONSTRAINT [FK_ClientProviderAffiliations_ClientStaff]
+    FOREIGN KEY([ClientStaffIdFK]) REFERENCES [Profile].[ClientStaff]([ClientStaffId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientDepartments]', N'U') IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ClientProviderAffiliations_PrimaryDepartment')
+BEGIN
+    ALTER TABLE [Profile].[ClientProviderAffiliations] WITH CHECK
+    ADD CONSTRAINT [FK_ClientProviderAffiliations_PrimaryDepartment]
+    FOREIGN KEY([PrimaryDepartmentIdFK]) REFERENCES [Profile].[ClientDepartments]([ClientDepartmentId]);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'UX_ClientProviderAffiliations_Client_Provider_ActiveOpen')
+BEGIN
+CREATE UNIQUE INDEX UX_ClientProviderAffiliations_Client_Provider_ActiveOpen
+ON [Profile].[ClientProviderAffiliations]([ClientIdFK], [ProviderIdFK])
+WHERE [IsActive] = 1 AND [EndDate] IS NULL
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'UX_ClientProviderAffiliations_ClientStaff_ActiveOpen')
+BEGIN
+CREATE UNIQUE INDEX UX_ClientProviderAffiliations_ClientStaff_ActiveOpen
+ON [Profile].[ClientProviderAffiliations]([ClientStaffIdFK])
+WHERE [ClientStaffIdFK] IS NOT NULL AND [IsActive] = 1 AND [EndDate] IS NULL
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'IX_ClientProviderAffiliations_ClientIdFK_IsActive_CanBookAppointments')
+BEGIN
+CREATE INDEX IX_ClientProviderAffiliations_ClientIdFK_IsActive_CanBookAppointments
+ON [Profile].[ClientProviderAffiliations]([ClientIdFK], [IsActive], [CanBookAppointments])
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'IX_ClientProviderAffiliations_ProviderIdFK_IsActive')
+BEGIN
+CREATE INDEX IX_ClientProviderAffiliations_ProviderIdFK_IsActive
+ON [Profile].[ClientProviderAffiliations]([ProviderIdFK], [IsActive])
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'IX_ClientProviderAffiliations_PrimaryDepartmentIdFK')
+BEGIN
+CREATE INDEX IX_ClientProviderAffiliations_PrimaryDepartmentIdFK
+ON [Profile].[ClientProviderAffiliations]([PrimaryDepartmentIdFK])
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientProviderAffiliations]') AND name = 'UX_ClientProviderAffiliations_Id_Client_Provider')
+BEGIN
+CREATE UNIQUE INDEX UX_ClientProviderAffiliations_Id_Client_Provider
+ON [Profile].[ClientProviderAffiliations]([ClientProviderAffiliationId], [ClientIdFK], [ProviderIdFK])
+END
+GO
+
+-- [Profile].[Appointments] late FK sync for inline baseline order
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Patient]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'PatientIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[Patient]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Patient]'), N'PatientId', 'ColumnId')
+)
+BEGIN
+    ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([PatientIdFK])
+    REFERENCES [Profile].[Patient] ([PatientId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[HealthcareProviders]', N'U') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ProviderIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[HealthcareProviders]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[HealthcareProviders]'), N'ProviderId', 'ColumnId')
+)
+BEGIN
+    ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ProviderIdFK])
+    REFERENCES [Profile].[HealthcareProviders] ([ProviderId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[Clients]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[Clients]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Clients]'), N'ClientId', 'ColumnId')
+)
+BEGIN
+    ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientIdFK])
+    REFERENCES [Profile].[Clients] ([ClientId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientStaff]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientStaffIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_key_columns AS fkc
+    WHERE fkc.parent_object_id = OBJECT_ID(N'[Profile].[Appointments]')
+      AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[Appointments]'), N'ClientStaffIdFK', 'ColumnId')
+      AND fkc.referenced_object_id = OBJECT_ID(N'[Profile].[ClientStaff]')
+      AND fkc.referenced_column_id = COLUMNPROPERTY(OBJECT_ID(N'[Profile].[ClientStaff]'), N'ClientStaffId', 'ColumnId')
+)
+BEGIN
+    ALTER TABLE [Profile].[Appointments] WITH CHECK ADD FOREIGN KEY([ClientStaffIdFK])
+    REFERENCES [Profile].[ClientStaff] ([ClientStaffId]);
+END
+GO
+
+IF OBJECT_ID(N'[Profile].[Appointments]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[Profile].[ClientProviderAffiliations]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientProviderAffiliationIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ClientIdFK') IS NOT NULL
+AND COL_LENGTH(N'[Profile].[Appointments]', N'ProviderIdFK') IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_Appointments_ClientProviderAffiliations_Id_Client_Provider'
+)
+BEGIN
+    ALTER TABLE [Profile].[Appointments] WITH CHECK
+    ADD CONSTRAINT [FK_Appointments_ClientProviderAffiliations_Id_Client_Provider]
+    FOREIGN KEY([ClientProviderAffiliationIdFK], [ClientIdFK], [ProviderIdFK])
+    REFERENCES [Profile].[ClientProviderAffiliations] ([ClientProviderAffiliationId], [ClientIdFK], [ProviderIdFK]);
 END
 GO
 
@@ -9267,170 +9611,6 @@ BEGIN
 END
 GO
 -- END FILE: 006-stored-procedures/[Profile].[spAddPatient].sql
-
-
--- BEGIN FILE: 006-stored-procedures/[Profile].[spAssignClientClinicCategory].sql
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE OR ALTER PROC [Profile].[spAssignClientClinicCategory]
-(
-    @ClientId UNIQUEIDENTIFIER = NULL,
-    @ClientCode VARCHAR(50) = '',
-    @ClientClinicCategoryIDFK INT,
-    @UpdatedBy VARCHAR(250) = NULL,
-    @StatusCode INT OUTPUT,
-    @Message VARCHAR(250) OUTPUT
-)
-AS
-BEGIN
-    DECLARE @Now DATETIME = GETDATE(),
-            @UserName VARCHAR(200),
-            @ErrorSchema VARCHAR(200),
-            @ErrorProc VARCHAR(200),
-            @ErrorNumber INT,
-            @ErrorState INT,
-            @ErrorSeverity INT,
-            @ErrorLine INT,
-            @ErrorMessage VARCHAR(MAX),
-            @ErrorDateTime DATETIME;
-
-    SET NOCOUNT ON;
-
-    SET @StatusCode = -1;
-    SET @Message = '';
-
-    BEGIN TRY
-        IF @ClientId IS NULL AND LTRIM(RTRIM(@ClientCode)) = ''
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientId or ClientCode is required.';
-            RETURN;
-        END
-
-        IF @ClientClinicCategoryIDFK IS NULL
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientClinicCategoryIDFK is required.';
-            RETURN;
-        END
-
-        IF NOT EXISTS
-        (
-            SELECT 1
-            FROM Profile.ClientClinicCategories CCC
-            WHERE CCC.ClientClinicCategoryId = @ClientClinicCategoryIDFK
-              AND CCC.IsActive = 1
-        )
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'ClientClinicCategoryIDFK does not exist or is inactive.';
-            RETURN;
-        END
-
-        IF EXISTS
-        (
-            SELECT 1
-            FROM Profile.Clients C
-            WHERE
-                ((@ClientId IS NOT NULL AND C.ClientId = @ClientId)
-                 OR (@ClientId IS NULL AND C.ClientCode = @ClientCode))
-                AND C.IsDeleted = 0
-        )
-        BEGIN
-            UPDATE C
-            SET C.ClientClinicCategoryIDFK = @ClientClinicCategoryIDFK,
-                C.UpdatedDate = @Now,
-                C.UpdatedBy = COALESCE(NULLIF(@UpdatedBy, ''), SUSER_SNAME())
-            FROM Profile.Clients C
-            WHERE
-                ((@ClientId IS NOT NULL AND C.ClientId = @ClientId)
-                 OR (@ClientId IS NULL AND C.ClientCode = @ClientCode))
-                AND C.IsDeleted = 0;
-
-            SET @StatusCode = 0;
-            SET @Message = '';
-        END
-        ELSE
-        BEGIN
-            SET @StatusCode = 1;
-            SET @Message = 'Client does not exist or is deleted.';
-        END
-    END TRY
-    BEGIN CATCH
-        SET @UserName = SUSER_SNAME();
-        SET @ErrorSchema = 'Profile';
-        SET @ErrorProc = ERROR_PROCEDURE();
-        SET @ErrorNumber = ERROR_NUMBER();
-        SET @ErrorState = ERROR_STATE();
-        SET @ErrorSeverity = ERROR_SEVERITY();
-        SET @ErrorLine = ERROR_LINE();
-        SET @ErrorMessage = ERROR_MESSAGE();
-        SET @ErrorDateTime = GETDATE();
-
-        IF EXISTS
-        (
-            SELECT 1
-            FROM sys.procedures P
-            INNER JOIN sys.schemas S ON S.schema_id = P.schema_id
-            WHERE S.name = 'Exceptions'
-              AND P.name = 'spErrorHandling'
-        )
-        BEGIN
-            BEGIN TRY
-                EXEC [Exceptions].[spErrorHandling]
-                    @UserName = @UserName,
-                    @ErrorSchema = @ErrorSchema,
-                    @ErrorProc = @ErrorProc,
-                    @ErrorNumber = @ErrorNumber,
-                    @ErrorState = @ErrorState,
-                    @ErrorSeverity = @ErrorSeverity,
-                    @ErrorLine = @ErrorLine,
-                    @ErrorMessage = @ErrorMessage,
-                    @ErrorDateTime = @ErrorDateTime;
-            END TRY
-            BEGIN CATCH
-                IF OBJECT_ID('Exceptions.Errors', 'U') IS NOT NULL
-                BEGIN
-                    INSERT INTO Exceptions.Errors
-                    (
-                        UserName, ErrorSchema, ErrorProcedure, ErrorNumber,
-                        ErrorState, ErrorSeverity, ErrorLine, ErrorMessage, ErrorDateTime
-                    )
-                    VALUES
-                    (
-                        @UserName, @ErrorSchema, @ErrorProc, @ErrorNumber,
-                        @ErrorState, @ErrorSeverity, @ErrorLine, LEFT(@ErrorMessage, 500), @ErrorDateTime
-                    );
-                END
-            END CATCH
-        END
-        ELSE IF OBJECT_ID('Exceptions.Errors', 'U') IS NOT NULL
-        BEGIN
-            INSERT INTO Exceptions.Errors
-            (
-                UserName, ErrorSchema, ErrorProcedure, ErrorNumber,
-                ErrorState, ErrorSeverity, ErrorLine, ErrorMessage, ErrorDateTime
-            )
-            VALUES
-            (
-                @UserName, @ErrorSchema, @ErrorProc, @ErrorNumber,
-                @ErrorState, @ErrorSeverity, @ErrorLine, LEFT(@ErrorMessage, 500), @ErrorDateTime
-            );
-        END
-
-        SET @StatusCode = -1;
-        SET @Message = 'Failed to assign clinic category to client.';
-    END CATCH
-
-    SET NOCOUNT OFF;
-END
-GO
--- END FILE: 006-stored-procedures/[Profile].[spAssignClientClinicCategory].sql
-
 
 -- BEGIN FILE: 006-stored-procedures/[Profile].[spDeleteClientDepartment].sql
 
@@ -12403,6 +12583,130 @@ BEGIN
 END
 GO
 -- END FILE: 006-stored-procedures/[Profile].[spUpdatePatient].sql
+
+
+-- BEGIN FILE: 006-stored-procedures/[Auth].[spGetUserByPrincipal].sql
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- Looks up one auth user by username or email.
+-- Used by the login flow before password verification and role loading.
+CREATE OR ALTER PROC [Auth].[spGetUserByPrincipal]
+(
+    @Principal VARCHAR(250)
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        U.UserId,
+        U.Username,
+        U.Email,
+        U.PasswordHash,
+        U.FirstName,
+        U.LastName,
+        U.IsActive,
+        U.IsSuperAdmin,
+        U.AccountLockedUntil,
+        U.FailedLoginAttempts
+    FROM Auth.Users U
+    WHERE U.Username = @Principal
+       OR U.Email = @Principal;
+END
+GO
+-- END FILE: 006-stored-procedures/[Auth].[spGetUserByPrincipal].sql
+
+
+-- BEGIN FILE: 006-stored-procedures/[Auth].[spGetUserActiveRoles].sql
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- Returns the user's active, non-expired roles for token creation and authorization checks.
+CREATE OR ALTER PROC [Auth].[spGetUserActiveRoles]
+(
+    @UserId UNIQUEIDENTIFIER
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT R.RoleName
+    FROM Auth.UserRoles UR
+    INNER JOIN Auth.Roles R
+        ON R.RoleId = UR.RoleIdFK
+    WHERE UR.UserIdFK = @UserId
+      AND UR.IsActive = 1
+      AND R.IsActive = 1
+      AND (UR.ExpiryDate IS NULL OR UR.ExpiryDate > GETDATE());
+END
+GO
+-- END FILE: 006-stored-procedures/[Auth].[spGetUserActiveRoles].sql
+
+
+-- BEGIN FILE: 006-stored-procedures/[Auth].[spRegisterFailedLoginAttempt].sql
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- Persists failed-login counters and an optional lockout timestamp.
+CREATE OR ALTER PROC [Auth].[spRegisterFailedLoginAttempt]
+(
+    @UserId UNIQUEIDENTIFIER,
+    @FailedAttempts INT,
+    @AccountLockedUntilUtc DATETIME = NULL,
+    @UpdatedBy VARCHAR(250) = 'API'
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE Auth.Users
+    SET FailedLoginAttempts = @FailedAttempts,
+        AccountLockedUntil = @AccountLockedUntilUtc,
+        UpdatedDate = GETDATE(),
+        UpdatedBy = COALESCE(NULLIF(@UpdatedBy, ''), 'API')
+    WHERE UserId = @UserId;
+END
+GO
+-- END FILE: 006-stored-procedures/[Auth].[spRegisterFailedLoginAttempt].sql
+
+
+-- BEGIN FILE: 006-stored-procedures/[Auth].[spRegisterSuccessfulLogin].sql
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- Resets failure counters and records the last successful login timestamp.
+CREATE OR ALTER PROC [Auth].[spRegisterSuccessfulLogin]
+(
+    @UserId UNIQUEIDENTIFIER,
+    @UpdatedBy VARCHAR(250) = 'API'
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE Auth.Users
+    SET FailedLoginAttempts = 0,
+        AccountLockedUntil = NULL,
+        LastLoginDate = GETDATE(),
+        UpdatedDate = GETDATE(),
+        UpdatedBy = COALESCE(NULLIF(@UpdatedBy, ''), 'API')
+    WHERE UserId = @UserId;
+END
+GO
+-- END FILE: 006-stored-procedures/[Auth].[spRegisterSuccessfulLogin].sql
 
 
 -- BEGIN FILE: 007-triggers-functions/Capitalize first letter body.sql

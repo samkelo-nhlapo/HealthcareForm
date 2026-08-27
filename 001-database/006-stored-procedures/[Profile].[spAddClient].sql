@@ -6,8 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- Creates a client record and optionally links it to a patient, address, and clinic category.
--- Validation and return codes stay aligned with the rest of the profile CRUD procedures.
+-- Creates a client record and optionally links it to a patient, city, address, and clinic category.
+-- The proc remains backward compatible with legacy first/last-name usage while supporting real-world organisations.
 CREATE OR ALTER PROC [Profile].[spAddClient]
 (
     @ClientCode VARCHAR(50),
@@ -16,10 +16,20 @@ CREATE OR ALTER PROC [Profile].[spAddClient]
     @DateOfBirth DATETIME = NULL,
     @ID_Number VARCHAR(250) = NULL,
     @Email VARCHAR(250) = NULL,
-    @PhoneNumber VARCHAR(25) = NULL,
+    @PhoneNumber VARCHAR(50) = NULL,
     @AddressIDFK UNIQUEIDENTIFIER = NULL,
     @PatientIdFK UNIQUEIDENTIFIER = NULL,
     @ClientClinicCategoryIDFK INT = NULL,
+    @FacilityCityIDFK INT = NULL,
+    @DisplayName VARCHAR(250) = NULL,
+    @OrganizationType VARCHAR(20) = NULL,
+    @GroupOperator VARCHAR(250) = NULL,
+    @NetworkSources VARCHAR(500) = NULL,
+    @DirectoryExternalKey VARCHAR(150) = NULL,
+    @FacilityTownName VARCHAR(250) = NULL,
+    @FacilityProvinceName VARCHAR(250) = NULL,
+    @FacilityCountryName VARCHAR(250) = NULL,
+    @FacilityAddressText VARCHAR(500) = NULL,
     @CreatedBy VARCHAR(250) = NULL,
     @ClientIdOutput UNIQUEIDENTIFIER OUTPUT,
     @StatusCode INT OUTPUT,
@@ -37,8 +47,26 @@ BEGIN
             @ErrorLine INT,
             @ErrorMessage VARCHAR(MAX),
             @ErrorDateTime DATETIME,
-            @NormalizedPhone VARCHAR(25),
-            @FormattedPhone VARCHAR(25);
+            @NormalizedPhone VARCHAR(50),
+            @FormattedPhone VARCHAR(50),
+            @DigitsOnly VARCHAR(50),
+            @ResolvedDisplayName VARCHAR(250),
+            @ResolvedFirstName VARCHAR(250),
+            @ResolvedLastName VARCHAR(250),
+            @ResolvedOrganizationType VARCHAR(20),
+            @AddressCityId INT,
+            @AddressTownName VARCHAR(250),
+            @AddressProvinceName VARCHAR(250),
+            @AddressCountryName VARCHAR(250),
+            @AddressText VARCHAR(500),
+            @FacilityCityName VARCHAR(250),
+            @FacilityProvinceLookupName VARCHAR(250),
+            @FacilityCountryLookupName VARCHAR(250),
+            @ResolvedFacilityTownName VARCHAR(250),
+            @ResolvedFacilityProvinceName VARCHAR(250),
+            @ResolvedFacilityCountryName VARCHAR(250),
+            @ResolvedFacilityAddressText VARCHAR(500),
+            @HasLeadingPlus BIT = 0;
 
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
@@ -47,18 +75,46 @@ BEGIN
     SET @StatusCode = -1;
     SET @Message = '';
 
-    IF LTRIM(RTRIM(ISNULL(@ClientCode, ''))) = ''
+    SET @ClientCode = LTRIM(RTRIM(ISNULL(@ClientCode, '')));
+    SET @ResolvedFirstName = NULLIF(LTRIM(RTRIM(ISNULL(@FirstName, ''))), '');
+    SET @ResolvedLastName = NULLIF(LTRIM(RTRIM(ISNULL(@LastName, ''))), '');
+    SET @ResolvedDisplayName = NULLIF(LTRIM(RTRIM(ISNULL(@DisplayName, ''))), '');
+    SET @ResolvedOrganizationType = NULLIF(LTRIM(RTRIM(ISNULL(@OrganizationType, ''))), '');
+    SET @GroupOperator = NULLIF(LTRIM(RTRIM(ISNULL(@GroupOperator, ''))), '');
+    SET @NetworkSources = NULLIF(LTRIM(RTRIM(ISNULL(@NetworkSources, ''))), '');
+    SET @DirectoryExternalKey = NULLIF(LTRIM(RTRIM(ISNULL(@DirectoryExternalKey, ''))), '');
+    SET @ResolvedFacilityTownName = NULLIF(LTRIM(RTRIM(ISNULL(@FacilityTownName, ''))), '');
+    SET @ResolvedFacilityProvinceName = NULLIF(LTRIM(RTRIM(ISNULL(@FacilityProvinceName, ''))), '');
+    SET @ResolvedFacilityCountryName = NULLIF(LTRIM(RTRIM(ISNULL(@FacilityCountryName, ''))), '');
+    SET @ResolvedFacilityAddressText = NULLIF(LTRIM(RTRIM(ISNULL(@FacilityAddressText, ''))), '');
+
+    IF @ClientCode = ''
     BEGIN
         SET @StatusCode = 1;
         SET @Message = 'ClientCode is required.';
         RETURN;
     END
 
-    IF LTRIM(RTRIM(ISNULL(@FirstName, ''))) = '' OR LTRIM(RTRIM(ISNULL(@LastName, ''))) = ''
+    IF @ResolvedDisplayName IS NULL AND @ResolvedFirstName IS NULL
     BEGIN
         SET @StatusCode = 1;
-        SET @Message = 'FirstName and LastName are required.';
+        SET @Message = 'DisplayName or FirstName is required.';
         RETURN;
+    END
+
+    IF @ResolvedDisplayName IS NULL
+    BEGIN
+        SET @ResolvedDisplayName = @ResolvedFirstName;
+    END
+
+    IF @ResolvedFirstName IS NULL
+    BEGIN
+        SET @ResolvedFirstName = @ResolvedDisplayName;
+    END
+
+    IF @ResolvedLastName IS NULL
+    BEGIN
+        SET @ResolvedLastName = @ResolvedDisplayName;
     END
 
     IF @DateOfBirth IS NOT NULL AND @DateOfBirth > GETDATE()
@@ -84,6 +140,81 @@ BEGIN
         RETURN;
     END
 
+    IF @AddressIDFK IS NOT NULL
+    BEGIN
+        SELECT
+            @AddressCityId = A.CityIDFK,
+            @AddressTownName = C.CityName,
+            @AddressProvinceName = P.ProvinceName,
+            @AddressCountryName = CO.CountryName,
+            @AddressText =
+                NULLIF(
+                    LTRIM(RTRIM(
+                        CONCAT(
+                            ISNULL(A.Line1, ''),
+                            CASE
+                                WHEN NULLIF(LTRIM(RTRIM(ISNULL(A.Line2, ''))), '') IS NULL THEN ''
+                                ELSE ', ' + LTRIM(RTRIM(A.Line2))
+                            END
+                        )
+                    )),
+                    ''
+                )
+        FROM Location.Address A
+        INNER JOIN Location.Cities C ON C.CityId = A.CityIDFK
+        INNER JOIN Location.Provinces P ON P.ProvinceId = C.ProvinceIDFK
+        INNER JOIN Location.Countries CO ON CO.CountryId = P.CountryIDFK
+        WHERE A.AddressId = @AddressIDFK;
+    END
+    ELSE
+    BEGIN
+        SET @AddressCityId = NULL;
+        SET @AddressTownName = NULL;
+        SET @AddressProvinceName = NULL;
+        SET @AddressCountryName = NULL;
+        SET @AddressText = NULL;
+    END
+
+    IF @FacilityCityIDFK IS NULL
+    BEGIN
+        SET @FacilityCityIDFK = @AddressCityId;
+    END
+
+    IF @FacilityCityIDFK IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM Location.Cities WHERE CityId = @FacilityCityIDFK)
+    BEGIN
+        SET @StatusCode = 1;
+        SET @Message = 'FacilityCityIDFK does not exist.';
+        RETURN;
+    END
+
+    IF @FacilityCityIDFK IS NOT NULL
+    BEGIN
+        SELECT
+            @FacilityCityName = C.CityName,
+            @FacilityProvinceLookupName = P.ProvinceName,
+            @FacilityCountryLookupName = CO.CountryName
+        FROM Location.Cities C
+        INNER JOIN Location.Provinces P ON P.ProvinceId = C.ProvinceIDFK
+        INNER JOIN Location.Countries CO ON CO.CountryId = P.CountryIDFK
+        WHERE C.CityId = @FacilityCityIDFK;
+    END
+    ELSE
+    BEGIN
+        SET @FacilityCityName = NULL;
+        SET @FacilityProvinceLookupName = NULL;
+        SET @FacilityCountryLookupName = NULL;
+    END
+
+    IF @AddressCityId IS NOT NULL
+       AND @FacilityCityIDFK IS NOT NULL
+       AND @AddressCityId <> @FacilityCityIDFK
+    BEGIN
+        SET @StatusCode = 1;
+        SET @Message = 'FacilityCityIDFK must match the city on AddressIDFK when both are supplied.';
+        RETURN;
+    END
+
     IF @PatientIdFK IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM Profile.Patient WHERE PatientId = @PatientIdFK)
     BEGIN
@@ -106,26 +237,91 @@ BEGIN
         RETURN;
     END
 
-    -- Keep the stored phone shape consistent with the contact-side formatting rules.
+    IF @ResolvedFacilityTownName IS NULL
+    BEGIN
+        SET @ResolvedFacilityTownName = COALESCE(@FacilityCityName, @AddressTownName);
+    END
+
+    IF @ResolvedFacilityProvinceName IS NULL
+    BEGIN
+        SET @ResolvedFacilityProvinceName = COALESCE(@FacilityProvinceLookupName, @AddressProvinceName);
+    END
+
+    IF @ResolvedFacilityCountryName IS NULL
+    BEGIN
+        SET @ResolvedFacilityCountryName = COALESCE(@FacilityCountryLookupName, @AddressCountryName);
+    END
+
+    IF @ResolvedFacilityAddressText IS NULL
+    BEGIN
+        SET @ResolvedFacilityAddressText = @AddressText;
+    END
+
+    IF @ResolvedOrganizationType IS NULL AND @ClientClinicCategoryIDFK IS NOT NULL
+    BEGIN
+        SELECT @ResolvedOrganizationType =
+            CASE
+                WHEN CCC.CategoryName LIKE '%Hospital%' THEN 'Hospital'
+                WHEN CCC.CategoryName LIKE '%Clinic%' THEN 'Clinic'
+                ELSE 'Organization'
+            END
+        FROM Profile.ClientClinicCategories CCC
+        WHERE CCC.ClientClinicCategoryId = @ClientClinicCategoryIDFK;
+    END
+
+    IF @ResolvedOrganizationType IS NULL
+    BEGIN
+        SET @ResolvedOrganizationType = 'Organization';
+    END
+
+    IF @ResolvedOrganizationType NOT IN ('Clinic', 'Hospital', 'Organization', 'Other')
+    BEGIN
+        SET @StatusCode = 1;
+        SET @Message = 'OrganizationType must be Clinic, Hospital, Organization, or Other.';
+        RETURN;
+    END
+
+    -- Accept local 10-digit numbers and international E.164-style numbers up to 15 digits.
     SET @NormalizedPhone = LTRIM(RTRIM(ISNULL(@PhoneNumber, '')));
     IF @NormalizedPhone <> ''
     BEGIN
-        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '-', '');
+        SET @HasLeadingPlus = CASE WHEN LEFT(@NormalizedPhone, 1) = '+' THEN 1 ELSE 0 END;
         SET @NormalizedPhone = REPLACE(@NormalizedPhone, ' ', '');
-        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '+', '');
+        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '-', '');
         SET @NormalizedPhone = REPLACE(@NormalizedPhone, '(', '');
         SET @NormalizedPhone = REPLACE(@NormalizedPhone, ')', '');
+        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '.', '');
+        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '/', '');
+        SET @NormalizedPhone = REPLACE(@NormalizedPhone, '\', '');
 
-        IF LEN(@NormalizedPhone) <> 10 OR @NormalizedPhone LIKE '%[^0-9]%'
+        IF LEFT(@NormalizedPhone, 2) = '00'
+        BEGIN
+            SET @NormalizedPhone = '+' + SUBSTRING(@NormalizedPhone, 3, 48);
+        END
+        ELSE IF @HasLeadingPlus = 1 AND LEFT(@NormalizedPhone, 1) <> '+'
+        BEGIN
+            SET @NormalizedPhone = '+' + @NormalizedPhone;
+        END
+
+        SET @DigitsOnly = REPLACE(@NormalizedPhone, '+', '');
+
+        IF LEN(@DigitsOnly) < 7 OR LEN(@DigitsOnly) > 15 OR @DigitsOnly LIKE '%[^0-9]%'
         BEGIN
             SET @StatusCode = 1;
-            SET @Message = 'PhoneNumber must contain exactly 10 digits.';
+            SET @Message = 'PhoneNumber must contain between 7 and 15 digits after removing punctuation.';
             RETURN;
         END
 
-        SET @FormattedPhone = SUBSTRING(@NormalizedPhone, 1, 3) + '-' +
-                              SUBSTRING(@NormalizedPhone, 4, 3) + '-' +
-                              SUBSTRING(@NormalizedPhone, 7, 4);
+        IF LEFT(@NormalizedPhone, 1) <> '+' AND LEN(@DigitsOnly) = 10
+        BEGIN
+            SET @FormattedPhone = SUBSTRING(@DigitsOnly, 1, 3) + '-' +
+                                  SUBSTRING(@DigitsOnly, 4, 3) + '-' +
+                                  SUBSTRING(@DigitsOnly, 7, 4);
+        END
+        ELSE
+        BEGIN
+            SET @FormattedPhone = CASE WHEN LEFT(@NormalizedPhone, 1) = '+' THEN '+' ELSE '' END + @DigitsOnly;
+        END
     END
     ELSE
     BEGIN
@@ -137,6 +333,14 @@ BEGIN
         BEGIN
             SET @StatusCode = 2;
             SET @Message = 'ClientCode already exists.';
+            RETURN;
+        END
+
+        IF @DirectoryExternalKey IS NOT NULL
+           AND EXISTS (SELECT 1 FROM Profile.Clients WHERE DirectoryExternalKey = @DirectoryExternalKey)
+        BEGIN
+            SET @StatusCode = 2;
+            SET @Message = 'DirectoryExternalKey already exists.';
             RETURN;
         END
 
@@ -152,14 +356,18 @@ BEGIN
 
         INSERT INTO Profile.Clients
         (
-            ClientId, PatientIdFK, ClientClinicCategoryIDFK, ClientCode, FirstName, LastName,
-            DateOfBirth, ID_Number, Email, PhoneNumber, AddressIDFK,
+            ClientId, PatientIdFK, ClientClinicCategoryIDFK, FacilityCityIDFK, ClientCode,
+            DisplayName, OrganizationType, GroupOperator, NetworkSources, DirectoryExternalKey,
+            FacilityTownName, FacilityProvinceName, FacilityCountryName, FacilityAddressText,
+            FirstName, LastName, DateOfBirth, ID_Number, Email, PhoneNumber, AddressIDFK,
             IsActive, IsDeleted, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy
         )
         VALUES
         (
-            @ClientIdOutput, @PatientIdFK, @ClientClinicCategoryIDFK, @ClientCode, @FirstName, @LastName,
-            @DateOfBirth, NULLIF(LTRIM(RTRIM(ISNULL(@ID_Number, ''))), ''),
+            @ClientIdOutput, @PatientIdFK, @ClientClinicCategoryIDFK, @FacilityCityIDFK, @ClientCode,
+            @ResolvedDisplayName, @ResolvedOrganizationType, @GroupOperator, @NetworkSources, @DirectoryExternalKey,
+            @ResolvedFacilityTownName, @ResolvedFacilityProvinceName, @ResolvedFacilityCountryName, @ResolvedFacilityAddressText,
+            @ResolvedFirstName, @ResolvedLastName, @DateOfBirth, NULLIF(LTRIM(RTRIM(ISNULL(@ID_Number, ''))), ''),
             NULLIF(LTRIM(RTRIM(ISNULL(@Email, ''))), ''), @FormattedPhone, @AddressIDFK,
             1, 0, @Now, COALESCE(NULLIF(@CreatedBy, ''), SUSER_SNAME()), @Now, COALESCE(NULLIF(@CreatedBy, ''), SUSER_SNAME())
         );

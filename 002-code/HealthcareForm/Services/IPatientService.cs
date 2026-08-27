@@ -8,6 +8,12 @@ public interface IPatientService
     // Builds the worklist shown in the clinical shell.
     Task<IReadOnlyList<PatientWorklistItemDto>> GetWorklistAsync(CancellationToken cancellationToken = default);
 
+    // Returns the paged patient directory used for search and archive workflows.
+    Task<PatientDirectorySnapshotDto> GetDirectoryAsync(PatientDirectoryQueryDto query, CancellationToken cancellationToken = default);
+
+    // Returns active clinic/hospital options for patient registration workflows.
+    Task<IReadOnlyList<PatientClientLookupItemDto>> GetClientLookupAsync(CancellationToken cancellationToken = default);
+
     // Creates a new patient record.
     Task<PatientCommandResult> AddPatientAsync(PatientCreateRequest request, CancellationToken cancellationToken = default);
 
@@ -20,11 +26,17 @@ public interface IPatientService
     // Deletes a patient record.
     Task<PatientCommandResult> DeletePatientAsync(string idNumber, CancellationToken cancellationToken = default);
 
+    // Restores a soft-deleted patient record.
+    Task<PatientCommandResult> RestorePatientAsync(string idNumber, CancellationToken cancellationToken = default);
+
     // Retrieves allergy history for the requested patient.
     Task<IReadOnlyList<PatientAllergyDto>> GetPatientAllergiesAsync(string idNumber, CancellationToken cancellationToken = default);
 
     // Retrieves medication history for the requested patient.
     Task<IReadOnlyList<PatientMedicationDto>> GetPatientMedicationsAsync(string idNumber, CancellationToken cancellationToken = default);
+
+    // Retrieves pending lab orders and completed lab results for the requested patient.
+    Task<PatientOrdersResultsSnapshotDto> GetPatientOrdersResultsAsync(string idNumber, CancellationToken cancellationToken = default);
 
     // Retrieves vaccination history for the requested patient.
     Task<IReadOnlyList<PatientVaccinationDto>> GetPatientVaccinationsAsync(string idNumber, CancellationToken cancellationToken = default);

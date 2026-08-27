@@ -3,6 +3,7 @@
     <p class="eyebrow">Medication Reconciliation</p>
     <h2>{{ contextLabel }}</h2>
     <p class="error" *ngIf="loadError">{{ loadError }}</p>
+    <p class="error" *ngIf="medicationsLoadError">{{ medicationsLoadError }}</p>
   </div>
   <div class="quick-links" *ngIf="patient">
     <a [routerLink]="['/patients/chart', patient.IdNumber]">Chart</a>
@@ -18,15 +19,35 @@
       <span>{{ reviewedCount }}/{{ medications.length }} reviewed</span>
     </header>
 
-    <ul class="med-list">
+    <div class="panel-state" *ngIf="isLoadingContext || isLoadingMedications">Loading medications...</div>
+
+    <ul class="med-list" *ngIf="!isLoadingContext && !isLoadingMedications && medications.length > 0">
       <li *ngFor="let item of medications; let i = index">
         <label>
           <input type="checkbox" [checked]="item.reviewed" (change)="toggleReviewed(i)" />
-          <span>{{ item.name }}</span>
+          <div class="med-content">
+            <span class="med-name">{{ item.name }}</span>
+            <p class="med-meta" *ngIf="item.dosage || item.frequency || item.route">
+              <span *ngIf="item.dosage">{{ item.dosage }}</span>
+              <span *ngIf="item.frequency">{{ item.frequency }}</span>
+              <span *ngIf="item.route">{{ item.route }}</span>
+            </p>
+            <p class="med-meta" *ngIf="item.status || item.prescribedBy || item.indication || item.startDate || item.endDate">
+              <span *ngIf="item.status">{{ item.status }}</span>
+              <span *ngIf="item.prescribedBy">Prescribed by {{ item.prescribedBy }}</span>
+              <span *ngIf="item.indication">Indication: {{ item.indication }}</span>
+              <span *ngIf="item.startDate">Start {{ item.startDate | date: 'yyyy-MM-dd' }}</span>
+              <span *ngIf="item.endDate">End {{ item.endDate | date: 'yyyy-MM-dd' }}</span>
+            </p>
+          </div>
           <small>{{ item.source }}</small>
         </label>
       </li>
     </ul>
+
+    <p class="empty" *ngIf="!isLoadingContext && !isLoadingMedications && medications.length === 0">
+      No medications available for this patient.
+    </p>
   </article>
 
   <article class="panel warning-panel">
@@ -34,7 +55,12 @@
     <ul>
       <li *ngFor="let warning of warnings">{{ warning }}</li>
     </ul>
-    <button type="button" (click)="finalizeReconciliation()">Finalize Reconciliation</button>
+    <button
+      type="button"
+      (click)="finalizeReconciliation()"
+      [disabled]="isLoadingContext || isLoadingMedications || medications.length === 0">
+      Finalize Reconciliation
+    </button>
     <p class="meta success" *ngIf="finalizedAt">Finalized {{ finalizedAt | date: 'short' }}</p>
   </article>
 </section>

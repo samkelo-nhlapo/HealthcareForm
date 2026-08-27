@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { isValidPatientIdNumber, normalizePatientIdNumber } from '../../models/patient-id.utils';
 import { PatientRecordDto } from '../../models/patient.models';
 import { PatientApiService } from '../../services/patient-api.service';
 
@@ -40,8 +41,8 @@ export class EncounterWorkspaceComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
-      const idNumber = (params.get('idNumber') ?? '').trim();
-      if (idNumber.length !== 13) {
+      const idNumber = normalizePatientIdNumber(params.get('idNumber'));
+      if (!isValidPatientIdNumber(idNumber)) {
         this.patient = null;
         this.contextLabel = 'No patient selected. Launch from worklist or chart.';
         return;

@@ -7,7 +7,7 @@
   <p class="error">{{ loadError }}</p>
   <div class="quick-actions">
     <button type="button" class="retry" (click)="retryLoad()">Retry</button>
-    <a [routerLink]="['/patients/worklist']">Back to worklist</a>
+    <a [routerLink]="['/patients/hub']" [queryParams]="{ tab: 'worklist' }">Back to patient hub</a>
   </div>
 </section>
 
@@ -19,6 +19,7 @@
       <p class="meta">
         ID: {{ patient.IdNumber }}
         <span *ngIf="age !== null">• Age {{ age }}</span>
+        <span *ngIf="registeredClient">• {{ registeredClient }}</span>
       </p>
     </div>
 
@@ -27,7 +28,7 @@
         {{ riskBand }} Risk
       </span>
       <span class="chip">{{ consentStatus }} Consent</span>
-      <a class="chip link-chip" [routerLink]="['/patients/workbench']" [queryParams]="{ idNumber: patient.IdNumber }">
+      <a class="chip link-chip" [routerLink]="['/patients/registration']" [queryParams]="{ idNumber: patient.IdNumber }">
         Open Registration Flow
       </a>
       <a class="chip link-chip" [routerLink]="['/clinical/encounter']" [queryParams]="{ idNumber: patient.IdNumber }">
@@ -68,6 +69,14 @@
         <div>
           <dt>Medication Notes</dt>
           <dd>{{ patient.MedicationList || 'No medication list captured' }}</dd>
+        </div>
+        <div>
+          <dt>Clinic / Hospital</dt>
+          <dd>{{ registeredClient || 'Not assigned' }}</dd>
+        </div>
+        <div>
+          <dt>All Registered Clients</dt>
+          <dd>{{ registeredClients.length > 0 ? registeredClients.join(', ') : 'Not assigned' }}</dd>
         </div>
       </dl>
     </article>

@@ -1,0 +1,111 @@
+<section class="panel hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Patient Hub</p>
+    <h2>One patient search, two working views</h2>
+    <p>Search once across the hub, pin a patient when you need quick actions, and move between worklist and directory without losing your place.</p>
+  </div>
+
+  <div class="hero-note">
+    <span class="tab-eyebrow">Active View</span>
+    <strong>{{ activeTabDefinition.label }}</strong>
+    <p>{{ activeTabDefinition.description }}</p>
+  </div>
+</section>
+
+<section class="workspace-grid">
+  <section class="panel command-panel">
+    <div class="section-copy">
+      <p class="eyebrow">One Patient Search</p>
+      <h3>Search once across the hub</h3>
+      <p>Use one patient search for both views below. Enter a 13-digit ID number when you want to pin one patient for chart, encounter, or registration work.</p>
+    </div>
+
+    <form [formGroup]="patientSearchForm" class="command-form" (ngSubmit)="applyPatientSearch()">
+      <label class="command-field">
+        Patient Search
+        <input
+          type="text"
+          formControlName="query"
+          placeholder="Name, ID number, phone, or email"
+        />
+      </label>
+
+      <div class="command-actions">
+        <button type="submit">Search Patients</button>
+        <button type="button" class="secondary" (click)="focusPatientFromSearch()">Focus 13-digit ID</button>
+        <button type="button" class="ghost" (click)="clearPatientSearch()">Clear Search</button>
+      </div>
+
+      <div class="command-meta">
+        <span class="hint-chip">Shared across worklist and directory</span>
+        <span class="hint-chip" *ngIf="hasSharedSearch">Active: {{ appliedSearchTerm }}</span>
+        <span class="hint-chip accent" *ngIf="hasReadySearchId">Exact ID ready for quick actions</span>
+      </div>
+
+      <p class="helper-copy">
+        Search updates both views below. Focus is optional, but it makes patient actions faster and safer.
+      </p>
+      <p class="context-error" *ngIf="contextError">{{ contextError }}</p>
+    </form>
+  </section>
+
+  <section class="panel focus-panel" *ngIf="focusedPatient as patient; else emptyFocus">
+    <div class="focus-header">
+      <div class="focus-copy">
+        <p class="eyebrow">Focused Patient</p>
+        <h3>{{ patient.patientLabel }}</h3>
+        <p>{{ patient.contextLabel }}</p>
+      </div>
+
+      <div class="focus-meta">
+        <span class="status-chip">ID {{ patient.idNumber }}</span>
+        <span class="status-chip">{{ describeSelectionSource(patient.source) }}</span>
+        <span *ngIf="patient.isDeleted" class="status-chip warning">Deleted record</span>
+        <span *ngIf="!patient.isDeleted" class="status-chip ready">Ready for action</span>
+      </div>
+    </div>
+
+    <div class="focus-actions">
+      <button type="button" (click)="openRegistrationWorkspace()">Open Registration</button>
+      <button type="button" class="secondary" (click)="openPatientChart()" [disabled]="patient.isDeleted">Open Chart</button>
+      <button type="button" class="secondary" (click)="openEncounterWorkspace()" [disabled]="patient.isDeleted">Open Encounter</button>
+      <button type="button" class="ghost" (click)="clearFocusedPatient()">Clear Focus</button>
+    </div>
+  </section>
+</section>
+
+<ng-template #emptyFocus>
+  <section class="panel focus-panel empty">
+    <p class="eyebrow">Focused Patient</p>
+    <h3>No patient pinned yet</h3>
+    <p>Focus a patient from search, worklist, or directory when you want to move quickly into registration, chart, or encounter workflows.</p>
+    <div class="focus-actions">
+      <button type="button" class="secondary" (click)="startNewRegistration()">Start New Registration</button>
+    </div>
+  </section>
+</ng-template>
+
+<section class="panel tabs-panel">
+  <div class="tabs" role="tablist" aria-label="Patient hub views">
+    <button
+      *ngFor="let tab of tabs"
+      type="button"
+      class="tab-button"
+      [class.active]="tab.key === activeTab"
+      [attr.aria-selected]="tab.key === activeTab"
+      (click)="switchTab(tab.key)"
+    >
+      <span class="tab-eyebrow">{{ tab.eyebrow }}</span>
+      <strong>{{ tab.label }}</strong>
+    </button>
+  </div>
+
+  <p class="tabs-summary">
+    Showing {{ activeTabDefinition.label }}. Your patient search stays active while you switch views.
+  </p>
+</section>
+
+<ng-container [ngSwitch]="activeTab">
+  <app-worklist *ngSwitchCase="'worklist'"></app-worklist>
+  <app-patient-directory *ngSwitchDefault></app-patient-directory>
+</ng-container>

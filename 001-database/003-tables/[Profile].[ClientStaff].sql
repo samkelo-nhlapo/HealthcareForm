@@ -160,6 +160,12 @@ BEGIN
 END
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = N'IX_ClientStaff_ProviderIdFK')
+BEGIN
+    CREATE INDEX IX_ClientStaff_ProviderIdFK ON [Profile].[ClientStaff]([ProviderIdFK]);
+END
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[Profile].[ClientStaff]') AND name = N'IX_ClientStaff_StaffDesignationIdFK')
 BEGIN
     CREATE INDEX IX_ClientStaff_StaffDesignationIdFK ON [Profile].[ClientStaff]([StaffDesignationIdFK]);

@@ -1,0 +1,110 @@
+<div class="page">
+  <section class="panel hero">
+    <div>
+      <p class="eyebrow">Client Admin</p>
+      <h2>Register {{ organizationContent.singular }}</h2>
+      <p class="lead">Create a new {{ organizationContent.singularLower }} organisation, assign an operating category, and capture the details patients will register under.</p>
+    </div>
+    <a class="back-link" [routerLink]="['/admin/clients']">Back to client directory</a>
+  </section>
+
+  <section class="panel" [attr.aria-busy]="isBusy">
+    <header class="section-header">
+      <div>
+        <h3>{{ organizationContent.singular }} Intake</h3>
+        <p>{{ organizationContent.intakeSummary }}</p>
+      </div>
+      <span class="chip" *ngIf="lookupLoading">Loading lookups</span>
+    </header>
+
+    <section class="type-strip">
+      <label>
+        <span>Organisation Type</span>
+        <select [value]="organizationType" (change)="onOrganizationTypeChange($any($event.target).value)" [disabled]="isBusy">
+          <option value="CLINIC">Clinic</option>
+          <option value="HOSPITAL">Hospital</option>
+        </select>
+      </label>
+
+      <article class="context-card">
+        <h4>{{ organizationContent.singular }} Record Design</h4>
+        <p>Patients will register under this {{ organizationContent.singularLower }}. Capture the registered name, the main organisation number, and the contact channel used by staff and patients.</p>
+        <p class="context-note">{{ categoryHelperMessage }}</p>
+      </article>
+    </section>
+
+    <form [formGroup]="clientForm" class="grid-form">
+      <label>
+        <span>Organisation Code</span>
+        <input type="text" formControlName="ClientCode" [disabled]="isBusy" />
+        <small>Use the billing, finance, or internal code the organisation is known by.</small>
+      </label>
+      <label>
+        <span>Registered Organisation Name</span>
+        <input type="text" formControlName="FirstName" [disabled]="isBusy" />
+        <small>Use the primary name patients and staff should search for.</small>
+      </label>
+      <label>
+        <span>{{ organizationContent.secondaryNameLabel }}</span>
+        <input type="text" formControlName="LastName" [disabled]="isBusy" />
+        <small>If left blank, the registered organisation name will also fill the legacy secondary field.</small>
+      </label>
+      <label>
+        <span>{{ organizationContent.registrationLabel }}</span>
+        <input type="text" formControlName="IdNumber" [disabled]="isBusy" />
+      </label>
+      <label>
+        <span>{{ organizationContent.establishedLabel }}</span>
+        <input type="date" formControlName="DateOfBirth" [disabled]="isBusy" />
+      </label>
+      <label>
+        <span>Operations Email</span>
+        <input type="email" formControlName="Email" [disabled]="isBusy" />
+      </label>
+      <label>
+        <span>{{ organizationContent.phoneLabel }}</span>
+        <input type="text" formControlName="PhoneNumber" [disabled]="isBusy" />
+      </label>
+      <label>
+        <span>Organisation Category</span>
+        <select
+          formControlName="ClientClinicCategoryId"
+          [disabled]="isBusy"
+          (change)="onCategoryChange($any($event.target).value)">
+          <option [value]="0">{{ hasCategoriesForSelectedType ? 'Unassigned category' : 'Category can be assigned later' }}</option>
+          <option *ngFor="let option of filteredCategories" [value]="option.ClientClinicCategoryId">
+            {{ formatCategoryOption(option) }}
+          </option>
+        </select>
+        <small>{{ categoryHelperMessage }}</small>
+      </label>
+      <label class="full-width">
+        <span>Physical Address Line 1</span>
+        <input type="text" formControlName="Line1" [disabled]="isBusy" />
+      </label>
+      <label class="full-width">
+        <span>Physical Address Line 2</span>
+        <input type="text" formControlName="Line2" [disabled]="isBusy" />
+      </label>
+      <label>
+        <span>City</span>
+        <select formControlName="CityId" [disabled]="isBusy">
+          <option [value]="0">No address on file</option>
+          <option *ngFor="let option of cities" [value]="option.Id">{{ option.Name }}</option>
+        </select>
+      </label>
+    </form>
+
+    <div class="actions">
+      <button type="button" class="ghost" [routerLink]="['/admin/clients']" [disabled]="isBusy">Cancel</button>
+      <button type="button" (click)="createClient()" [disabled]="isBusy">
+        {{ saving ? 'Saving...' : 'Create Organisation' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel status-panel" *ngIf="statusMessage" role="status" aria-live="polite">
+    <h3>Status</h3>
+    <p [class.error]="statusError">{{ statusMessage }}</p>
+  </section>
+</div>

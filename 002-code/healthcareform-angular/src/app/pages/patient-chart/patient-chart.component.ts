@@ -43,13 +43,42 @@ export class PatientChartComponent implements OnInit {
     return `${this.patient.FirstName} ${this.patient.LastName}`.trim();
   }
 
+  get registeredClient(): string {
+    if (!this.patient) {
+      return '';
+    }
+
+    const primaryClient = this.patient.Clients?.find((client) => client.IsPrimary);
+    const name = (primaryClient?.ClientName ?? this.patient.ClientName).trim();
+    if (name.length > 0) {
+      return name;
+    }
+
+    return (primaryClient?.ClientCode ?? this.patient.ClientCode).trim();
+  }
+
+  get registeredClients(): string[] {
+    if (!this.patient) {
+      return [];
+    }
+
+    if (Array.isArray(this.patient.Clients) && this.patient.Clients.length > 0) {
+      return this.patient.Clients
+        .map((client) => client.ClientName.trim() || client.ClientCode.trim())
+        .filter((value) => value.length > 0);
+    }
+
+    const fallback = this.patient.ClientName.trim() || this.patient.ClientCode.trim();
+    return fallback.length > 0 ? [fallback] : [];
+  }
+
   get age(): number | null {
     if (!this.patient?.DateOfBirth) {
       return null;
     }
 
-    const dob = new Date(this.patient.DateOfBirth);
-    if (Number.isNaN(dob.getTime())) {
+    const dob = this.parsePatientDate(this.patient.DateOfBirth);
+    if (!dob) {
       return null;
     }
 
@@ -126,5 +155,18 @@ export class PatientChartComponent implements OnInit {
         this.loadError = error?.error?.Message ?? error?.error?.message ?? 'Unable to load patient chart.';
       }
     });
+  }
+
+  private parsePatientDate(value: string): Date | null {
+    const directDateMatch = (value ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (directDateMatch) {
+      const year = Number.parseInt(directDateMatch[1], 10);
+      const monthIndex = Number.parseInt(directDateMatch[2], 10) - 1;
+      const day = Number.parseInt(directDateMatch[3], 10);
+      return new Date(year, monthIndex, day);
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 }

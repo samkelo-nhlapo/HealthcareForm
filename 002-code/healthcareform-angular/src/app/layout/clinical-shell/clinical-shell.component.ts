@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PatientHubSelectionService } from '../../pages/patient-hub/patient-hub-selection.service';
 import { AuthService } from '../../services/auth.service';
 
 type NavItem = {
   label: string;
   route: string;
   exact?: boolean;
+  level?: 0 | 1;
   roles?: string[];
 };
 
@@ -14,14 +16,15 @@ type NavItem = {
   selector: 'app-clinical-shell',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  providers: [PatientHubSelectionService],
   templateUrl: './clinical-shell.component.html',
   styleUrl: './clinical-shell.component.scss'
 })
 export class ClinicalShellComponent {
   readonly navItems: NavItem[] = [
     { label: 'Ops Dashboard', route: '/dashboard', exact: true },
-    { label: 'Patient Worklist', route: '/patients/worklist' },
-    { label: 'Patient Registration', route: '/patients/workbench' },
+    { label: 'Patient Hub', route: '/patients/hub' },
+    { label: 'Patient Registration', route: '/patients/registration', level: 1 },
     { label: 'Encounter Workspace', route: '/clinical/encounter' },
     { label: 'Orders & Results', route: '/clinical/orders-results' },
     { label: 'Med Reconciliation', route: '/clinical/medication-reconciliation' },
@@ -30,6 +33,7 @@ export class ClinicalShellComponent {
     { label: 'Billing & Claims', route: '/revenue/billing-claims', roles: ['ADMIN', 'BILLING'] },
     { label: 'Messages', route: '/messages' },
     { label: 'Admin Hub', route: '/admin', roles: ['ADMIN'] },
+    { label: 'Client Directory', route: '/admin/clients', roles: ['ADMIN'] },
     { label: 'Access Control', route: '/admin/access-control', roles: ['ADMIN'] },
     { label: 'Audit Log', route: '/admin/audit-log', roles: ['ADMIN'] },
     { label: 'Data Governance', route: '/admin/data-governance', roles: ['ADMIN'] }

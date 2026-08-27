@@ -1,0 +1,120 @@
+<div class="page">
+  <section class="panel hero">
+    <div>
+      <p class="eyebrow">Client Admin</p>
+      <h2>{{ title }}</h2>
+      <p class="lead">Update the {{ organizationContent.singularLower }} organisation profile, category, registry details, address, and operational status from one admin workflow.</p>
+    </div>
+    <a class="back-link" [routerLink]="client ? ['/admin/clients', client.ClientId] : ['/admin/clients']">Back to client detail</a>
+  </section>
+
+  <div class="state" *ngIf="clientLoading">Loading client profile...</div>
+  <div class="state error" *ngIf="!clientLoading && loadError">
+    <span>{{ loadError }}</span>
+    <button type="button" class="ghost" (click)="retryLoad()">Retry</button>
+  </div>
+
+  <section class="panel" *ngIf="!clientLoading && !loadError" [attr.aria-busy]="isBusy">
+    <header class="section-header">
+      <div>
+        <h3>{{ organizationContent.singular }} Update</h3>
+        <p>This admin view maps the legacy client schema into organisation details. Secondary names are optional here, and deleted organisations remain read-only on this screen.</p>
+      </div>
+      <span class="chip" *ngIf="lookupLoading">Loading lookups</span>
+    </header>
+
+    <section class="type-strip">
+      <label>
+        <span>Organisation Type</span>
+        <select [value]="organizationType" (change)="onOrganizationTypeChange($any($event.target).value)" [disabled]="isBusy || isDeletedRecord">
+          <option value="CLINIC">Clinic</option>
+          <option value="HOSPITAL">Hospital</option>
+        </select>
+      </label>
+
+      <article class="context-card">
+        <h4>{{ organizationContent.singular }} Record Design</h4>
+        <p>Keep the organisation name, operating number, and contact channel current so patient registration and admin lookup screens remain clear.</p>
+        <p class="context-note">{{ categoryHelperMessage }}</p>
+      </article>
+    </section>
+
+    <form [formGroup]="clientForm" class="grid-form">
+      <label>
+        <span>Organisation Code</span>
+        <input type="text" formControlName="ClientCode" [disabled]="isBusy || isDeletedRecord" />
+        <small>Use the code recognised by operations, finance, or reporting teams.</small>
+      </label>
+      <label>
+        <span>Registered Organisation Name</span>
+        <input type="text" formControlName="FirstName" [disabled]="isBusy || isDeletedRecord" />
+        <small>Use the main organisation name patients and staff should search for.</small>
+      </label>
+      <label>
+        <span>{{ organizationContent.secondaryNameLabel }}</span>
+        <input type="text" formControlName="LastName" [disabled]="isBusy || isDeletedRecord" />
+        <small>If left blank, the registered organisation name will also fill the legacy secondary field.</small>
+      </label>
+      <label>
+        <span>{{ organizationContent.registrationLabel }}</span>
+        <input type="text" formControlName="IdNumber" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label>
+        <span>{{ organizationContent.establishedLabel }}</span>
+        <input type="date" formControlName="DateOfBirth" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label>
+        <span>Operations Email</span>
+        <input type="email" formControlName="Email" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label>
+        <span>{{ organizationContent.phoneLabel }}</span>
+        <input type="text" formControlName="PhoneNumber" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label>
+        <span>Organisation Category</span>
+        <select
+          formControlName="ClientClinicCategoryId"
+          [disabled]="isBusy || isDeletedRecord"
+          (change)="onCategoryChange($any($event.target).value)">
+          <option [value]="0">{{ hasCategoriesForSelectedType ? 'Unassigned category' : 'Category can be assigned later' }}</option>
+          <option *ngFor="let option of filteredCategories" [value]="option.ClientClinicCategoryId">
+            {{ formatCategoryOption(option) }}
+          </option>
+        </select>
+        <small>{{ categoryHelperMessage }}</small>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" formControlName="IsActive" [disabled]="isBusy || isDeletedRecord" />
+        <span>Organisation is operationally active</span>
+      </label>
+      <label class="full-width">
+        <span>Physical Address Line 1</span>
+        <input type="text" formControlName="Line1" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label class="full-width">
+        <span>Physical Address Line 2</span>
+        <input type="text" formControlName="Line2" [disabled]="isBusy || isDeletedRecord" />
+      </label>
+      <label>
+        <span>City</span>
+        <select formControlName="CityId" [disabled]="isBusy || isDeletedRecord">
+          <option [value]="0">No address on file</option>
+          <option *ngFor="let option of cities" [value]="option.Id">{{ option.Name }}</option>
+        </select>
+      </label>
+    </form>
+
+    <div class="actions">
+      <button type="button" class="ghost" [routerLink]="client ? ['/admin/clients', client.ClientId] : ['/admin/clients']" [disabled]="isBusy">Cancel</button>
+      <button type="button" (click)="updateClient()" [disabled]="isBusy || isDeletedRecord">
+        {{ saving ? 'Saving...' : 'Update Organisation' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel status-panel" *ngIf="statusMessage" role="status" aria-live="polite">
+    <h3>Status</h3>
+    <p [class.error]="statusError">{{ statusMessage }}</p>
+  </section>
+</div>

@@ -13,6 +13,7 @@
         [routerLink]="item.route"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+        [class.sub-item]="(item.level ?? 0) > 0"
       >
         {{ item.label }}
       </a>
@@ -27,8 +28,7 @@
   <section class="workspace">
     <header class="top-bar">
       <div>
-        <p class="eyebrow">Phase 6 Hardening</p>
-        <h2>Healthcare Management UI</h2>
+        <h2>Healthcare Management</h2>
       </div>
       <button type="button" (click)="logout()">Logout</button>
     </header>

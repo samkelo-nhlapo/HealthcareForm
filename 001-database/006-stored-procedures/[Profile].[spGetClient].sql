@@ -6,8 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- Loads one client by ID or client code.
--- Optional deleted-row access makes this useful for both active screens and admin review.
+-- Loads one client by ID or client code with resolved organisation metadata and facility location.
 CREATE OR ALTER PROC [Profile].[spGetClient]
 (
     @ClientId UNIQUEIDENTIFIER = NULL,
@@ -29,9 +28,10 @@ BEGIN
 
     SET NOCOUNT ON;
     SET @Message = '';
+    SET @ClientCode = LTRIM(RTRIM(ISNULL(@ClientCode, '')));
 
     BEGIN TRY
-        IF @ClientId IS NULL AND LTRIM(RTRIM(@ClientCode)) = ''
+        IF @ClientId IS NULL AND @ClientCode = ''
         BEGIN
             SET @Message = 'ClientId or ClientCode is required.';
             RETURN;
@@ -55,6 +55,11 @@ BEGIN
                 CCC.ClinicSize,
                 CCC.OwnershipType,
                 C.ClientCode,
+                C.DisplayName,
+                C.OrganizationType,
+                C.GroupOperator,
+                C.NetworkSources,
+                C.DirectoryExternalKey,
                 C.FirstName,
                 C.LastName,
                 C.DateOfBirth,
@@ -65,6 +70,27 @@ BEGIN
                 LA.Line1,
                 LA.Line2,
                 LA.CityIDFK,
+                C.FacilityCityIDFK,
+                FacilityTownName = COALESCE(NULLIF(C.FacilityTownName, ''), FC.CityName, AC.CityName, ''),
+                FacilityProvinceName = COALESCE(NULLIF(C.FacilityProvinceName, ''), FP.ProvinceName, AP.ProvinceName, ''),
+                FacilityCountryName = COALESCE(NULLIF(C.FacilityCountryName, ''), FCO.CountryName, ACO.CountryName, ''),
+                FacilityAddressText =
+                    COALESCE(
+                        NULLIF(C.FacilityAddressText, ''),
+                        NULLIF(
+                            LTRIM(RTRIM(
+                                CONCAT(
+                                    ISNULL(LA.Line1, ''),
+                                    CASE
+                                        WHEN NULLIF(LTRIM(RTRIM(ISNULL(LA.Line2, ''))), '') IS NULL THEN ''
+                                        ELSE ', ' + LTRIM(RTRIM(LA.Line2))
+                                    END
+                                )
+                            )),
+                            ''
+                        ),
+                        ''
+                    ),
                 C.IsActive,
                 C.IsDeleted,
                 C.CreatedDate,
@@ -73,6 +99,12 @@ BEGIN
                 C.UpdatedBy
             FROM Profile.Clients C
             LEFT JOIN Location.Address LA ON LA.AddressId = C.AddressIDFK
+            LEFT JOIN Location.Cities AC ON AC.CityId = LA.CityIDFK
+            LEFT JOIN Location.Provinces AP ON AP.ProvinceId = AC.ProvinceIDFK
+            LEFT JOIN Location.Countries ACO ON ACO.CountryId = AP.CountryIDFK
+            LEFT JOIN Location.Cities FC ON FC.CityId = C.FacilityCityIDFK
+            LEFT JOIN Location.Provinces FP ON FP.ProvinceId = FC.ProvinceIDFK
+            LEFT JOIN Location.Countries FCO ON FCO.CountryId = FP.CountryIDFK
             LEFT JOIN Profile.ClientClinicCategories CCC ON CCC.ClientClinicCategoryId = C.ClientClinicCategoryIDFK
             WHERE
                 ((@ClientId IS NOT NULL AND C.ClientId = @ClientId)

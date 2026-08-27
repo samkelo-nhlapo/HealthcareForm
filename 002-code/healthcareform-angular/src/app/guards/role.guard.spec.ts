@@ -24,7 +24,7 @@ describe('roleGuard', () => {
 
   it('allows access when no roles are required', () => {
     authServiceMock.getCurrentRoles.and.returnValue([]);
-    const route = { data: {} } as ActivatedRouteSnapshot;
+    const route = { data: {} } as unknown as ActivatedRouteSnapshot;
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as RouterStateSnapshot));
 
@@ -34,7 +34,7 @@ describe('roleGuard', () => {
 
   it('allows access when user has one required role', () => {
     authServiceMock.getCurrentRoles.and.returnValue(['NURSE', 'BILLING']);
-    const route = { data: { roles: ['ADMIN', 'BILLING'] } } as ActivatedRouteSnapshot;
+    const route = { data: { roles: ['ADMIN', 'BILLING'] } } as unknown as ActivatedRouteSnapshot;
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as RouterStateSnapshot));
 
@@ -44,7 +44,7 @@ describe('roleGuard', () => {
 
   it('redirects to unauthorized when user lacks required roles', () => {
     authServiceMock.getCurrentRoles.and.returnValue(['DOCTOR']);
-    const route = { data: { roles: ['ADMIN', 'BILLING'] } } as ActivatedRouteSnapshot;
+    const route = { data: { roles: ['ADMIN', 'BILLING'] } } as unknown as ActivatedRouteSnapshot;
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as RouterStateSnapshot));
 

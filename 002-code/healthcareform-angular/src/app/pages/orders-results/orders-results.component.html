@@ -3,6 +3,7 @@
     <p class="eyebrow">Orders and Results</p>
     <h2>{{ contextLabel }}</h2>
     <p class="error" *ngIf="loadError">{{ loadError }}</p>
+    <p class="error" *ngIf="resultsLoadError">{{ resultsLoadError }}</p>
   </div>
   <div class="quick-links" *ngIf="patient">
     <a [routerLink]="['/patients/chart', patient.IdNumber]">Chart</a>
@@ -17,15 +18,25 @@
       <h3>Pending Orders</h3>
       <span>{{ pendingOrders.length }} open</span>
     </header>
-    <ul>
-      <li *ngFor="let order of pendingOrders">{{ order }}</li>
+    <div class="panel-state" *ngIf="isLoading">Loading orders...</div>
+    <ul class="order-list" *ngIf="!isLoading && pendingOrders.length > 0">
+      <li *ngFor="let order of pendingOrders">
+        <strong>{{ order.TestName }}</strong>
+        <p class="order-meta">
+          <span>{{ order.SpecimenType || 'Specimen pending' }}</span>
+          <span *ngIf="order.OrderedBy">Ordered by {{ order.OrderedBy }}</span>
+          <span *ngIf="order.CollectionDate">Collected {{ order.CollectionDate | date: 'yyyy-MM-dd HH:mm' }}</span>
+          <span *ngIf="order.Lab">{{ order.Lab }}</span>
+        </p>
+      </li>
     </ul>
+    <p class="empty" *ngIf="!isLoading && pendingOrders.length === 0">No pending orders for this patient.</p>
   </article>
 
   <article class="panel">
     <header class="panel-head">
       <h3>Recent Results</h3>
-      <button type="button" class="secondary" (click)="toggleAbnormalOnly()">
+      <button type="button" class="secondary" (click)="toggleAbnormalOnly()" [disabled]="results.length === 0">
         {{ abnormalOnly ? 'Show All' : 'Abnormal Only' }}
       </button>
     </header>
@@ -42,19 +53,29 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let result of visibleResults" [class.row-abnormal]="result.severity === 'Abnormal'" [class.row-critical]="result.severity === 'Critical'">
-            <td>{{ result.test }}</td>
-            <td>{{ result.value }}</td>
-            <td>{{ result.referenceRange }}</td>
+          <tr *ngIf="isLoading">
+            <td colspan="5" class="empty">Loading results...</td>
+          </tr>
+          <tr *ngFor="let result of visibleResults" [class.row-abnormal]="severityOf(result) === 'Abnormal'" [class.row-critical]="severityOf(result) === 'Critical'">
             <td>
-              <span class="pill" [class.abnormal]="result.severity === 'Abnormal'" [class.critical]="result.severity === 'Critical'">
-                {{ result.severity }}
+              {{ result.TestName }}
+              <small class="result-meta" *ngIf="result.Lab || result.OrderedBy">
+                {{ result.Lab || 'Lab pending' }}<span *ngIf="result.OrderedBy"> • {{ result.OrderedBy }}</span>
+              </small>
+            </td>
+            <td class="result-value">{{ formattedResultValue(result) || 'Result pending' }}</td>
+            <td>{{ result.ReferenceRange || 'Not supplied' }}</td>
+            <td>
+              <span class="pill" [class.abnormal]="severityOf(result) === 'Abnormal'" [class.critical]="severityOf(result) === 'Critical'">
+                {{ severityOf(result) }}
               </span>
             </td>
-            <td>{{ result.completedAt }}</td>
+            <td>{{ result.ResultDate ? (result.ResultDate | date: 'yyyy-MM-dd HH:mm') : 'Pending' }}</td>
           </tr>
-          <tr *ngIf="visibleResults.length === 0">
-            <td colspan="5" class="empty">No abnormal results in the selected range.</td>
+          <tr *ngIf="!isLoading && visibleResults.length === 0">
+            <td colspan="5" class="empty">
+              {{ abnormalOnly ? 'No abnormal results in the selected range.' : 'No results are available for this patient yet.' }}
+            </td>
           </tr>
         </tbody>
       </table>

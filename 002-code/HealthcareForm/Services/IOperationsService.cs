@@ -5,6 +5,15 @@ namespace HealthcareForm.Services;
 // Operational dashboard queries used by the scheduling and task-queue APIs.
 public interface IOperationsService
 {
+    // Returns booking options for client and provider selection.
+    Task<SchedulingBookingOptionsDto> GetSchedulingBookingOptionsAsync(CancellationToken cancellationToken = default);
+
+    // Creates a new appointment and returns command status details.
+    Task<SchedulingAppointmentCommandResult> AddSchedulingAppointmentAsync(
+        SchedulingAppointmentCreateRequest request,
+        string actor,
+        CancellationToken cancellationToken = default);
+
     // Builds the current scheduling snapshot.
     Task<SchedulingSnapshotDto> GetSchedulingSnapshotAsync(CancellationToken cancellationToken = default);
 

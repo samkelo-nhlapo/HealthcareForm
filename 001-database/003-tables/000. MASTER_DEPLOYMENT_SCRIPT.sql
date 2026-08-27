@@ -47,8 +47,6 @@ GO
 :r 003-tables/[Profile].[Allergies].sql
 :r 003-tables/[Profile].[MedicalHistory].sql
 :r 003-tables/[Profile].[Medications].sql
-:r 003-tables/[Profile].[Appointments].sql
-:r 003-tables/[Profile].[ConsultationNotes].sql
 :r 003-tables/[Profile].[Invoices].sql
 :r 003-tables/[Profile].[LabResults].sql
 :r 003-tables/[Profile].[PatientInsurance].sql
@@ -61,9 +59,13 @@ GO
 
 :r 003-tables/[Profile].[ClientClinicCategories].sql
 :r 003-tables/[Profile].[Clients].sql
+:r 003-tables/[Profile].[PatientClients].sql
 :r 003-tables/[Profile].[StaffDesignations].sql
 :r 003-tables/[Profile].[ClientDepartments].sql
 :r 003-tables/[Profile].[ClientStaff].sql
+:r 003-tables/[Profile].[ClientProviderAffiliations].sql
+:r 003-tables/[Profile].[Appointments].sql
+:r 003-tables/[Profile].[ConsultationNotes].sql
 
 :r 003-tables/[Lookup].[Allergies].sql
 :r 003-tables/[Lookup].[Medications].sql

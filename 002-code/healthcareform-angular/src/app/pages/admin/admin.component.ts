@@ -44,6 +44,14 @@ export class AdminComponent {
       metricLabel: 'Pending approvals',
       metricValue: '6',
       tone: 'neutral'
+    },
+    {
+      title: 'Clinic / Hospital Directory',
+      description: 'Open clinic and hospital profiles, review archived records, and inspect registered patients, departments, and staff.',
+      route: '/admin/clients',
+      metricLabel: 'Profiles to review',
+      metricValue: '3',
+      tone: 'neutral'
     }
   ];
 

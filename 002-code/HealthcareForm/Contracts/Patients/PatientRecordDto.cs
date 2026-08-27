@@ -3,6 +3,21 @@ namespace HealthcareForm.Contracts.Patients;
 // Full patient record returned by the lookup endpoint.
 public sealed class PatientRecordDto
 {
+    // Primary clinic or hospital the patient is registered under.
+    public Guid? ClientId { get; init; }
+
+    // Clinic or hospital code.
+    public string ClientCode { get; init; } = string.Empty;
+
+    // Display name for the clinic or hospital.
+    public string ClientName { get; init; } = string.Empty;
+
+    // Optional category assigned to the clinic or hospital.
+    public string ClientClinicCategoryName { get; init; } = string.Empty;
+
+    // All clinics and hospitals currently linked to the patient.
+    public IReadOnlyList<PatientClientAssignmentDto> Clients { get; init; } = [];
+
     // National ID number used as the primary lookup key.
     public string IdNumber { get; init; } = string.Empty;
 

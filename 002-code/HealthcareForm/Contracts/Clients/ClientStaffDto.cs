@@ -29,5 +29,7 @@ public sealed class ClientStaffDto
     public bool IsActive { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime CreatedDate { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
     public DateTime UpdatedDate { get; set; }
+    public string UpdatedBy { get; set; } = string.Empty;
 }

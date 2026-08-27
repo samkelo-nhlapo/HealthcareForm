@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
 
@@ -10,6 +11,12 @@ public sealed class StoredProcedureApiTests
     public async Task PatientsWorklist_ReturnsArray()
     {
         await AssertJsonArrayAsync("/api/patients/worklist");
+    }
+
+    [Fact]
+    public async Task PatientDirectory_ReturnsObject()
+    {
+        await AssertJsonObjectAsync("/api/patients/directory");
     }
 
     [Fact]
@@ -34,6 +41,27 @@ public sealed class StoredProcedureApiTests
     public async Task OperationsTaskQueue_ReturnsObject()
     {
         await AssertJsonObjectAsync("/api/operations/task-queue");
+    }
+
+    [Fact]
+    public async Task OperationsSchedulingBookingOptions_ReturnsObject()
+    {
+        await AssertJsonObjectAsync("/api/operations/scheduling/booking-options");
+    }
+
+    [Fact]
+    public async Task OperationsSchedulingAppointmentCreate_InvalidPayload_ReturnsBadRequest()
+    {
+        if (!TestEnvironment.TryGetConnectionString(out var connectionString))
+        {
+            return;
+        }
+
+        using var factory = new TestApplicationFactory(connectionString);
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/operations/scheduling/appointments", new { });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -76,12 +104,37 @@ public sealed class StoredProcedureApiTests
     }
 
     [Fact]
+    public async Task ClientDetail_ReturnsObject_WhenAClientExists()
+    {
+        if (!TestEnvironment.TryGetConnectionString(out var connectionString))
+        {
+            return;
+        }
+
+        using var factory = new TestApplicationFactory(connectionString);
+        using var client = factory.CreateClient();
+
+        var clientId = await TryGetAnyClientIdAsync(client);
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return;
+        }
+
+        var response = await client.GetAsync($"/api/clients/{clientId}?includeDeleted=true");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var payload = await response.Content.ReadAsStringAsync();
+        Assert.True(IsJsonObject(payload), "Expected JSON object payload for /api/clients/{clientId}.");
+    }
+
+    [Fact]
     public async Task PatientClinicalHistory_ReturnsArrays()
     {
         const string idNumber = "0000000000000";
 
         await AssertJsonArrayAsync($"/api/patients/{idNumber}/allergies");
         await AssertJsonArrayAsync($"/api/patients/{idNumber}/medications");
+        await AssertJsonObjectAsync($"/api/patients/{idNumber}/orders-results");
         await AssertJsonArrayAsync($"/api/patients/{idNumber}/vaccinations");
         await AssertJsonArrayAsync($"/api/patients/{idNumber}/consultation-notes");
         await AssertJsonArrayAsync($"/api/patients/{idNumber}/referrals");
@@ -165,6 +218,44 @@ public sealed class StoredProcedureApiTests
         catch (JsonException)
         {
             return false;
+        }
+    }
+
+    private static async Task<string?> TryGetAnyClientIdAsync(HttpClient client)
+    {
+        var response = await client.GetAsync("/api/clients?PageSize=1");
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            return null;
+        }
+
+        var payload = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (!document.RootElement.TryGetProperty("Clients", out var clients)
+                || clients.ValueKind != JsonValueKind.Array
+                || clients.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            var first = clients[0];
+            if (!first.TryGetProperty("ClientId", out var clientId))
+            {
+                return null;
+            }
+
+            return clientId.GetString();
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 }

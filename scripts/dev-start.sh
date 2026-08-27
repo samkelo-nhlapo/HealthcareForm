@@ -65,6 +65,18 @@ is_placeholder_jwt_key() {
      || ${#value} -lt 32 ]]
 }
 
+is_placeholder_smoke_value() {
+  local value="${1:-}"
+  local normalized="${value#"${value%%[![:space:]]*}"}"
+  normalized="${normalized%"${normalized##*[![:space:]]}"}"
+
+  [[ -z "$normalized" \
+     || "$normalized" == "<user>" \
+     || "$normalized" == "<password>" \
+     || "$normalized" == "__SET_"* \
+     || "$normalized" == REPLACE_WITH_* ]]
+}
+
 read_user_secret() {
   local key="$1"
   dotnet user-secrets list --project "$API_PROJECT" 2>/dev/null \
@@ -248,9 +260,17 @@ if is_placeholder_jwt_key "${Jwt__Key:-}"; then
 fi
 
 if [[ "$REQUIRE_API_SMOKE_CHECK" != "0" ]]; then
+  if is_placeholder_smoke_value "${API_SMOKE_USERNAME:-}"; then
+    API_SMOKE_USERNAME=""
+  fi
+
+  if is_placeholder_smoke_value "${API_SMOKE_PASSWORD:-}"; then
+    API_SMOKE_PASSWORD=""
+  fi
+
   if [[ -z "$API_SMOKE_USERNAME" ]]; then
     USER_SECRET_SMOKE_USERNAME="$(read_user_secret "Smoke:Username")"
-    if [[ -n "$USER_SECRET_SMOKE_USERNAME" ]]; then
+    if [[ -n "$USER_SECRET_SMOKE_USERNAME" ]] && ! is_placeholder_smoke_value "$USER_SECRET_SMOKE_USERNAME"; then
       API_SMOKE_USERNAME="$USER_SECRET_SMOKE_USERNAME"
       echo "Loaded HF_API_SMOKE_USERNAME from dotnet user-secrets (Smoke:Username)."
     fi
@@ -258,7 +278,7 @@ if [[ "$REQUIRE_API_SMOKE_CHECK" != "0" ]]; then
 
   if [[ -z "$API_SMOKE_PASSWORD" ]]; then
     USER_SECRET_SMOKE_PASSWORD="$(read_user_secret "Smoke:Password")"
-    if [[ -n "$USER_SECRET_SMOKE_PASSWORD" ]]; then
+    if [[ -n "$USER_SECRET_SMOKE_PASSWORD" ]] && ! is_placeholder_smoke_value "$USER_SECRET_SMOKE_PASSWORD"; then
       API_SMOKE_PASSWORD="$USER_SECRET_SMOKE_PASSWORD"
       echo "Loaded HF_API_SMOKE_PASSWORD from dotnet user-secrets (Smoke:Password)."
     fi

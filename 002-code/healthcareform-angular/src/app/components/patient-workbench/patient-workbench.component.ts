@@ -1,9 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
-import { LookupOptionDto, PatientCreateRequestDto, PatientRecordDto } from '../../models/patient.models';
+import {
+  LookupOptionDto,
+  PatientClientLookupItemDto,
+  PatientCreateRequestDto,
+  PatientRecordDto
+} from '../../models/patient.models';
+import {
+  isValidPatientIdNumber,
+  normalizePatientIdNumber,
+  patientIdNumberValidator
+} from '../../models/patient-id.utils';
+import { PatientHubSelectionService } from '../../pages/patient-hub/patient-hub-selection.service';
 import { PatientApiService } from '../../services/patient-api.service';
 
 type SectionKey = 'demographics' | 'contact' | 'location' | 'emergency' | 'clinical';
@@ -23,7 +34,11 @@ type SectionDefinition = {
 })
 export class PatientWorkbenchComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly patientHubSelection = inject(PatientHubSelectionService, { optional: true });
 
+  clients: PatientClientLookupItemDto[] = [];
   genders: LookupOptionDto[] = [];
   maritalStatuses: LookupOptionDto[] = [];
   countries: LookupOptionDto[] = [];
@@ -38,15 +53,21 @@ export class PatientWorkbenchComponent implements OnInit {
   patientLoading = false;
   saving = false;
   deleting = false;
+  restoring = false;
   conflictDetected = false;
   conflictMessage = '';
+  loadedPatientIdNumber = '';
+  primaryClientDropdownOpen = false;
+  additionalClientsDropdownOpen = false;
+  primaryClientSearchTerm = '';
+  additionalClientsSearchTerm = '';
 
   readonly sections: SectionDefinition[] = [
     {
       key: 'demographics',
       label: 'Demographics',
-      fields: ['FirstName', 'LastName', 'IdNumber', 'DateOfBirth', 'GenderId', 'MaritalStatusId'],
-      required: ['FirstName', 'LastName', 'IdNumber', 'DateOfBirth', 'GenderId', 'MaritalStatusId']
+      fields: ['PrimaryClientId', 'SecondaryClientIds', 'FirstName', 'LastName', 'IdNumber', 'DateOfBirth', 'GenderId', 'MaritalStatusId'],
+      required: ['PrimaryClientId', 'FirstName', 'LastName', 'IdNumber', 'DateOfBirth', 'GenderId', 'MaritalStatusId']
     },
     {
       key: 'contact',
@@ -75,13 +96,15 @@ export class PatientWorkbenchComponent implements OnInit {
   ];
 
   readonly searchForm = this.fb.nonNullable.group({
-    idNumber: ['', [Validators.required, Validators.minLength(13), Validators.maxLength(13)]]
+    idNumber: ['', [Validators.required, patientIdNumberValidator()]]
   });
 
   readonly patientForm = this.fb.nonNullable.group({
+    PrimaryClientId: ['', Validators.required],
+    SecondaryClientIds: this.fb.nonNullable.control<string[]>([]),
     FirstName: ['', [Validators.required, Validators.maxLength(30)]],
     LastName: ['', [Validators.required, Validators.maxLength(30)]],
-    IdNumber: ['', [Validators.required, Validators.minLength(13), Validators.maxLength(13)]],
+    IdNumber: ['', [Validators.required, patientIdNumberValidator()]],
     DateOfBirth: ['', Validators.required],
     GenderId: [0, [Validators.required, Validators.min(1)]],
     PhoneNumber: ['', Validators.required],
@@ -100,20 +123,25 @@ export class PatientWorkbenchComponent implements OnInit {
     MedicationList: ['']
   });
 
-  constructor(
-    private readonly patientApi: PatientApiService,
-    private readonly route: ActivatedRoute
-  ) {}
+  constructor(private readonly patientApi: PatientApiService) {}
 
   ngOnInit(): void {
     this.loadLookups();
     this.route.queryParamMap.subscribe((params) => {
-      const idNumber = (params.get('idNumber') ?? '').trim();
-      if (idNumber.length !== 13) {
+      const idNumber = normalizePatientIdNumber(params.get('idNumber'));
+      if (!isValidPatientIdNumber(idNumber)) {
+        if (this.loadedPatientIdNumber || this.searchForm.getRawValue().idNumber.trim().length > 0) {
+          this.prepareNewRegistration();
+        }
+
         return;
       }
 
-      if (idNumber === this.searchForm.getRawValue().idNumber) {
+      if (idNumber === this.loadedPatientIdNumber) {
+        if (idNumber !== this.searchForm.getRawValue().idNumber) {
+          this.searchForm.patchValue({ idNumber });
+        }
+
         return;
       }
 
@@ -123,17 +151,18 @@ export class PatientWorkbenchComponent implements OnInit {
   }
 
   createPatient(): void {
-    if (this.saving || this.deleting || this.patientLoading) {
+    if (this.saving || this.deleting || this.restoring || this.patientLoading) {
       return;
     }
 
+    this.normalizePatientFormInputs();
     if (this.patientForm.invalid) {
       this.patientForm.markAllAsTouched();
       this.setStatus('Please complete all required patient fields.', true);
       return;
     }
 
-    const payload = this.patientForm.getRawValue() as PatientCreateRequestDto;
+    const payload = this.buildNormalizedPatientPayload();
     this.saving = true;
     this.clearConflict();
     this.patientApi.createPatient(payload)
@@ -146,6 +175,10 @@ export class PatientWorkbenchComponent implements OnInit {
         next: (result) => {
           if (result.Success) {
             this.lastSavedAt = new Date();
+            this.loadedPatientIdNumber = payload.IdNumber.trim();
+            this.searchForm.patchValue({ idNumber: this.loadedPatientIdNumber });
+            this.syncFocusedPatientFromForm(false);
+            this.syncHubPatientContext(this.loadedPatientIdNumber);
             this.patientForm.markAsPristine();
             this.setStatus('Patient saved successfully.', false);
             return;
@@ -165,10 +198,11 @@ export class PatientWorkbenchComponent implements OnInit {
   }
 
   updatePatient(): void {
-    if (this.saving || this.deleting || this.patientLoading) {
+    if (this.saving || this.deleting || this.restoring || this.patientLoading) {
       return;
     }
 
+    this.normalizePatientFormInputs();
     if (this.patientForm.invalid) {
       this.patientForm.markAllAsTouched();
       this.setStatus('Please complete all required patient fields before updating.', true);
@@ -177,15 +211,17 @@ export class PatientWorkbenchComponent implements OnInit {
 
     const idNumber = this.resolveIdNumberForUpdate();
     if (!idNumber) {
-      this.setStatus('Search and load a patient first, or provide a valid ID number.', true);
+      this.setStatus('Load the patient record you want to update first.', true);
       return;
     }
 
-    const payload = this.patientForm.getRawValue();
+    const payload = this.buildNormalizedPatientPayload();
     const updatePayload = {
       FirstName: payload.FirstName,
       LastName: payload.LastName,
       DateOfBirth: payload.DateOfBirth,
+      PrimaryClientId: payload.PrimaryClientId,
+      SecondaryClientIds: payload.SecondaryClientIds,
       GenderId: payload.GenderId,
       PhoneNumber: payload.PhoneNumber,
       Email: payload.Email,
@@ -215,6 +251,7 @@ export class PatientWorkbenchComponent implements OnInit {
         next: (result) => {
           if (result.Success) {
             this.lastSavedAt = new Date();
+            this.syncFocusedPatientFromForm(false);
             this.patientForm.markAsPristine();
             this.setStatus('Patient updated successfully.', false);
             return;
@@ -234,32 +271,30 @@ export class PatientWorkbenchComponent implements OnInit {
   }
 
   getPatient(): void {
-    if (this.patientLoading || this.saving || this.deleting) {
+    if (this.patientLoading || this.saving || this.deleting || this.restoring) {
       return;
     }
 
+    const idNumber = this.normalizeSearchFormInput();
     if (this.searchForm.invalid) {
       this.searchForm.markAllAsTouched();
       this.setStatus('Enter a valid 13-digit ID number to search.', true);
       return;
     }
 
-    const idNumber = this.searchForm.getRawValue().idNumber;
     this.loadPatientById(idNumber);
   }
 
   deletePatient(): void {
-    if (this.deleting || this.saving || this.patientLoading) {
+    if (this.deleting || this.saving || this.patientLoading || this.restoring) {
       return;
     }
 
-    if (this.searchForm.invalid) {
-      this.searchForm.markAllAsTouched();
-      this.setStatus('Enter a valid 13-digit ID number to delete.', true);
+    const idNumber = this.resolveIdNumberForRecordAction('delete');
+    if (!idNumber) {
       return;
     }
 
-    const idNumber = this.searchForm.getRawValue().idNumber;
     this.deleting = true;
     this.clearConflict();
     this.patientApi.deletePatient(idNumber)
@@ -271,28 +306,17 @@ export class PatientWorkbenchComponent implements OnInit {
       .subscribe({
         next: (result) => {
           if (result.Success) {
-            this.patientForm.reset({
-              FirstName: '',
-              LastName: '',
-              IdNumber: '',
-              DateOfBirth: '',
-              GenderId: 0,
-              PhoneNumber: '',
-              Email: '',
-              Line1: '',
-              Line2: '',
-              CityId: 0,
-              ProvinceId: 0,
-              CountryId: 0,
-              MaritalStatusId: 0,
-              EmergencyName: '',
-              EmergencyLastName: '',
-              EmergencyPhoneNumber: '',
-              Relationship: '',
-              EmergencyDateOfBirth: '',
-              MedicationList: ''
+            this.loadedPatientIdNumber = '';
+            this.searchForm.patchValue({ idNumber });
+            this.patientHubSelection?.focusPatient({
+              idNumber,
+              patientLabel: this.readPatientLabel(),
+              contextLabel: 'Deleted record kept in focus so it can be restored or reviewed in the hub.',
+              source: 'registration',
+              isDeleted: true
             });
-            this.patientForm.markAsPristine();
+            this.syncHubPatientContext(idNumber);
+            this.resetPatientForm();
             this.setStatus('Patient deleted successfully.', false);
             return;
           }
@@ -310,9 +334,44 @@ export class PatientWorkbenchComponent implements OnInit {
       });
   }
 
+  restorePatient(): void {
+    if (this.restoring || this.deleting || this.saving || this.patientLoading) {
+      return;
+    }
+
+    const idNumber = this.resolveIdNumberForRecordAction('restore');
+    if (!idNumber) {
+      return;
+    }
+
+    this.restoring = true;
+    this.clearConflict();
+    this.patientApi.restorePatient(idNumber)
+      .pipe(
+        finalize(() => {
+          this.restoring = false;
+        })
+      )
+      .subscribe({
+        next: (result) => {
+          if (result.Success) {
+            this.loadPatientById(idNumber, 'Patient restored and loaded successfully.');
+            return;
+          }
+
+          this.setStatus(result.Message || 'Unable to restore patient.', true);
+        },
+        error: (error) => {
+          const message = error?.error?.Message ?? error?.error?.message ?? 'Unable to restore patient right now.';
+          this.setStatus(message, true);
+        }
+      });
+  }
+
   private loadLookups(): void {
     this.lookupLoading = true;
     forkJoin({
+      clients: this.patientApi.getClientLookup(),
       genders: this.patientApi.getGenders(),
       maritalStatuses: this.patientApi.getMaritalStatuses(),
       countries: this.patientApi.getCountries(),
@@ -326,6 +385,7 @@ export class PatientWorkbenchComponent implements OnInit {
       )
       .subscribe({
         next: (lookups) => {
+          this.clients = lookups.clients;
           this.genders = lookups.genders;
           this.maritalStatuses = lookups.maritalStatuses;
           this.countries = lookups.countries;
@@ -350,13 +410,55 @@ export class PatientWorkbenchComponent implements OnInit {
   }
 
   get hasPendingRequest(): boolean {
-    return this.lookupLoading || this.patientLoading || this.saving || this.deleting;
+    return this.lookupLoading || this.patientLoading || this.saving || this.deleting || this.restoring;
   }
 
-  private loadPatientById(idNumber: string): void {
+  get selectedPrimaryClientLabel(): string {
+    const primaryClientId = this.patientForm.controls.PrimaryClientId.value;
+    if (primaryClientId.trim().length === 0) {
+      return 'Search and select clinic or hospital';
+    }
+
+    const selectedClient = this.clients.find((client) => client.ClientId === primaryClientId);
+    return selectedClient ? this.formatClientOption(selectedClient) : 'Search and select clinic or hospital';
+  }
+
+  get filteredPrimaryClients(): PatientClientLookupItemDto[] {
+    return this.clients.filter((client) => this.matchesClientSearch(client, this.primaryClientSearchTerm));
+  }
+
+  get selectedAdditionalClientsSummary(): string {
+    const selectedIds = this.patientForm.controls.SecondaryClientIds.value;
+    if (selectedIds.length === 0) {
+      return 'Search and select additional clinics or hospitals';
+    }
+
+    const selectedLabels = selectedIds
+      .map((clientId) => this.clients.find((client) => client.ClientId === clientId))
+      .filter((client): client is PatientClientLookupItemDto => !!client)
+      .map((client) => client.ClientName.trim())
+      .filter((label) => label.length > 0);
+
+    if (selectedLabels.length === 0) {
+      return `${selectedIds.length} additional clinics selected`;
+    }
+
+    if (selectedLabels.length <= 2) {
+      return selectedLabels.join(', ');
+    }
+
+    return `${selectedLabels.length} additional clinics selected`;
+  }
+
+  get filteredAdditionalClients(): PatientClientLookupItemDto[] {
+    return this.availableAdditionalClients.filter((client) => this.matchesClientSearch(client, this.additionalClientsSearchTerm));
+  }
+
+  private loadPatientById(idNumber: string, successMessage = 'Patient loaded successfully.'): void {
+    const normalizedIdNumber = normalizePatientIdNumber(idNumber);
     this.patientLoading = true;
     this.clearConflict();
-    this.patientApi.getPatient(idNumber)
+    this.patientApi.getPatient(normalizedIdNumber)
       .pipe(
         finalize(() => {
           this.patientLoading = false;
@@ -365,17 +467,43 @@ export class PatientWorkbenchComponent implements OnInit {
       .subscribe({
         next: (patient) => {
           this.patchPatientForm(patient);
-          this.setStatus('Patient loaded successfully.', false);
+          this.loadedPatientIdNumber = patient.IdNumber.trim();
+          this.searchForm.patchValue({ idNumber: this.loadedPatientIdNumber });
+          this.syncFocusedPatient(patient);
+          this.syncHubPatientContext(this.loadedPatientIdNumber);
+          this.setStatus(successMessage, false);
         },
         error: (error) => {
-          const message = error?.error?.Message ?? error?.error?.message ?? 'Patient not found.';
+          const rawMessage = error?.error?.Message ?? error?.error?.message ?? 'Patient not found.';
+          if (typeof rawMessage === 'string' && rawMessage.toLowerCase().includes('soft deleted')) {
+            this.patientHubSelection?.focusPatient({
+              idNumber: normalizedIdNumber,
+              patientLabel: this.patientHubSelection?.selection?.idNumber === normalizedIdNumber
+                ? this.patientHubSelection.selection.patientLabel
+                : `Patient ${normalizedIdNumber}`,
+              contextLabel: 'Deleted record. Restore it in registration before opening chart or encounter workflows.',
+              source: 'registration',
+              isDeleted: true
+            });
+          }
+
+          const message = typeof rawMessage === 'string' && rawMessage.toLowerCase().includes('soft deleted')
+            ? `${rawMessage} Use Restore Patient to reactivate it.`
+            : rawMessage;
           this.setStatus(message, true);
         }
       });
   }
 
   private patchPatientForm(patient: PatientRecordDto): void {
+    const primaryClientId = patient.ClientId ?? patient.Clients.find((client) => client.IsPrimary)?.ClientId ?? '';
+    const secondaryClientIds = patient.Clients
+      .filter((client) => client.ClientId !== primaryClientId)
+      .map((client) => client.ClientId);
+
     this.patientForm.patchValue({
+      PrimaryClientId: primaryClientId,
+      SecondaryClientIds: secondaryClientIds,
       FirstName: patient.FirstName,
       LastName: patient.LastName,
       IdNumber: patient.IdNumber,
@@ -396,16 +524,60 @@ export class PatientWorkbenchComponent implements OnInit {
       EmergencyDateOfBirth: this.toDateInputValue(patient.EmergencyDateOfBirth),
       MedicationList: patient.MedicationList
     });
+    this.resetClientDropdownState();
     this.patientForm.markAsPristine();
   }
 
+  private resetPatientForm(): void {
+    this.patientForm.reset({
+      PrimaryClientId: '',
+      SecondaryClientIds: [],
+      FirstName: '',
+      LastName: '',
+      IdNumber: '',
+      DateOfBirth: '',
+      GenderId: 0,
+      PhoneNumber: '',
+      Email: '',
+      Line1: '',
+      Line2: '',
+      CityId: 0,
+      ProvinceId: 0,
+      CountryId: 0,
+      MaritalStatusId: 0,
+      EmergencyName: '',
+      EmergencyLastName: '',
+      EmergencyPhoneNumber: '',
+      Relationship: '',
+      EmergencyDateOfBirth: '',
+      MedicationList: ''
+    });
+    this.resetClientDropdownState();
+    this.patientForm.markAsPristine();
+  }
+
+  private prepareNewRegistration(): void {
+    this.loadedPatientIdNumber = '';
+    this.searchForm.reset({ idNumber: '' });
+    this.resetPatientForm();
+    this.clearConflict();
+  }
+
   private toDateInputValue(value: string): string {
+    const directDateMatch = (value ?? '').trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    if (directDateMatch) {
+      return directDateMatch[1];
+    }
+
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
       return '';
     }
 
-    return parsed.toISOString().split('T')[0] ?? '';
+    const year = `${parsed.getFullYear()}`.padStart(4, '0');
+    const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
+    const day = `${parsed.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private setStatus(message: string, isError: boolean): void {
@@ -499,6 +671,10 @@ export class PatientWorkbenchComponent implements OnInit {
     }
 
     const value = control.value;
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
     if (typeof value === 'string') {
       return value.trim().length > 0;
     }
@@ -520,17 +696,285 @@ export class PatientWorkbenchComponent implements OnInit {
   }
 
   private resolveIdNumberForUpdate(): string {
-    const searchedId = (this.searchForm.getRawValue().idNumber ?? '').trim();
-    const formId = (this.patientForm.getRawValue().IdNumber ?? '').trim();
+    const formId = normalizePatientIdNumber(this.patientForm.getRawValue().IdNumber);
 
-    if (searchedId.length === 13) {
-      return searchedId;
+    if (isValidPatientIdNumber(this.loadedPatientIdNumber)) {
+      return this.loadedPatientIdNumber;
     }
 
-    if (formId.length === 13) {
+    if (isValidPatientIdNumber(formId)) {
       return formId;
     }
 
     return '';
+  }
+
+  private resolveIdNumberForRecordAction(action: 'delete' | 'restore'): string {
+    const lookupId = this.normalizeSearchFormInput();
+    if (isValidPatientIdNumber(this.loadedPatientIdNumber)) {
+      if (isValidPatientIdNumber(lookupId) && lookupId !== this.loadedPatientIdNumber) {
+        this.setStatus(
+          `Load patient ${lookupId} before trying to ${action}, or clear the lookup field to ${action} the currently loaded record.`,
+          true
+        );
+        return '';
+      }
+
+      return this.loadedPatientIdNumber;
+    }
+
+    if (isValidPatientIdNumber(lookupId)) {
+      return lookupId;
+    }
+
+    this.searchForm.markAllAsTouched();
+    this.setStatus(`Enter a valid 13-digit ID number to ${action}.`, true);
+    return '';
+  }
+
+  private syncHubPatientContext(idNumber: string): void {
+    const normalizedIdNumber = idNumber.trim();
+    if (this.route.snapshot.queryParamMap.get('idNumber') === normalizedIdNumber) {
+      return;
+    }
+
+    void this.router.navigate(['/patients/registration'], {
+      queryParams: { idNumber: normalizedIdNumber || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private syncFocusedPatient(patient: PatientRecordDto): void {
+    const patientLabel = `${patient.FirstName} ${patient.LastName}`.trim() || patient.IdNumber.trim();
+    const primaryClientName = this.resolvePrimaryClientName(patient);
+    const linkedClientCount = patient.Clients.length > 0 ? patient.Clients.length : 1;
+    const linkedClientLabel = linkedClientCount > 1 ? ` • ${linkedClientCount} linked clinics` : '';
+
+    this.patientHubSelection?.focusPatient({
+      idNumber: patient.IdNumber,
+      patientLabel,
+      contextLabel: `${primaryClientName}${linkedClientLabel}`,
+      source: 'registration',
+      isDeleted: false
+    });
+  }
+
+  private syncFocusedPatientFromForm(isDeleted: boolean): void {
+    const value = this.patientForm.getRawValue();
+    const idNumber = normalizePatientIdNumber(value.IdNumber) || this.loadedPatientIdNumber;
+    if (!isValidPatientIdNumber(idNumber)) {
+      return;
+    }
+
+    const secondaryCount = value.SecondaryClientIds
+      .map((clientId) => clientId.trim())
+      .filter((clientId) => clientId.length > 0)
+      .length;
+    const primaryClientName = this.lookupClientName(value.PrimaryClientId);
+    const linkedClientCount = value.PrimaryClientId.trim().length > 0 ? secondaryCount + 1 : secondaryCount;
+    const linkedClientLabel = linkedClientCount > 1 ? ` • ${linkedClientCount} linked clinics` : '';
+
+    this.patientHubSelection?.focusPatient({
+      idNumber,
+      patientLabel: this.readPatientLabel(),
+      contextLabel: isDeleted
+        ? 'Deleted record kept in focus so it can be restored or reviewed in the hub.'
+        : `${primaryClientName}${linkedClientLabel}`,
+      source: 'registration',
+      isDeleted
+    });
+  }
+
+  private resolvePrimaryClientName(patient: PatientRecordDto): string {
+    const primaryClient = patient.Clients.find((client) => client.IsPrimary) ?? patient.Clients[0];
+    if (primaryClient?.ClientName?.trim()) {
+      return primaryClient.ClientName.trim();
+    }
+
+    if (patient.ClientName.trim()) {
+      return patient.ClientName.trim();
+    }
+
+    return 'Clinic assignment pending';
+  }
+
+  private lookupClientName(clientId: string): string {
+    if (clientId.trim().length === 0) {
+      return 'Clinic assignment pending';
+    }
+
+    return this.clients.find((client) => client.ClientId === clientId)?.ClientName ?? 'Clinic assignment pending';
+  }
+
+  private readPatientLabel(): string {
+    const value = this.patientForm.getRawValue();
+    return `${value.FirstName} ${value.LastName}`.trim() || this.loadedPatientIdNumber || value.IdNumber.trim();
+  }
+
+  private normalizeSearchFormInput(): string {
+    const currentValue = this.searchForm.getRawValue().idNumber;
+    const normalizedValue = normalizePatientIdNumber(currentValue);
+    if (normalizedValue !== currentValue) {
+      this.searchForm.patchValue({ idNumber: normalizedValue }, { emitEvent: false });
+    }
+
+    return normalizedValue;
+  }
+
+  private normalizePatientFormInputs(): void {
+    this.patientForm.patchValue(this.buildNormalizedPatientPayload(), { emitEvent: false });
+  }
+
+  private buildNormalizedPatientPayload(): PatientCreateRequestDto {
+    const value = this.patientForm.getRawValue();
+    const primaryClientId = this.normalizeText(value.PrimaryClientId);
+    const secondaryClientIds = value.SecondaryClientIds
+      .map((clientId) => this.normalizeText(clientId))
+      .filter((clientId) => clientId.length > 0 && clientId !== primaryClientId);
+
+    return {
+      PrimaryClientId: primaryClientId,
+      SecondaryClientIds: [...new Set(secondaryClientIds)],
+      FirstName: this.normalizeText(value.FirstName),
+      LastName: this.normalizeText(value.LastName),
+      IdNumber: normalizePatientIdNumber(value.IdNumber),
+      DateOfBirth: this.normalizeText(value.DateOfBirth),
+      GenderId: value.GenderId,
+      PhoneNumber: this.normalizeText(value.PhoneNumber),
+      Email: this.normalizeText(value.Email),
+      Line1: this.normalizeText(value.Line1),
+      Line2: this.normalizeText(value.Line2),
+      CityId: value.CityId,
+      ProvinceId: value.ProvinceId,
+      CountryId: value.CountryId,
+      MaritalStatusId: value.MaritalStatusId,
+      EmergencyName: this.normalizeText(value.EmergencyName),
+      EmergencyLastName: this.normalizeText(value.EmergencyLastName),
+      EmergencyPhoneNumber: this.normalizeText(value.EmergencyPhoneNumber),
+      Relationship: this.normalizeText(value.Relationship),
+      EmergencyDateOfBirth: this.normalizeText(value.EmergencyDateOfBirth),
+      MedicationList: this.normalizeText(value.MedicationList)
+    };
+  }
+
+  private normalizeText(value: string): string {
+    return (value ?? '').trim();
+  }
+
+  formatClientOption(option: PatientClientLookupItemDto): string {
+    const details = [option.ClientCode.trim(), option.ClientClinicCategoryName.trim()].filter((value) => value.length > 0);
+    return details.length > 0 ? `${option.ClientName} (${details.join(' / ')})` : option.ClientName;
+  }
+
+  get availableAdditionalClients(): PatientClientLookupItemDto[] {
+    const primaryClientId = this.patientForm.controls.PrimaryClientId.value;
+    return this.clients.filter((client) => client.ClientId !== primaryClientId);
+  }
+
+  onPrimaryClientChange(primaryClientId: string): void {
+    const currentSecondaryIds = this.patientForm.controls.SecondaryClientIds.value;
+    if (!currentSecondaryIds.includes(primaryClientId)) {
+      return;
+    }
+
+    this.patientForm.controls.SecondaryClientIds.setValue(
+      currentSecondaryIds.filter((clientId) => clientId !== primaryClientId)
+    );
+    this.patientForm.controls.SecondaryClientIds.markAsDirty();
+  }
+
+  togglePrimaryClientDropdown(): void {
+    if (this.hasPendingRequest) {
+      return;
+    }
+
+    this.primaryClientDropdownOpen = !this.primaryClientDropdownOpen;
+    if (this.primaryClientDropdownOpen) {
+      this.additionalClientsDropdownOpen = false;
+    } else {
+      this.primaryClientSearchTerm = '';
+    }
+  }
+
+  toggleAdditionalClientsDropdown(): void {
+    if (this.hasPendingRequest) {
+      return;
+    }
+
+    this.additionalClientsDropdownOpen = !this.additionalClientsDropdownOpen;
+    if (this.additionalClientsDropdownOpen) {
+      this.primaryClientDropdownOpen = false;
+    } else {
+      this.additionalClientsSearchTerm = '';
+    }
+  }
+
+  setPrimaryClientSearchTerm(value: string): void {
+    this.primaryClientSearchTerm = value;
+  }
+
+  setAdditionalClientsSearchTerm(value: string): void {
+    this.additionalClientsSearchTerm = value;
+  }
+
+  selectPrimaryClient(clientId: string): void {
+    const normalizedClientId = clientId.trim();
+    this.patientForm.controls.PrimaryClientId.setValue(normalizedClientId);
+    this.patientForm.controls.PrimaryClientId.markAsDirty();
+    this.onPrimaryClientChange(normalizedClientId);
+    this.primaryClientDropdownOpen = false;
+    this.primaryClientSearchTerm = '';
+  }
+
+  clearPrimaryClientSelection(): void {
+    this.patientForm.controls.PrimaryClientId.setValue('');
+    this.patientForm.controls.PrimaryClientId.markAsDirty();
+    this.primaryClientDropdownOpen = false;
+    this.primaryClientSearchTerm = '';
+  }
+
+  clearAdditionalClientSelections(): void {
+    this.patientForm.controls.SecondaryClientIds.setValue([]);
+    this.patientForm.controls.SecondaryClientIds.markAsDirty();
+  }
+
+  isSecondaryClientSelected(clientId: string): boolean {
+    return this.patientForm.controls.SecondaryClientIds.value.includes(clientId);
+  }
+
+  toggleSecondaryClient(clientId: string, selected: boolean): void {
+    const currentSecondaryIds = this.patientForm.controls.SecondaryClientIds.value;
+    const nextSecondaryIds = selected
+      ? [...currentSecondaryIds, clientId]
+      : currentSecondaryIds.filter((currentId) => currentId !== clientId);
+
+    this.patientForm.controls.SecondaryClientIds.setValue([...new Set(nextSecondaryIds)]);
+    this.patientForm.controls.SecondaryClientIds.markAsDirty();
+  }
+
+  private resetClientDropdownState(): void {
+    this.primaryClientDropdownOpen = false;
+    this.additionalClientsDropdownOpen = false;
+    this.primaryClientSearchTerm = '';
+    this.additionalClientsSearchTerm = '';
+  }
+
+  private matchesClientSearch(option: PatientClientLookupItemDto, searchTerm: string): boolean {
+    const normalizedSearchTerm = this.normalizeText(searchTerm).toLowerCase();
+    if (normalizedSearchTerm.length === 0) {
+      return true;
+    }
+
+    const searchableText = [
+      option.ClientName,
+      option.ClientCode,
+      option.ClientClinicCategoryName,
+      this.formatClientOption(option)
+    ]
+      .map((value) => this.normalizeText(value).toLowerCase())
+      .join(' ');
+
+    return searchableText.includes(normalizedSearchTerm);
   }
 }

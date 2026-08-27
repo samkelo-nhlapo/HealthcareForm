@@ -1,5 +1,5 @@
 <div class="page">
-  <section class="panel search-panel" [attr.aria-busy]="patientLoading || deleting || saving">
+  <section class="panel search-panel" [attr.aria-busy]="patientLoading || deleting || restoring || saving">
     <h2>Patient Lookup</h2>
     <form [formGroup]="searchForm" class="inline-form" (ngSubmit)="getPatient()">
       <label for="search-id">
@@ -8,6 +8,7 @@
           id="search-id"
           type="text"
           maxlength="13"
+          inputmode="numeric"
           formControlName="idNumber"
           placeholder="13-digit ID number"
           [disabled]="hasPendingRequest"
@@ -21,6 +22,9 @@
         </button>
         <button type="button" class="danger" (click)="deletePatient()" [disabled]="hasPendingRequest">
           {{ deleting ? 'Deleting...' : 'Delete Patient' }}
+        </button>
+        <button type="button" class="secondary" (click)="restorePatient()" [disabled]="hasPendingRequest">
+          {{ restoring ? 'Restoring...' : 'Restore Patient' }}
         </button>
       </div>
     </form>
@@ -64,9 +68,103 @@
       <fieldset [disabled]="hasPendingRequest">
         <ng-container [ngSwitch]="activeSection">
           <ng-container *ngSwitchCase="'demographics'">
+            <label class="full-width">
+              Primary Clinic / Hospital
+              <div class="searchable-dropdown" [class.open]="primaryClientDropdownOpen">
+                <button
+                  type="button"
+                  class="dropdown-trigger"
+                  [disabled]="hasPendingRequest"
+                  [attr.aria-expanded]="primaryClientDropdownOpen"
+                  aria-controls="primary-client-options"
+                  (click)="togglePrimaryClientDropdown()">
+                  <span>{{ selectedPrimaryClientLabel }}</span>
+                  <small *ngIf="patientForm.controls.PrimaryClientId.value.trim().length > 0">Click to change selection</small>
+                </button>
+
+                <div class="dropdown-panel" *ngIf="primaryClientDropdownOpen" id="primary-client-options">
+                  <input
+                    id="primary-client-search"
+                    type="text"
+                    class="dropdown-search"
+                    placeholder="Search by clinic, hospital, code, or category"
+                    [value]="primaryClientSearchTerm"
+                    (input)="setPrimaryClientSearchTerm($any($event.target).value)" />
+                  <div class="dropdown-toolbar">
+                    <span>{{ filteredPrimaryClients.length }} match{{ filteredPrimaryClients.length === 1 ? '' : 'es' }}</span>
+                    <button
+                      *ngIf="patientForm.controls.PrimaryClientId.value.trim().length > 0"
+                      type="button"
+                      class="link-button"
+                      (click)="clearPrimaryClientSelection()">
+                      Clear
+                    </button>
+                  </div>
+                  <div class="dropdown-options" role="listbox" aria-label="Primary clinic or hospital options">
+                    <button
+                      *ngFor="let option of filteredPrimaryClients"
+                      type="button"
+                      class="option-button"
+                      [class.selected]="patientForm.controls.PrimaryClientId.value === option.ClientId"
+                      (click)="selectPrimaryClient(option.ClientId)">
+                      <span>{{ option.ClientName }}</span>
+                      <small>{{ option.ClientCode }}<ng-container *ngIf="option.ClientClinicCategoryName.trim().length > 0"> / {{ option.ClientClinicCategoryName }}</ng-container></small>
+                    </button>
+                    <p *ngIf="filteredPrimaryClients.length === 0">No clinics or hospitals match your search yet.</p>
+                  </div>
+                </div>
+              </div>
+            </label>
+            <label class="full-width">
+              Additional Clinics / Hospitals
+              <div class="searchable-dropdown" [class.open]="additionalClientsDropdownOpen">
+                <button
+                  type="button"
+                  class="dropdown-trigger"
+                  [disabled]="hasPendingRequest"
+                  [attr.aria-expanded]="additionalClientsDropdownOpen"
+                  aria-controls="additional-client-options"
+                  (click)="toggleAdditionalClientsDropdown()">
+                  <span>{{ selectedAdditionalClientsSummary }}</span>
+                  <small>Choose one or more linked clinics or hospitals</small>
+                </button>
+
+                <div class="dropdown-panel" *ngIf="additionalClientsDropdownOpen" id="additional-client-options">
+                  <input
+                    id="additional-client-search"
+                    type="text"
+                    class="dropdown-search"
+                    placeholder="Search additional clinics or hospitals"
+                    [value]="additionalClientsSearchTerm"
+                    (input)="setAdditionalClientsSearchTerm($any($event.target).value)" />
+                  <div class="dropdown-toolbar">
+                    <span>{{ filteredAdditionalClients.length }} match{{ filteredAdditionalClients.length === 1 ? '' : 'es' }}</span>
+                    <button
+                      *ngIf="patientForm.controls.SecondaryClientIds.value.length > 0"
+                      type="button"
+                      class="link-button"
+                      (click)="clearAdditionalClientSelections()">
+                      Clear all
+                    </button>
+                  </div>
+                  <div class="dropdown-options multi-select-list" role="listbox" aria-label="Additional clinics or hospitals">
+                    <label *ngFor="let option of filteredAdditionalClients" class="checkbox-option">
+                      <input
+                        type="checkbox"
+                        [checked]="isSecondaryClientSelected(option.ClientId)"
+                        (change)="toggleSecondaryClient(option.ClientId, $any($event.target).checked)"
+                      />
+                      <span>{{ formatClientOption(option) }}</span>
+                    </label>
+                    <p *ngIf="availableAdditionalClients.length === 0">No additional clinic or hospital options available yet.</p>
+                    <p *ngIf="availableAdditionalClients.length > 0 && filteredAdditionalClients.length === 0">No additional clinic or hospital matches your search.</p>
+                  </div>
+                </div>
+              </div>
+            </label>
             <label>First Name <input type="text" formControlName="FirstName" /></label>
             <label>Last Name <input type="text" formControlName="LastName" /></label>
-            <label>ID Number <input type="text" maxlength="13" formControlName="IdNumber" /></label>
+            <label>ID Number <input type="text" maxlength="13" inputmode="numeric" formControlName="IdNumber" /></label>
             <label>Date of Birth <input type="date" formControlName="DateOfBirth" /></label>
             <label>
               Gender

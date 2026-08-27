@@ -22,8 +22,22 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent)
       },
       {
+        path: 'patients/hub',
+        loadComponent: () => import('./pages/patient-hub/patient-hub.component').then((m) => m.PatientHubComponent)
+      },
+      {
+        path: 'patients/registration',
+        loadComponent: () => import('./components/patient-workbench/patient-workbench.component').then((m) => m.PatientWorkbenchComponent)
+      },
+      {
         path: 'patients/worklist',
-        loadComponent: () => import('./pages/worklist/worklist.component').then((m) => m.WorklistComponent)
+        loadComponent: () => import('./pages/patient-hub-redirect/patient-hub-redirect.component').then((m) => m.PatientHubRedirectComponent),
+        data: { tab: 'worklist' }
+      },
+      {
+        path: 'patients/directory',
+        loadComponent: () => import('./pages/patient-hub-redirect/patient-hub-redirect.component').then((m) => m.PatientHubRedirectComponent),
+        data: { tab: 'directory' }
       },
       {
         path: 'patients/chart/:idNumber',
@@ -31,7 +45,8 @@ export const routes: Routes = [
       },
       {
         path: 'patients/workbench',
-        loadComponent: () => import('./components/patient-workbench/patient-workbench.component').then((m) => m.PatientWorkbenchComponent)
+        loadComponent: () => import('./pages/patient-hub-redirect/patient-hub-redirect.component').then((m) => m.PatientHubRedirectComponent),
+        data: { destination: 'registration' }
       },
       {
         path: 'clinical/encounter',
@@ -70,6 +85,30 @@ export const routes: Routes = [
       {
         path: 'admin',
         loadComponent: () => import('./pages/admin/admin.component').then((m) => m.AdminComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'admin/clients',
+        loadComponent: () => import('./pages/client-directory/client-directory.component').then((m) => m.ClientDirectoryComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'admin/clients/new',
+        loadComponent: () => import('./pages/client-create/client-create.component').then((m) => m.ClientCreateComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'admin/clients/:clientId/edit',
+        loadComponent: () => import('./pages/client-edit/client-edit.component').then((m) => m.ClientEditComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
+      {
+        path: 'admin/clients/:clientId',
+        loadComponent: () => import('./pages/client-detail/client-detail.component').then((m) => m.ClientDetailComponent),
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] }
       },

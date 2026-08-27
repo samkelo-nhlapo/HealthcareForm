@@ -72,9 +72,41 @@ h3 {
   justify-content: space-between;
 }
 
+.panel-state {
+  color: #607687;
+  margin-top: 0.8rem;
+}
+
 ul {
   margin: 0.8rem 0 0;
   padding-left: 1.1rem;
+}
+
+.order-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+}
+
+.order-list li {
+  border-top: 1px solid #e4edf3;
+  padding-top: 0.75rem;
+}
+
+.order-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.order-meta {
+  color: #607687;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  gap: 0.55rem;
+  margin: 0.3rem 0 0;
 }
 
 .table-wrap {
@@ -98,6 +130,17 @@ th {
   color: #607687;
   font-size: 0.82rem;
   text-transform: uppercase;
+}
+
+.result-value {
+  font-weight: 600;
+}
+
+.result-meta {
+  color: #607687;
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.18rem;
 }
 
 .pill {

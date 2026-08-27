@@ -1,4 +1,9 @@
 export interface SchedulingProviderLoadDto {
+  ClientProviderAffiliationId: string;
+  ClientStaffId: string;
+  ClientId: string;
+  ClientName: string;
+  ProviderId: string;
   Provider: string;
   Clinic: string;
   Room: string;
@@ -27,6 +32,46 @@ export interface SchedulingSnapshotDto {
   Providers: SchedulingProviderLoadDto[];
   Resources: SchedulingResourceLoadDto[];
   Blocks: SchedulingTimeBlockDto[];
+}
+
+export interface SchedulingAppointmentCreateRequestDto {
+  ClientId: string;
+  PatientIdNumber: string;
+  ClientProviderAffiliationId: string;
+  ClientStaffId?: string;
+  AppointmentDateTime: string;
+  DurationMinutes: number;
+  AppointmentType: string;
+  Reason?: string;
+  Location?: string;
+}
+
+export interface SchedulingAppointmentCommandResultDto {
+  Success: boolean;
+  Message: string;
+  StatusCode?: number;
+  AppointmentId?: string;
+}
+
+export interface SchedulingBookingClientDto {
+  ClientId: string;
+  ClientName: string;
+  ClientCode: string;
+  ClientCategory: string;
+}
+
+export interface SchedulingBookingProviderDto {
+  ClientProviderAffiliationId: string;
+  ClientStaffId: string;
+  ProviderId: string;
+  ClientId: string;
+  Provider: string;
+  Clinic: string;
+}
+
+export interface SchedulingBookingOptionsDto {
+  Clients: SchedulingBookingClientDto[];
+  Providers: SchedulingBookingProviderDto[];
 }
 
 export interface TaskQueueItemDto {

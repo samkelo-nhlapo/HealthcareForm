@@ -28,6 +28,247 @@ public sealed class OperationsService : IOperationsService
         _logger = logger;
     }
 
+    public async Task<SchedulingBookingOptionsDto> GetSchedulingBookingOptionsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await connection.OpenAsync(cancellationToken);
+
+            await using var command = new SqlCommand("Profile.spGetSchedulingBookingOptions", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            var clientIdOrdinal = reader.GetOrdinal("ClientId");
+            var clientCodeOrdinal = reader.GetOrdinal("ClientCode");
+            var clientNameOrdinal = reader.GetOrdinal("ClientName");
+            var clientCategoryOrdinal = reader.GetOrdinal("ClientCategory");
+            var clientProviderAffiliationIdOrdinal = reader.GetOrdinal("ClientProviderAffiliationId");
+            var clientStaffIdOrdinal = reader.GetOrdinal("ClientStaffId");
+            var providerIdOrdinal = reader.GetOrdinal("ProviderId");
+            var providerOrdinal = reader.GetOrdinal("Provider");
+            var clinicOrdinal = reader.GetOrdinal("Clinic");
+
+            var clientsById = new Dictionary<Guid, SchedulingBookingClientDto>();
+            var providerKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var providers = new List<SchedulingBookingProviderDto>();
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader.IsDBNull(clientIdOrdinal))
+                {
+                    continue;
+                }
+
+                var clientId = reader.GetGuid(clientIdOrdinal);
+                var clientIdText = clientId.ToString();
+
+                if (!clientsById.ContainsKey(clientId))
+                {
+                    clientsById[clientId] = new SchedulingBookingClientDto
+                    {
+                        ClientId = clientIdText,
+                        ClientCode = GetString(reader, clientCodeOrdinal),
+                        ClientName = GetString(reader, clientNameOrdinal, "Client"),
+                        ClientCategory = GetString(reader, clientCategoryOrdinal, "Uncategorized")
+                    };
+                }
+
+                if (reader.IsDBNull(providerIdOrdinal))
+                {
+                    continue;
+                }
+
+                if (reader.IsDBNull(clientProviderAffiliationIdOrdinal))
+                {
+                    continue;
+                }
+
+                var clientProviderAffiliationId = reader.GetGuid(clientProviderAffiliationIdOrdinal).ToString();
+                var clientStaffId = reader.IsDBNull(clientStaffIdOrdinal)
+                    ? string.Empty
+                    : reader.GetGuid(clientStaffIdOrdinal).ToString();
+                var providerId = reader.GetGuid(providerIdOrdinal).ToString();
+                if (!providerKeys.Add(clientProviderAffiliationId))
+                {
+                    continue;
+                }
+
+                providers.Add(new SchedulingBookingProviderDto
+                {
+                    ClientProviderAffiliationId = clientProviderAffiliationId,
+                    ClientStaffId = clientStaffId,
+                    ProviderId = providerId,
+                    ClientId = clientIdText,
+                    Provider = GetString(reader, providerOrdinal, "Provider"),
+                    Clinic = NormalizeClinic(GetString(reader, clinicOrdinal))
+                });
+            }
+
+            var clients = clientsById.Values
+                .OrderBy(item => item.ClientName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var orderedProviders = providers
+                .OrderBy(item => item.ClientId, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(item => item.Provider, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return new SchedulingBookingOptionsDto
+            {
+                Clients = clients,
+                Providers = orderedProviders
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load scheduling booking options.");
+            throw;
+        }
+    }
+
+    public async Task<SchedulingAppointmentCommandResult> AddSchedulingAppointmentAsync(
+        SchedulingAppointmentCreateRequest request,
+        string actor,
+        CancellationToken cancellationToken = default)
+    {
+        var clientId = request.ClientId.GetValueOrDefault();
+        var clientProviderAffiliationId = request.ClientProviderAffiliationId.GetValueOrDefault();
+        var clientStaffId = request.ClientStaffId.GetValueOrDefault();
+        var patientIdNumber = NormalizeText(request.PatientIdNumber);
+        var appointmentType = NormalizeText(request.AppointmentType, "Consultation");
+        var reason = NormalizeText(request.Reason, "General consultation");
+        var location = NormalizeText(request.Location);
+        var normalizedActor = NormalizeText(actor, "SYSTEM");
+        var appointmentDateTime = request.AppointmentDateTime.GetValueOrDefault();
+
+        if (!request.ClientId.HasValue || clientId == Guid.Empty)
+        {
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "A valid clinic or hospital is required.",
+                StatusCode = 1,
+                AppointmentId = null
+            };
+        }
+
+        if (!IsValidPatientIdNumber(patientIdNumber))
+        {
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "Patient ID number must be exactly 13 digits.",
+                StatusCode = 1,
+                AppointmentId = null
+            };
+        }
+
+        var hasClientProviderAffiliation = request.ClientProviderAffiliationId.HasValue && clientProviderAffiliationId != Guid.Empty;
+        var hasClientStaff = request.ClientStaffId.HasValue && clientStaffId != Guid.Empty;
+
+        if (!hasClientProviderAffiliation && !hasClientStaff)
+        {
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "A valid provider affiliation is required.",
+                StatusCode = 1,
+                AppointmentId = null
+            };
+        }
+
+        if (!request.AppointmentDateTime.HasValue || appointmentDateTime == default)
+        {
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "A valid appointment date and time is required.",
+                StatusCode = 1,
+                AppointmentId = null
+            };
+        }
+
+        if (request.DurationMinutes < 5 || request.DurationMinutes > 480)
+        {
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "DurationMinutes must be between 5 and 480.",
+                StatusCode = 1,
+                AppointmentId = null
+            };
+        }
+
+        try
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            await using var command = new SqlCommand("Profile.spAddAppointment", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@ClientIdFK", SqlDbType.UniqueIdentifier) { Value = clientId });
+            command.Parameters.Add(new SqlParameter("@PatientIdNumber", SqlDbType.VarChar, 250) { Value = patientIdNumber });
+            command.Parameters.Add(new SqlParameter("@ClientStaffIdFK", SqlDbType.UniqueIdentifier)
+            {
+                Value = hasClientStaff ? clientStaffId : DBNull.Value
+            });
+            command.Parameters.Add(new SqlParameter("@ClientProviderAffiliationIdFK", SqlDbType.UniqueIdentifier)
+            {
+                Value = hasClientProviderAffiliation ? clientProviderAffiliationId : DBNull.Value
+            });
+            command.Parameters.Add(new SqlParameter("@AppointmentDateTime", SqlDbType.DateTime) { Value = appointmentDateTime });
+            command.Parameters.Add(new SqlParameter("@DurationMinutes", SqlDbType.Int) { Value = request.DurationMinutes });
+            command.Parameters.Add(new SqlParameter("@AppointmentType", SqlDbType.VarChar, 100) { Value = appointmentType });
+            command.Parameters.Add(new SqlParameter("@Reason", SqlDbType.VarChar, -1) { Value = ToDbString(reason) });
+            command.Parameters.Add(new SqlParameter("@Location", SqlDbType.VarChar, 250) { Value = ToDbString(location) });
+            command.Parameters.Add(new SqlParameter("@CreatedBy", SqlDbType.VarChar, 250) { Value = normalizedActor });
+            command.Parameters.Add(new SqlParameter("@AppointmentIdOutput", SqlDbType.UniqueIdentifier)
+            {
+                Direction = ParameterDirection.Output
+            });
+            command.Parameters.Add(new SqlParameter("@StatusCode", SqlDbType.Int)
+            {
+                Direction = ParameterDirection.Output
+            });
+            command.Parameters.Add(new SqlParameter("@Message", SqlDbType.VarChar, 250)
+            {
+                Direction = ParameterDirection.Output
+            });
+
+            await connection.OpenAsync(cancellationToken);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+
+            var message = GetStringOutput(command, "@Message");
+            var statusCode = GetNullableIntOutput(command, "@StatusCode");
+            var appointmentId = GetGuidOutput(command, "@AppointmentIdOutput");
+            var success = string.IsNullOrWhiteSpace(message) && statusCode == 0 && appointmentId.HasValue;
+
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = success,
+                Message = success ? "Appointment scheduled successfully." : message,
+                StatusCode = statusCode,
+                AppointmentId = appointmentId
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add scheduling appointment for patient {PatientIdNumber}.", patientIdNumber);
+            return new SchedulingAppointmentCommandResult
+            {
+                Success = false,
+                Message = "Unable to add appointment right now. Please try again.",
+                StatusCode = null,
+                AppointmentId = null
+            };
+        }
+    }
+
     public async Task<SchedulingSnapshotDto> GetSchedulingSnapshotAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -52,7 +293,7 @@ public sealed class OperationsService : IOperationsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to build operations scheduling snapshot.");
-            return new SchedulingSnapshotDto();
+            throw;
         }
     }
 
@@ -103,6 +344,10 @@ public sealed class OperationsService : IOperationsService
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+        var clientProviderAffiliationIdOrdinal = reader.GetOrdinal("ClientProviderAffiliationId");
+        var clientStaffIdOrdinal = reader.GetOrdinal("ClientStaffId");
+        var clientIdOrdinal = reader.GetOrdinal("ClientId");
+        var clientNameOrdinal = reader.GetOrdinal("ClientName");
         var providerIdOrdinal = reader.GetOrdinal("ProviderId");
         var firstNameOrdinal = reader.GetOrdinal("FirstName");
         var lastNameOrdinal = reader.GetOrdinal("LastName");
@@ -111,6 +356,17 @@ public sealed class OperationsService : IOperationsService
 
         while (await reader.ReadAsync(cancellationToken))
         {
+            if (reader.IsDBNull(clientProviderAffiliationIdOrdinal))
+            {
+                continue;
+            }
+
+            var clientProviderAffiliationId = reader.GetGuid(clientProviderAffiliationIdOrdinal);
+            var clientStaffId = reader.IsDBNull(clientStaffIdOrdinal)
+                ? (Guid?)null
+                : reader.GetGuid(clientStaffIdOrdinal);
+            var clientId = reader.GetGuid(clientIdOrdinal);
+            var clientName = GetString(reader, clientNameOrdinal, "Client");
             var providerId = reader.GetGuid(providerIdOrdinal);
             var firstName = GetString(reader, firstNameOrdinal);
             var lastName = GetString(reader, lastNameOrdinal);
@@ -121,7 +377,11 @@ public sealed class OperationsService : IOperationsService
 
             providers.Add(new ProviderRow
             {
+                ClientProviderAffiliationId = clientProviderAffiliationId,
                 ProviderId = providerId,
+                ClientStaffId = clientStaffId,
+                ClientId = clientId,
+                ClientName = clientName,
                 DisplayName = displayName,
                 Clinic = NormalizeClinic(specialization)
             });
@@ -148,7 +408,8 @@ public sealed class OperationsService : IOperationsService
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        var providerIdOrdinal = reader.GetOrdinal("ProviderIdFK");
+        var clientProviderAffiliationIdOrdinal = reader.GetOrdinal("ClientProviderAffiliationIdFK");
+        var clientStaffIdOrdinal = reader.GetOrdinal("ClientStaffIdFK");
         var appointmentDateTimeOrdinal = reader.GetOrdinal("AppointmentDateTime");
         var durationMinutesOrdinal = reader.GetOrdinal("DurationMinutes");
         var statusOrdinal = reader.GetOrdinal("Status");
@@ -157,7 +418,7 @@ public sealed class OperationsService : IOperationsService
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            if (reader.IsDBNull(providerIdOrdinal))
+            if (reader.IsDBNull(clientProviderAffiliationIdOrdinal))
             {
                 continue;
             }
@@ -168,7 +429,10 @@ public sealed class OperationsService : IOperationsService
 
             appointments.Add(new AppointmentRow
             {
-                ProviderId = reader.GetGuid(providerIdOrdinal),
+                ClientProviderAffiliationId = reader.GetGuid(clientProviderAffiliationIdOrdinal),
+                ClientStaffId = reader.IsDBNull(clientStaffIdOrdinal)
+                    ? (Guid?)null
+                    : reader.GetGuid(clientStaffIdOrdinal),
                 AppointmentDateTime = Convert.ToDateTime(reader.GetValue(appointmentDateTimeOrdinal)),
                 DurationMinutes = duration,
                 Status = GetString(reader, statusOrdinal),
@@ -233,14 +497,14 @@ public sealed class OperationsService : IOperationsService
         var now = DateTime.Now;
         var appointmentsByProvider = appointments
             .Where(item => IsCountableAppointment(item.Status))
-            .GroupBy(item => item.ProviderId)
+            .GroupBy(item => item.ClientProviderAffiliationId)
             .ToDictionary(group => group.Key, group => group.ToList());
 
         var loads = new List<SchedulingProviderLoadDto>(providers.Count);
 
         foreach (var provider in providers)
         {
-            appointmentsByProvider.TryGetValue(provider.ProviderId, out var providerAppointments);
+            appointmentsByProvider.TryGetValue(provider.ClientProviderAffiliationId, out var providerAppointments);
             providerAppointments ??= [];
 
             var booked = providerAppointments.Count;
@@ -264,6 +528,11 @@ public sealed class OperationsService : IOperationsService
 
             loads.Add(new SchedulingProviderLoadDto
             {
+                ClientProviderAffiliationId = provider.ClientProviderAffiliationId.ToString(),
+                ClientStaffId = provider.ClientStaffId?.ToString() ?? string.Empty,
+                ClientId = provider.ClientId.ToString(),
+                ClientName = provider.ClientName,
+                ProviderId = provider.ProviderId.ToString(),
                 Provider = provider.DisplayName,
                 Clinic = provider.Clinic,
                 Room = room,
@@ -675,6 +944,50 @@ public sealed class OperationsService : IOperationsService
         return connection;
     }
 
+    private static bool IsValidPatientIdNumber(string value)
+        => value.Length == 13 && value.All(char.IsDigit);
+
+    private static string NormalizeText(string? value, string fallback = "")
+    {
+        var normalized = (value ?? string.Empty).Trim();
+        return normalized.Length == 0 ? fallback : normalized;
+    }
+
+    private static object ToDbString(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? DBNull.Value
+            : value.Trim();
+    }
+
+    private static string GetStringOutput(SqlCommand command, string parameterName)
+    {
+        var value = command.Parameters[parameterName].Value;
+        return value == DBNull.Value ? string.Empty : Convert.ToString(value)?.Trim() ?? string.Empty;
+    }
+
+    private static int? GetNullableIntOutput(SqlCommand command, string parameterName)
+    {
+        var value = command.Parameters[parameterName].Value;
+        if (value == DBNull.Value)
+        {
+            return null;
+        }
+
+        return Convert.ToInt32(value);
+    }
+
+    private static Guid? GetGuidOutput(SqlCommand command, string parameterName)
+    {
+        var value = command.Parameters[parameterName].Value;
+        if (value == DBNull.Value)
+        {
+            return null;
+        }
+
+        return value is Guid guid ? guid : Guid.TryParse(Convert.ToString(value), out var parsed) ? parsed : null;
+    }
+
     private static string GetString(SqlDataReader reader, int ordinal, string fallback = "")
     {
         if (reader.IsDBNull(ordinal))
@@ -708,6 +1021,10 @@ public sealed class OperationsService : IOperationsService
 
     private sealed class ProviderRow
     {
+        public Guid ClientProviderAffiliationId { get; init; }
+        public Guid? ClientStaffId { get; init; }
+        public Guid ClientId { get; init; }
+        public string ClientName { get; init; } = string.Empty;
         public Guid ProviderId { get; init; }
         public string DisplayName { get; init; } = string.Empty;
         public string Clinic { get; init; } = "General";
@@ -715,7 +1032,8 @@ public sealed class OperationsService : IOperationsService
 
     private sealed class AppointmentRow
     {
-        public Guid ProviderId { get; init; }
+        public Guid ClientProviderAffiliationId { get; init; }
+        public Guid? ClientStaffId { get; init; }
         public DateTime AppointmentDateTime { get; init; }
         public int DurationMinutes { get; init; }
         public string Status { get; init; } = string.Empty;

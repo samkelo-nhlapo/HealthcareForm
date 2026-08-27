@@ -32,7 +32,8 @@ CREATE OR ALTER PROC [Profile].[spAddPatient]
     @Message VARCHAR(250) OUTPUT,
     @PatientIdOutput UNIQUEIDENTIFIER OUTPUT,
     @StatusCode INT OUTPUT,
-    @ClientIdFK UNIQUEIDENTIFIER = NULL
+    @ClientIdFK UNIQUEIDENTIFIER = NULL,
+    @AdditionalClientIds VARCHAR(MAX) = ''
 )
 AS
 BEGIN
@@ -55,6 +56,11 @@ BEGIN
             @ErrorLine INT,
             @ErrorMessage VARCHAR(MAX),
             @ErrorDateTime DATETIME;
+    DECLARE @SelectedClients TABLE
+    (
+        ClientId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        IsPrimary BIT NOT NULL
+    );
 
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
@@ -147,8 +153,57 @@ BEGIN
         END
     END
 
-    IF @ClientIdFK IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM Profile.Clients WHERE ClientId = @ClientIdFK AND IsDeleted = 0)
+    IF @ClientIdFK IS NULL
+    BEGIN
+        SET @Message = 'ClientIdFK is required.';
+        SET @StatusCode = 1;
+        RETURN;
+    END
+
+    INSERT INTO @SelectedClients (ClientId, IsPrimary)
+    VALUES (@ClientIdFK, 1);
+
+    IF LTRIM(RTRIM(ISNULL(@AdditionalClientIds, ''))) <> ''
+    BEGIN
+        IF EXISTS
+        (
+            SELECT 1
+            FROM STRING_SPLIT(@AdditionalClientIds, ',') AS Raw
+            WHERE LTRIM(RTRIM(ISNULL(Raw.value, ''))) <> ''
+              AND TRY_CONVERT(UNIQUEIDENTIFIER, LTRIM(RTRIM(Raw.value))) IS NULL
+        )
+        BEGIN
+            SET @Message = 'Invalid additional client selection.';
+            SET @StatusCode = 1;
+            RETURN;
+        END
+
+        INSERT INTO @SelectedClients (ClientId, IsPrimary)
+        SELECT DISTINCT Parsed.ClientId, 0
+        FROM
+        (
+            SELECT TRY_CONVERT(UNIQUEIDENTIFIER, LTRIM(RTRIM(value))) AS ClientId
+            FROM STRING_SPLIT(@AdditionalClientIds, ',')
+        ) AS Parsed
+        WHERE Parsed.ClientId IS NOT NULL
+          AND Parsed.ClientId <> @ClientIdFK
+          AND NOT EXISTS
+          (
+              SELECT 1
+              FROM @SelectedClients Selected
+              WHERE Selected.ClientId = Parsed.ClientId
+          );
+    END
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @SelectedClients Selected
+        LEFT JOIN Profile.Clients C
+            ON C.ClientId = Selected.ClientId
+           AND C.IsDeleted = 0
+        WHERE C.ClientId IS NULL
+    )
     BEGIN
         SET @Message = 'Invalid ClientIdFK.';
         SET @StatusCode = 1;
@@ -264,6 +319,31 @@ BEGIN
 
         INSERT INTO Contacts.PatientPhones (PatientPhoneId, PatientIdFK, PhoneIdFK, IsPrimary, PhoneType)
         VALUES (NEWID(), @PatientId, @PhoneIDFK, 1, 'Primary');
+
+        IF OBJECT_ID(N'Profile.PatientClients', N'U') IS NOT NULL
+        BEGIN
+            INSERT INTO Profile.PatientClients
+            (
+                PatientClientId,
+                PatientIdFK,
+                ClientIdFK,
+                IsPrimary,
+                CreatedDate,
+                CreatedBy,
+                UpdatedDate,
+                UpdatedBy
+            )
+            SELECT
+                NEWID(),
+                @PatientId,
+                Selected.ClientId,
+                Selected.IsPrimary,
+                @DefaultDate,
+                SUSER_SNAME(),
+                @DefaultDate,
+                SUSER_SNAME()
+            FROM @SelectedClients Selected;
+        END
 
         COMMIT TRAN;
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED;

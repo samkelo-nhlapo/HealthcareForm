@@ -98,6 +98,7 @@ GO
 
 -- Optional test data (disabled by default)
 -- :r "005-table-inserts/015. Insert SampleTestData.sql"
+-- :r "005-table-inserts/018. Insert ClientStaffDummyData.sql"
 
 PRINT '================================================================================================';
 PRINT 'Modular full deployment complete: ' + CONVERT(VARCHAR(25), GETDATE(), 121);
