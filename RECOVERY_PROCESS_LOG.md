@@ -108,18 +108,19 @@ Date: 2026-08-27
 
 ## Automated Test Validation
 
-Status: Completed with fixture failures
+Status: Completed
 Date: 2026-08-27
 
 - Backend unit-only run passed 57/57 tests with DB-backed execution disabled.
-- Backend DB-backed run passed 50/57 tests against an isolated migrated clone.
-- The seven failures are fixture-dependent: scheduling could not find a patient, patient workflows returned HTTP 500 without reference data, client detail found no client, and two scheduling reads returned HTTP 500 on the empty dataset.
+- Added a serialized xUnit database collection and idempotent fixture for lookup, client, patient, provider, role, staff, and affiliation baseline rows.
+- The first fixture run exposed additional database drift: the clone lacked the expanded client columns and current modular stored procedures.
+- After applying the canonical `[Profile].[Clients]` table definition and modular stored-procedure deployment to a disposable clone, the full backend suite passed 57/57.
 - Angular `npm test -- --watch=false --browsers=ChromeHeadless` passed 23/23 tests.
-- The disposable test database was removed; live `HealthcareForm` remained at zero Clients, Patients, and Appointments and passed `DBCC CHECKDB`.
+- The disposable test database was removed; live `HealthcareForm` remained at zero Clients, Patients, and Appointments and passed `DBCC CHECKDB` after validation.
 
 ## Remaining Follow-up
 
 Status: Pending
 
-- Make DB-backed integration tests self-seeding or provide a documented fixture database before treating the full backend suite as green.
+- Apply the canonical expanded `Profile.Clients` schema and modular stored-procedure deployment to live `HealthcareForm` only after a fresh verified backup; this validation phase did not modify live data or procedures.
 - Establish a proper Flyway history baseline before future automated migration runs; the current manual migration remains intentionally recorded here.

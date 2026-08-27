@@ -5,6 +5,7 @@ using Xunit;
 
 namespace HealthcareForm.Tests.Integration;
 
+[Collection("Database integration")]
 public sealed class StoredProcedureApiTests
 {
     [Fact]

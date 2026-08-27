@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 
 namespace HealthcareForm.Tests.Integration;
 
+[Collection("Database integration")]
 public sealed class PatientRegistrationLookupTests
 {
     [Fact]

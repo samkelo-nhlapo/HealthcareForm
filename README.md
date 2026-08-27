@@ -67,13 +67,16 @@ npm start
 
 ## Integration Tests (DB-backed)
 
-The stored-procedure integration tests require a live SQL Server connection. Provide a connection
-string via `HF_TEST_DB_CONNECTION` (or `ConnectionStrings__HealthcareEntity`) when running tests:
+The stored-procedure integration tests require a SQL Server connection. The shared integration
+fixture creates deterministic `HF-TEST-*` baseline rows, so point it at an isolated test database
+and do not use a production or recovery database:
 
 ```bash
-HF_TEST_DB_CONNECTION="Server=localhost,1433;Database=HealthcareForm;User Id=sa;Password=YOUR_REAL_PASSWORD;TrustServerCertificate=true" \
+HF_TEST_DB_CONNECTION="Server=localhost,1433;Database=HealthcareFormAutomatedTest;User Id=sa;Password=YOUR_REAL_PASSWORD;TrustServerCertificate=true" \
 dotnet test 002-code/HealthcareForm/HealthcareForm.sln
 ```
+
+The test database must already have the current application schema and stored procedures deployed.
 
 ## API Quick Checks
 

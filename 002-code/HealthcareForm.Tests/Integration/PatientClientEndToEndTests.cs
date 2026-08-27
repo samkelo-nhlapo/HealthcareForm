@@ -7,6 +7,7 @@ using System.Threading;
 
 namespace HealthcareForm.Tests.Integration;
 
+[Collection("Database integration")]
 public sealed class PatientClientEndToEndTests
 {
     private static long _idSeed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
